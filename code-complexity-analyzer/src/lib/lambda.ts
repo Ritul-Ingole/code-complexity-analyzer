@@ -11,10 +11,16 @@ export async function invokeLambda(payload: Record<string, unknown>) {
   })
 
   const result = await lambda.send(command)
-  const responsePayload = JSON.parse(
-    Buffer.from(result.Payload!).toString()
-  )
+  
+  if (!result.Payload) {
+    throw new Error("Lambda returned empty payload")
+  }
 
-  // Parse the body string from Lambda response
+  const responsePayload = JSON.parse(Buffer.from(result.Payload).toString())
+  
+  if (!responsePayload.body) {
+    throw new Error(`Lambda error: ${JSON.stringify(responsePayload)}`)
+  }
+
   return JSON.parse(responsePayload.body)
 }

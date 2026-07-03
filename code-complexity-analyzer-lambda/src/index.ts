@@ -4,6 +4,8 @@ import http from "isomorphic-git/http/node"
 import * as fs from "fs"
 import { rmSync, existsSync, mkdirSync } from "fs"
 import { resolve } from "path"
+import { parse } from "@babel/parser"
+import { Node } from "@babel/types"
 
 export const handler: APIGatewayProxyHandlerV2 = async (event) => {
   console.log("Lambda invoked with:", event.body)
@@ -14,7 +16,6 @@ export const handler: APIGatewayProxyHandlerV2 = async (event) => {
   let repoPath: string | null = null
 
   try {
-    // Extract owner/repo from URL
     const match = repoUrl.match(/github\.com\/([^/]+)\/([^/]+?)(\.git)?$/)
     if (!match) {
       return {
@@ -25,7 +26,6 @@ export const handler: APIGatewayProxyHandlerV2 = async (event) => {
 
     const [, owner, repo] = match
 
-    // Pre-check repo size via GitHub API
     console.log(`Checking repo size for ${owner}/${repo}`)
     const repoSize = await getRepoSize(owner, repo)
     console.log(`Repo size: ${repoSize} KB (${(repoSize / 1024).toFixed(2)} MB)`)
@@ -41,7 +41,6 @@ export const handler: APIGatewayProxyHandlerV2 = async (event) => {
       }
     }
 
-    // Clone with isomorphic-git (no git binary needed)
     repoPath = resolve("/tmp", `repo-${userId}-${Date.now()}`)
     mkdirSync(repoPath, { recursive: true })
 
@@ -57,7 +56,6 @@ export const handler: APIGatewayProxyHandlerV2 = async (event) => {
     })
     console.log("Clone complete")
 
-    // Get commit history
     const commits = await git.log({
       fs,
       dir: repoPath,
@@ -65,21 +63,71 @@ export const handler: APIGatewayProxyHandlerV2 = async (event) => {
     })
     console.log(`Found ${commits.length} commits`)
 
-    // TODO: Week 2 continues here
-    // - Parse each commit with @babel/parser
-    // - Compute cyclomatic complexity, LOC, function count
-    // - Batch write to DynamoDB
-    // - Stream SSE progress
+    const results = []
+
+    for (const commit of commits) {
+      try {
+        const files = await git.listFiles({
+          fs,
+          dir: repoPath,
+          ref: commit.oid,
+        })
+
+        const jsFiles = files.filter(f =>
+          f.endsWith(".js") || f.endsWith(".jsx")
+        )
+
+        let totalLoc = 0
+        let totalFunctions = 0
+        let totalComplexity = 0
+        let fileCount = 0
+
+        for (const file of jsFiles) {
+          try {
+            const { blob } = await git.readBlob({
+              fs,
+              dir: repoPath!,
+              oid: commit.oid,
+              filepath: file,
+            })
+
+            const content = Buffer.from(blob).toString("utf8")
+            const metrics = analyzeFile(content)
+
+            totalLoc += metrics.loc
+            totalFunctions += metrics.functionCount
+            totalComplexity += metrics.complexity
+            fileCount++
+          } catch {
+            // Skip unparseable files
+          }
+        }
+
+        results.push({
+          sha: commit.oid,
+          date: new Date(commit.commit.author.timestamp * 1000).toISOString(),
+          message: commit.commit.message.slice(0, 100),
+          loc: totalLoc,
+          functionCount: totalFunctions,
+          complexity: fileCount > 0 ? totalComplexity / fileCount : 0,
+          fileCount,
+        })
+      } catch {
+        // Skip commits that can't be analyzed
+      }
+    }
+
+    console.log(`Analysis complete for ${results.length} commits`)
 
     return {
       statusCode: 200,
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        status: "clone_complete",
+        status: "analysis_complete",
         repoUrl,
         userId,
         commitCount: commits.length,
-        message: `Successfully cloned ${commits.length} commits`,
+        results,
       }),
     }
   } catch (error) {
@@ -92,7 +140,6 @@ export const handler: APIGatewayProxyHandlerV2 = async (event) => {
       }),
     }
   } finally {
-    // Always clean up /tmp
     if (repoPath && existsSync(repoPath)) {
       try {
         console.log(`Cleaning up ${repoPath}`)
@@ -102,6 +149,60 @@ export const handler: APIGatewayProxyHandlerV2 = async (event) => {
         console.error("Cleanup failed:", err)
       }
     }
+  }
+}
+
+function analyzeFile(content: string): { loc: number; functionCount: number; complexity: number } {
+  const loc = content.split("\n").length
+
+  try {
+    const ast = parse(content, {
+      sourceType: "unambiguous",
+      plugins: ["jsx", "typescript"],
+      errorRecovery: true,
+    })
+
+    let functionCount = 0
+    let complexity = 1
+
+    function walk(node: Node | null) {
+      if (!node || typeof node !== "object") return
+
+      switch (node.type) {
+        case "FunctionDeclaration":
+        case "FunctionExpression":
+        case "ArrowFunctionExpression":
+          functionCount++
+          break
+        case "IfStatement":
+        case "WhileStatement":
+        case "ForStatement":
+        case "ForInStatement":
+        case "ForOfStatement":
+        case "ConditionalExpression":
+        case "CatchClause":
+          complexity++
+          break
+        case "LogicalExpression":
+          if (node.operator === "&&" || node.operator === "||") complexity++
+          break
+      }
+
+      for (const key of Object.keys(node)) {
+        const child = (node as unknown as Record<string, unknown>)[key]
+        if (Array.isArray(child)) {
+          child.forEach(c => walk(c as Node))
+        } else if (child && typeof child === "object" && "type" in (child as object)) {
+          walk(child as Node)
+        }
+      }
+    }
+
+    walk(ast.program as unknown as Node)
+
+    return { loc, functionCount, complexity }
+  } catch {
+    return { loc, functionCount: 0, complexity: 1 }
   }
 }
 

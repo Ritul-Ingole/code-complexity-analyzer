@@ -63,71 +63,85 @@ export const handler: APIGatewayProxyHandlerV2 = async (event) => {
     })
     console.log(`Found ${commits.length} commits`)
 
-    const results = []
+    // ANALYZE HEAD ONLY
+    const headCommit = commits[0]
+    console.log(`Analyzing HEAD: ${headCommit.oid}`)
 
-    for (const commit of commits) {
+    const files = await git.listFiles({
+      fs,
+      dir: repoPath,
+      ref: headCommit.oid,
+    })
+
+    const jsFiles = files.filter(f =>
+      f.endsWith(".js") || f.endsWith(".jsx") || f.endsWith(".ts") || f.endsWith(".tsx")
+    )
+
+    console.log(`Found ${jsFiles.length} JS/TS files`)
+
+    const fileMetrics: Array<{
+      path: string
+      loc: number
+      functions: number
+      complexity: number
+    }> = []
+
+    let totalLoc = 0
+    let totalFunctions = 0
+    let totalComplexity = 0
+
+    for (const file of jsFiles) {
       try {
-        const files = await git.listFiles({
+        const { blob } = await git.readBlob({
           fs,
-          dir: repoPath,
-          ref: commit.oid,
+          dir: repoPath!,
+          oid: headCommit.oid,
+          filepath: file,
         })
 
-        const jsFiles = files.filter(f =>
-          f.endsWith(".js") || f.endsWith(".jsx")
-        )
+        const content = Buffer.from(blob).toString("utf8")
+        const metrics = analyzeFile(content)
 
-        let totalLoc = 0
-        let totalFunctions = 0
-        let totalComplexity = 0
-        let fileCount = 0
-
-        for (const file of jsFiles) {
-          try {
-            const { blob } = await git.readBlob({
-              fs,
-              dir: repoPath!,
-              oid: commit.oid,
-              filepath: file,
-            })
-
-            const content = Buffer.from(blob).toString("utf8")
-            const metrics = analyzeFile(content)
-
-            totalLoc += metrics.loc
-            totalFunctions += metrics.functionCount
-            totalComplexity += metrics.complexity
-            fileCount++
-          } catch {
-            // Skip unparseable files
-          }
-        }
-
-        results.push({
-          sha: commit.oid,
-          date: new Date(commit.commit.author.timestamp * 1000).toISOString(),
-          message: commit.commit.message.slice(0, 100),
-          loc: totalLoc,
-          functionCount: totalFunctions,
-          complexity: fileCount > 0 ? totalComplexity / fileCount : 0,
-          fileCount,
+        fileMetrics.push({
+          path: file,
+          loc: metrics.loc,
+          functions: metrics.functionCount,
+          complexity: metrics.complexity,
         })
+
+        totalLoc += metrics.loc
+        totalFunctions += metrics.functionCount
+        totalComplexity += metrics.complexity
       } catch {
-        // Skip commits that can't be analyzed
+        // Skip unparseable files
       }
     }
 
-    console.log(`Analysis complete for ${results.length} commits`)
+    // Sort by complexity descending
+    fileMetrics.sort((a, b) => b.complexity - a.complexity)
+
+    const results = {
+      timestamp: new Date().toISOString(),
+      repoUrl,
+      headSha: headCommit.oid,
+      totalCommits: commits.length,
+      metrics: {
+        totalLoc,
+        totalFunctions,
+        averageComplexity: fileMetrics.length > 0 ? totalComplexity / fileMetrics.length : 0,
+        fileCount: fileMetrics.length,
+      },
+      topComplexFiles: fileMetrics.slice(0, 10),
+    }
+
+    console.log(`Analysis complete: ${fileMetrics.length} files analyzed`)
 
     return {
       statusCode: 200,
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         status: "analysis_complete",
-        repoUrl,
-        userId,
-        commitCount: commits.length,
-        results,
+        data: results,
       }),
     }
   } catch (error) {

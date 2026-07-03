@@ -1,15 +1,37 @@
 "use client"
 
 import { useState } from "react"
+import AnalysisResults from "./AnalysisResult"
+
+interface AnalysisData {
+  timestamp: string
+  repoUrl: string
+  headSha: string
+  totalCommits: number
+  metrics: {
+    totalLoc: number
+    totalFunctions: number
+    averageComplexity: number
+    fileCount: number
+  }
+  topComplexFiles: Array<{
+    path: string
+    loc: number
+    functions: number
+    complexity: number
+  }>
+}
 
 export default function AnalyzeForm() {
   const [repoUrl, setRepoUrl] = useState("")
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
+  const [results, setResults] = useState<AnalysisData | null>(null)
 
   const handleAnalyze = async (e: React.FormEvent) => {
     e.preventDefault()
     setError("")
+    setResults(null)
     setLoading(true)
 
     try {
@@ -25,8 +47,7 @@ export default function AnalyzeForm() {
       }
 
       const data = await res.json()
-      console.log("Analysis response:", data)
-      // TODO: redirect to dashboard with analysisId
+      setResults(data.data)
     } catch (err) {
       setError(
         err instanceof Error ? err.message : "Something went wrong"
@@ -34,6 +55,10 @@ export default function AnalyzeForm() {
     } finally {
       setLoading(false)
     }
+  }
+
+  if (results) {
+    return <AnalysisResults data={results} onBack={() => setResults(null)} />
   }
 
   return (

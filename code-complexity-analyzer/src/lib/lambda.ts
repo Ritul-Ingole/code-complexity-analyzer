@@ -6,7 +6,8 @@ export async function invokeLambda(payload: Record<string, unknown>) {
   const command = new InvokeCommand({
     FunctionName: process.env.LAMBDA_FUNCTION_NAME,
     Payload: JSON.stringify({
-      body: JSON.stringify(payload)
+      repoUrl: payload.repoUrl,
+      userId: payload.userId
     })
   })
 

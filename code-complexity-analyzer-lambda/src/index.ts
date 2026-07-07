@@ -6,12 +6,15 @@ import { rmSync, existsSync, mkdirSync } from "fs"
 import { resolve } from "path"
 import { parse } from "@babel/parser"
 import { Node } from "@babel/types"
+import { DynamoDBClient } from "@aws-sdk/client-dynamodb"
+import { DynamoDBDocumentClient, PutCommand } from "@aws-sdk/lib-dynamodb"
 
-export const handler: APIGatewayProxyHandlerV2 = async (event) => {
-  console.log("Lambda invoked with:", event.body)
+const dynamoClient = new DynamoDBClient({ region: process.env.AWS_REGION || "ap-south-1" })
+const docClient = DynamoDBDocumentClient.from(dynamoClient)
 
-  const body = JSON.parse(event.body || "{}")
-  const { repoUrl, userId } = body
+export const handler = async (event: any) => {
+  console.log("Lambda invoked with:", event)
+  const { repoUrl, userId } = event
 
   let repoPath: string | null = null
 
@@ -135,6 +138,31 @@ export const handler: APIGatewayProxyHandlerV2 = async (event) => {
     }
 
     console.log(`Analysis complete: ${fileMetrics.length} files analyzed`)
+
+    const analysisId = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
+
+    try {
+      await docClient.send(
+        new PutCommand({
+          TableName: process.env.DYNAMODB_TABLE_NAME || "complexity-analyses",
+          Item: {
+            userID: String(userId),
+            analysisId,
+            repoUrl,
+            timestamp: new Date().toISOString(),
+            headSha: headCommit.oid,
+            totalCommits: commits.length,
+            metrics: results.metrics,
+            topComplexFiles: results.topComplexFiles,
+            ttl: Math.floor(Date.now() / 1000) + 30 * 24 * 60 * 60, // 30 days
+          },
+        })
+      )
+      console.log(`Analysis saved with ID: ${analysisId}`)
+    } catch (error) {
+      console.error("Failed to save to DynamoDB:", error)
+      // Don't fail the whole invocation if DynamoDB write fails
+    }
 
     return {
       statusCode: 200,

@@ -19,6 +19,11 @@ export async function POST(req: NextRequest) {
       )
     }
 
+    console.log("About to invoke Lambda with:", {
+  repoUrl,
+  userId: session.userId
+})
+
     const result = await invokeLambda({
       repoUrl,
       userId: session.userId

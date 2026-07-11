@@ -41,12 +41,13 @@ export default function AnalyzeForm() {
         body: JSON.stringify({ repoUrl })
       })
 
+      const data = await res.json()
+
       if (!res.ok) {
-        const data = await res.json()
-        throw new Error(data.error || "Analysis failed")
+        // Display Lambda error message if available
+        throw new Error(data.message || data.error || "Analysis failed")
       }
 
-      const data = await res.json()
       setResults(data.data)
     } catch (err) {
       setError(

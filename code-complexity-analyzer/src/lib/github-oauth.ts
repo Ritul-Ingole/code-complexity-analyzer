@@ -24,7 +24,7 @@ const GITHUB_USER_URL = "https://api.github.com/user"
 
 export function getGitHubAuthUrl() {
   const params = new URLSearchParams({
-    client_id: GITHUB_CLIENT_ID,
+    client_id: GITHUB_CLIENT_ID, // Now guaranteed to be string, not undefined
     redirect_uri: `${APP_URL}/api/auth/callback`,
     scope: "read:user user:email",
     state: Math.random().toString(36).slice(2)

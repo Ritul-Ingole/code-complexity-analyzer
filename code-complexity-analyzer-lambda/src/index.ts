@@ -1,4 +1,6 @@
 import { APIGatewayProxyHandlerV2 } from "aws-lambda"
+import git from "isomorphic-git"
+import http from "isomorphic-git/http/node"
 import * as fs from "fs"
 import { rmSync, existsSync, mkdirSync } from "fs"
 import { resolve } from "path"
@@ -9,9 +11,6 @@ import { DynamoDBDocumentClient, PutCommand } from "@aws-sdk/lib-dynamodb"
 
 const dynamoClient = new DynamoDBClient({ region: process.env.AWS_REGION || "ap-south-1" })
 const docClient = DynamoDBDocumentClient.from(dynamoClient)
-
-// Make git from layer available
-process.env.PATH = `/opt/bin:${process.env.PATH}`
 
 export const handler = async (event: any) => {
   console.log("Lambda invoked with:", event)
@@ -49,39 +48,33 @@ export const handler = async (event: any) => {
     mkdirSync(repoPath, { recursive: true })
 
     console.log(`Cloning ${repoUrl} to ${repoPath}`)
-    const { execSync } = require('child_process')
-    try {
-      execSync(`git clone --depth 500 --single-branch --no-tags ${repoUrl} ${repoPath}`, {
-        stdio: 'pipe',
-        maxBuffer: 10 * 1024 * 1024,
-      })
-    } catch (error) {
-      throw new Error(`Git clone failed: ${error instanceof Error ? error.message : String(error)}`)
-    }
+    await git.clone({
+      fs,
+      http,
+      dir: repoPath,
+      url: repoUrl,
+      singleBranch: true,
+      noTags: true,
+    })
     console.log("Clone complete")
 
-    // Get commit count
-    const commitsOutput = execSync(`git -C ${repoPath} log --oneline | wc -l`, {
-      encoding: 'utf-8'
+    const commits = await git.log({
+      fs,
+      dir: repoPath,
     })
-    const commits = parseInt(commitsOutput.trim())
-    console.log(`Found ${commits} commits`)
-
+    console.log(`Found ${commits.length} commits`)
 
     // ANALYZE HEAD ONLY
-    const headShaOutput = execSync(`git -C ${repoPath} rev-parse HEAD`, {
-      encoding: 'utf-8'
-    })
-    const headSha = headShaOutput.trim()
-    console.log(`Analyzing HEAD: ${headSha}`)
+    const headCommit = commits[0]
+    console.log(`Analyzing HEAD: ${headCommit.oid}`)
 
-    // Get all JS/TS files in the repo
-    const filesOutput = execSync(`git -C ${repoPath} ls-tree -r --name-only HEAD`, {
-      encoding: 'utf-8'
+    const files = await git.listFiles({
+      fs,
+      dir: repoPath,
+      ref: headCommit.oid,
     })
-    const allFiles = filesOutput.split('\n').filter(Boolean)
 
-    const jsFiles = allFiles.filter((f: string) =>
+    const jsFiles = files.filter((f: string) =>
       f.endsWith(".js") || f.endsWith(".jsx") || f.endsWith(".ts") || f.endsWith(".tsx")
     )
 
@@ -100,11 +93,14 @@ export const handler = async (event: any) => {
 
     for (const file of jsFiles) {
       try {
-        const content = execSync(`git -C ${repoPath} show HEAD:${file}`, {
-          encoding: 'utf-8',
-          stdio: ['pipe', 'pipe', 'pipe']
+        const { blob } = await git.readBlob({
+          fs,
+          dir: repoPath!,
+          oid: headCommit.oid,
+          filepath: file,
         })
 
+        const content = Buffer.from(blob).toString("utf8")
         const metrics = analyzeFile(content)
 
         fileMetrics.push({
@@ -128,8 +124,8 @@ export const handler = async (event: any) => {
     const results = {
       timestamp: new Date().toISOString(),
       repoUrl,
-      headSha,
-      totalCommits: commits,
+      headSha: headCommit.oid,
+      totalCommits: commits.length,
       metrics: {
         totalLoc,
         totalFunctions,
@@ -152,18 +148,17 @@ export const handler = async (event: any) => {
             analysisId,
             repoUrl,
             timestamp: new Date().toISOString(),
-            headSha: headSha,
-            totalCommits: commits,
+            headSha: headCommit.oid,
+            totalCommits: commits.length,
             metrics: results.metrics,
             topComplexFiles: results.topComplexFiles,
-            ttl: Math.floor(Date.now() / 1000) + 30 * 24 * 60 * 60, // 30 days
+            ttl: Math.floor(Date.now() / 1000) + 30 * 24 * 60 * 60,
           },
         })
       )
       console.log(`Analysis saved with ID: ${analysisId}`)
     } catch (error) {
       console.error("Failed to save to DynamoDB:", error)
-      // Don't fail the whole invocation if DynamoDB write fails
     }
 
     return {

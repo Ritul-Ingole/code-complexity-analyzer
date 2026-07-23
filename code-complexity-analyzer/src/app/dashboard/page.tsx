@@ -9,5 +9,5 @@ export default async function DashboardPage() {
     redirect("/")
   }
 
-  return <DashboardClient userId={session.userId} />
+  return <DashboardClient userId={String(session.userId)} />
 }

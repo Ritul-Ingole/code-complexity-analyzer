@@ -1,6 +1,18 @@
 "use client"
 
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts"
+import dynamic from "next/dynamic"
+
+const BarChartComponent = dynamic(
+  () => import("recharts").then((mod) => mod.BarChart),
+  { ssr: false }
+)
+
+const ResponsiveContainerComponent = dynamic(
+  () => import("recharts").then((mod) => mod.ResponsiveContainer),
+  { ssr: false }
+)
+
 
 interface Metric {
   totalLoc: number
@@ -66,8 +78,8 @@ export default function AnalysisResults({ data, onBack }: AnalysisResultsProps) 
       {/* Top Complex Files Chart */}
       <div className="bg-white rounded-lg shadow p-6">
         <h3 className="text-lg font-semibold mb-4 text-gray-900">Top 10 Most Complex Files</h3>
-        <ResponsiveContainer width="100%" height={300}>
-          <BarChart data={chartData} margin={{ bottom: 80 }}>
+        <ResponsiveContainerComponent width="100%" height={300}>
+          <BarChartComponent data={chartData} margin={{ bottom: 80 }}>
             <CartesianGrid strokeDasharray="3 3" />
             <XAxis
               dataKey="displayName"
@@ -79,8 +91,8 @@ export default function AnalysisResults({ data, onBack }: AnalysisResultsProps) 
             <YAxis domain={[0, "dataMax + 5"]} />
             <Tooltip />
             <Bar dataKey="complexity" fill="#3b82f6" name="Complexity Score" />
-          </BarChart>
-        </ResponsiveContainer>
+          </BarChartComponent>
+        </ResponsiveContainerComponent>
       </div>
 
       {/* Files Table */}

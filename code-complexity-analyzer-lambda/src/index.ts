@@ -33,7 +33,7 @@ export const handler = async (event: any) => {
     const repoSize = await getRepoSize(owner, repo)
     console.log(`Repo size: ${repoSize} KB (${(repoSize / 1024).toFixed(2)} MB)`)
 
-    if (repoSize > 500000) {
+    if (repoSize > 102400) { // 100 MB limit
       return {
         statusCode: 400,
         body: JSON.stringify({
@@ -255,6 +255,12 @@ async function getRepoSize(owner: string, repo: string): Promise<number> {
       }),
     },
   })
+
+  if (response.status === 404) {
+    throw new Error(
+      "Repository not found. It may be private, misspelled, or deleted. This tool only supports public repositories."
+    )
+  }
 
   if (!response.ok) {
     throw new Error(`Failed to fetch repo metadata: ${response.statusText}`)

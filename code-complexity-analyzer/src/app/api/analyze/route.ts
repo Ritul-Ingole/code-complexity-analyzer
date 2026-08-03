@@ -18,22 +18,22 @@ export async function POST(req: NextRequest) {
         { status: 400 }
       )
     }
-    
+
     console.log("About to invoke Lambda with:", {
       repoUrl,
       userId: session.userId
     })
 
-    const result = await invokeLambda({
+    const { statusCode, body } = await invokeLambda({
       repoUrl,
       userId: session.userId
     })
 
-    return NextResponse.json(result)
+    return NextResponse.json(body, { status: statusCode })
   } catch (error) {
     console.error("Lambda invoke error:", error)
     return NextResponse.json(
-      { error: "Failed to invoke analysis" },
+      { error: "Failed to invoke analysis", message: error instanceof Error ? error.message : "Unknown error" },
       { status: 500 }
     )
   }

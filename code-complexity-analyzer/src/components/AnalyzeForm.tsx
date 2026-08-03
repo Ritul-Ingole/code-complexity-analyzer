@@ -28,11 +28,19 @@ export default function AnalyzeForm() {
   const [error, setError] = useState("")
   const [results, setResults] = useState<AnalysisData | null>(null)
 
+  
+
   const handleAnalyze = async (e: React.FormEvent) => {
     e.preventDefault()
     setError("")
     setResults(null)
     setLoading(true)
+
+    const githubUrlPattern = /^https:\/\/github\.com\/[\w.-]+\/[\w.-]+\/?$/
+    if (!githubUrlPattern.test(repoUrl.trim())) {
+      setError("Please enter a valid GitHub repository URL, e.g. https://github.com/owner/repo")
+      return
+    }
 
     try {
       const res = await fetch("/api/analyze", {

@@ -80,6 +80,17 @@ export const handler = async (event: any) => {
 
     console.log(`Found ${jsFiles.length} JS/TS files`)
 
+    if (jsFiles.length > 500) {
+      return {
+        statusCode: 400,
+        body: JSON.stringify({
+          error: "Too many files to analyze",
+          message: `This repository has ${jsFiles.length} JavaScript/TypeScript files, which exceeds the current limit of 500. Try a smaller repository or a specific subdirectory.`,
+          fileCount: jsFiles.length,
+        }),
+      }
+    }
+
     const fileMetrics: Array<{
       path: string
       loc: number

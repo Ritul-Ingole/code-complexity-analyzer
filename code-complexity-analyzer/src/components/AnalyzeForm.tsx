@@ -2,6 +2,7 @@
 
 import { useState } from "react"
 import AnalysisResults from "./AnalysisResult"
+import AnalyzingScreen from "./AnalyzingScreen"
 
 interface AnalysisData {
   timestamp: string
@@ -22,25 +23,32 @@ interface AnalysisData {
   }>
 }
 
+// How long to show the "Analysis ready" confirmation before revealing results.
+// Long enough to not feel abrupt, short enough to not feel like a delay.
+const READY_GRACE_PERIOD_MS = 1800
+
 export default function AnalyzeForm() {
   const [repoUrl, setRepoUrl] = useState("")
   const [loading, setLoading] = useState(false)
+  const [ready, setReady] = useState(false)
   const [error, setError] = useState("")
   const [results, setResults] = useState<AnalysisData | null>(null)
-
-  
 
   const handleAnalyze = async (e: React.FormEvent) => {
     e.preventDefault()
     setError("")
     setResults(null)
-    setLoading(true)
 
+    // Validate before entering the loading state, so a bad URL never
+    // leaves the button stuck on "Analyzing..."
     const githubUrlPattern = /^https:\/\/github\.com\/[\w.-]+\/[\w.-]+\/?$/
     if (!githubUrlPattern.test(repoUrl.trim())) {
       setError("Please enter a valid GitHub repository URL, e.g. https://github.com/owner/repo")
       return
     }
+
+    setLoading(true)
+    setReady(false)
 
     try {
       const res = await fetch("/api/analyze", {
@@ -56,18 +64,30 @@ export default function AnalyzeForm() {
         throw new Error(data.message || data.error || "Analysis failed")
       }
 
-      setResults(data.data)
+      // Show the "ready" confirmation briefly before revealing results,
+      // so we don't cut someone off mid-fact.
+      setReady(true)
+      setTimeout(() => {
+        setResults(data.data)
+        setLoading(false)
+      }, READY_GRACE_PERIOD_MS)
     } catch (err) {
       setError(
         err instanceof Error ? err.message : "Something went wrong"
       )
-    } finally {
       setLoading(false)
     }
   }
 
   if (results) {
-    return <AnalysisResults data={results} onBack={() => setResults(null)} />
+    return <AnalysisResults data={results} onBack={() => {
+      setResults(null)
+      setReady(false)
+    }} />
+  }
+
+  if (loading) {
+    return <AnalyzingScreen ready={ready} />
   }
 
   return (
@@ -94,10 +114,9 @@ export default function AnalyzeForm() {
 
       <button
         type="submit"
-        disabled={loading}
-        className="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 disabled:bg-gray-400"
+        className="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700"
       >
-        {loading ? "Analyzing..." : "Analyze"}
+        Analyze
       </button>
     </form>
   )

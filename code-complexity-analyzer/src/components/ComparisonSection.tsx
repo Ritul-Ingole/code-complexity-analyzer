@@ -44,6 +44,134 @@ function getComplexityColor(complexity: number): string {
   return "bg-green-500"
 }
 
+// Single analysis column - reused for both current and previous, side by side on desktop
+function AnalysisColumn({
+  title,
+  subtitle,
+  analysis,
+  chartHeight,
+}: {
+  title: string
+  subtitle?: string
+  analysis: Analysis
+  chartHeight: number
+}) {
+  const chartData = analysis.topComplexFiles.map((file) => ({
+    ...file,
+    displayName: file.path.split("/").pop() || file.path,
+  }))
+
+  return (
+    <div className="space-y-4">
+      <h4 className="text-base font-semibold text-gray-900">
+        {title}
+        {subtitle && (
+          <span className="text-gray-500 font-normal text-sm"> ({subtitle})</span>
+        )}
+      </h4>
+
+      <div className="grid grid-cols-2 gap-3 text-sm">
+        <div>
+          <p className="text-gray-600">LOC</p>
+          <p className="text-lg font-bold text-gray-900">
+            {analysis.metrics.totalLoc.toLocaleString()}
+          </p>
+        </div>
+        <div>
+          <p className="text-gray-600">Functions</p>
+          <p className="text-lg font-bold text-gray-900">
+            {analysis.metrics.totalFunctions}
+          </p>
+        </div>
+        <div>
+          <p className="text-gray-600">Avg Complexity</p>
+          <p className="text-lg font-bold text-gray-900">
+            {analysis.metrics.averageComplexity.toFixed(1)}
+          </p>
+        </div>
+        <div>
+          <p className="text-gray-600">Files</p>
+          <p className="text-lg font-bold text-gray-900">
+            {analysis.metrics.fileCount}
+          </p>
+        </div>
+      </div>
+
+      {/* Chart */}
+      <div className="bg-gray-50 rounded-lg p-4">
+        <p className="text-sm font-semibold text-gray-700 mb-3">
+          Top Complex Files
+        </p>
+        <ResponsiveContainerComponent width="100%" height={chartHeight}>
+          <BarChartComponent
+            data={chartData}
+            layout="vertical"
+            margin={{ left: 8, right: 24, top: 8, bottom: 8 }}
+          >
+            <CartesianGrid strokeDasharray="3 3" horizontal={false} />
+            <XAxis type="number" domain={[0, "dataMax + 5"]} tick={{ fontSize: 12 }} />
+            <YAxis
+              type="category"
+              dataKey="displayName"
+              width={100}
+              tick={{ fontSize: 11 }}
+            />
+            <Tooltip />
+            <Bar
+              dataKey="complexity"
+              fill="#3b82f6"
+              name="Complexity Score"
+              radius={[0, 4, 4, 0]}
+            />
+          </BarChartComponent>
+        </ResponsiveContainerComponent>
+      </div>
+
+      {/* File details table */}
+      <div className="hidden sm:block overflow-x-auto">
+        <table className="w-full text-sm">
+          <thead className="bg-gray-100 border-b border-gray-200">
+            <tr>
+              <th className="px-4 py-2 text-left font-semibold text-gray-700">
+                File
+              </th>
+              <th className="px-4 py-2 text-right font-semibold text-gray-700">
+                LOC
+              </th>
+              <th className="px-4 py-2 text-right font-semibold text-gray-700">
+                Functions
+              </th>
+              <th className="px-4 py-2 text-right font-semibold text-gray-700">
+                Complexity
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            {analysis.topComplexFiles.map((file, idx) => (
+              <tr key={idx} className="border-b border-gray-200 hover:bg-gray-50">
+                <td className="px-4 py-2 text-gray-900">
+                  {file.path.split("/").pop()}
+                </td>
+                <td className="px-4 py-2 text-right text-gray-600">{file.loc}</td>
+                <td className="px-4 py-2 text-right text-gray-600">
+                  {file.functions}
+                </td>
+                <td className="px-4 py-2 text-right">
+                  <span
+                    className={`px-2 py-1 rounded-full text-white text-xs font-semibold ${getComplexityColor(file.complexity)}`}
+                  >
+                    {file.complexity}
+                  </span>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  )
+}
+
 export default function ComparisonSection({
   current,
   priorAnalyses,
@@ -60,18 +188,10 @@ export default function ComparisonSection({
     return null
   }
 
-  // Transform data for chart
-  const currentChartData = current.topComplexFiles.map((file) => ({
-    ...file,
-    displayName: file.path.split("/").pop() || file.path,
-  }))
-
-  const selectedChartData = selectedAnalysis.topComplexFiles.map((file) => ({
-    ...file,
-    displayName: file.path.split("/").pop() || file.path,
-  }))
-
-  const chartHeight = Math.max(300, Math.max(currentChartData.length, selectedChartData.length) * 45)
+  const chartHeight = Math.max(
+    300,
+    Math.max(current.topComplexFiles.length, selectedAnalysis.topComplexFiles.length) * 45
+  )
 
   return (
     <div className="bg-white rounded-lg shadow overflow-hidden">
@@ -104,7 +224,7 @@ export default function ComparisonSection({
             <select
               value={selectedAnalysisIndex}
               onChange={(e) => setSelectedAnalysisIndex(Number(e.target.value))}
-              className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 max-w-md"
             >
               {priorAnalyses.map((analysis, idx) => (
                 <option key={idx} value={idx}>
@@ -121,222 +241,26 @@ export default function ComparisonSection({
             </select>
           </div>
 
-          {/* Stacked comparison: Current on top, Previous below */}
-          <div className="space-y-8">
-            {/* Current Analysis */}
-            <div className="space-y-4">
-              <h4 className="text-base font-semibold text-gray-900">
-                Current Analysis
-              </h4>
-              <div className="grid grid-cols-2 gap-3 md:grid-cols-4 text-sm">
-                <div>
-                  <p className="text-gray-600">LOC</p>
-                  <p className="text-lg font-bold text-gray-900">
-                    {current.metrics.totalLoc.toLocaleString()}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-gray-600">Functions</p>
-                  <p className="text-lg font-bold text-gray-900">
-                    {current.metrics.totalFunctions}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-gray-600">Avg Complexity</p>
-                  <p className="text-lg font-bold text-gray-900">
-                    {current.metrics.averageComplexity.toFixed(1)}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-gray-600">Files</p>
-                  <p className="text-lg font-bold text-gray-900">
-                    {current.metrics.fileCount}
-                  </p>
-                </div>
-              </div>
-
-              {/* Current chart */}
-              <div className="bg-gray-50 rounded-lg p-4">
-                <p className="text-sm font-semibold text-gray-700 mb-3">
-                  Top Complex Files
-                </p>
-                <ResponsiveContainerComponent width="100%" height={chartHeight}>
-                  <BarChartComponent
-                    data={currentChartData}
-                    layout="vertical"
-                    margin={{ left: 8, right: 24, top: 8, bottom: 8 }}
-                  >
-                    <CartesianGrid strokeDasharray="3 3" horizontal={false} />
-                    <XAxis type="number" domain={[0, "dataMax + 5"]} tick={{ fontSize: 12 }} />
-                    <YAxis
-                      type="category"
-                      dataKey="displayName"
-                      width={110}
-                      tick={{ fontSize: 12 }}
-                    />
-                    <Tooltip />
-                    <Bar
-                      dataKey="complexity"
-                      fill="#3b82f6"
-                      name="Complexity Score"
-                      radius={[0, 4, 4, 0]}
-                    />
-                  </BarChartComponent>
-                </ResponsiveContainerComponent>
-              </div>
-
-              {/* Current file details table */}
-              <div className="hidden sm:block overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead className="bg-gray-100 border-b border-gray-200">
-                    <tr>
-                      <th className="px-4 py-2 text-left font-semibold text-gray-700">
-                        File
-                      </th>
-                      <th className="px-4 py-2 text-right font-semibold text-gray-700">
-                        LOC
-                      </th>
-                      <th className="px-4 py-2 text-right font-semibold text-gray-700">
-                        Functions
-                      </th>
-                      <th className="px-4 py-2 text-right font-semibold text-gray-700">
-                        Complexity
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {current.topComplexFiles.map((file, idx) => (
-                      <tr key={idx} className="border-b border-gray-200 hover:bg-gray-50">
-                        <td className="px-4 py-2 text-gray-900">
-                          {file.path.split("/").pop()}
-                        </td>
-                        <td className="px-4 py-2 text-right text-gray-600">{file.loc}</td>
-                        <td className="px-4 py-2 text-right text-gray-600">
-                          {file.functions}
-                        </td>
-                        <td className="px-4 py-2 text-right">
-                          <span
-                            className={`px-2 py-1 rounded-full text-white text-xs font-semibold ${getComplexityColor(file.complexity)}`}
-                          >
-                            {file.complexity}
-                          </span>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+          {/* Responsive comparison: stacked on mobile, side-by-side on lg+ (desktop/big screens) */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-6 lg:divide-x lg:divide-gray-200">
+            <div className="lg:pr-6">
+              <AnalysisColumn
+                title="Current Analysis"
+                analysis={current}
+                chartHeight={chartHeight}
+              />
             </div>
 
-            {/* Divider */}
-            <div className="border-t border-gray-200" />
+            {/* Divider - only shown on mobile between stacked sections */}
+            <div className="border-t border-gray-200 lg:hidden" />
 
-            {/* Previous Analysis */}
-            <div className="space-y-4">
-              <h4 className="text-base font-semibold text-gray-900">
-                Previous Analysis{" "}
-                <span className="text-gray-500 font-normal text-sm">
-                  ({new Date(selectedAnalysis.timestamp).toLocaleDateString()})
-                </span>
-              </h4>
-              <div className="grid grid-cols-2 gap-3 md:grid-cols-4 text-sm">
-                <div>
-                  <p className="text-gray-600">LOC</p>
-                  <p className="text-lg font-bold text-gray-900">
-                    {selectedAnalysis.metrics.totalLoc.toLocaleString()}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-gray-600">Functions</p>
-                  <p className="text-lg font-bold text-gray-900">
-                    {selectedAnalysis.metrics.totalFunctions}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-gray-600">Avg Complexity</p>
-                  <p className="text-lg font-bold text-gray-900">
-                    {selectedAnalysis.metrics.averageComplexity.toFixed(1)}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-gray-600">Files</p>
-                  <p className="text-lg font-bold text-gray-900">
-                    {selectedAnalysis.metrics.fileCount}
-                  </p>
-                </div>
-              </div>
-
-              {/* Previous chart */}
-              <div className="bg-gray-50 rounded-lg p-4">
-                <p className="text-sm font-semibold text-gray-700 mb-3">
-                  Top Complex Files
-                </p>
-                <ResponsiveContainerComponent width="100%" height={chartHeight}>
-                  <BarChartComponent
-                    data={selectedChartData}
-                    layout="vertical"
-                    margin={{ left: 8, right: 24, top: 8, bottom: 8 }}
-                  >
-                    <CartesianGrid strokeDasharray="3 3" horizontal={false} />
-                    <XAxis type="number" domain={[0, "dataMax + 5"]} tick={{ fontSize: 12 }} />
-                    <YAxis
-                      type="category"
-                      dataKey="displayName"
-                      width={110}
-                      tick={{ fontSize: 12 }}
-                    />
-                    <Tooltip />
-                    <Bar
-                      dataKey="complexity"
-                      fill="#3b82f6"
-                      name="Complexity Score"
-                      radius={[0, 4, 4, 0]}
-                    />
-                  </BarChartComponent>
-                </ResponsiveContainerComponent>
-              </div>
-
-              {/* Previous file details table */}
-              <div className="hidden sm:block overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead className="bg-gray-100 border-b border-gray-200">
-                    <tr>
-                      <th className="px-4 py-2 text-left font-semibold text-gray-700">
-                        File
-                      </th>
-                      <th className="px-4 py-2 text-right font-semibold text-gray-700">
-                        LOC
-                      </th>
-                      <th className="px-4 py-2 text-right font-semibold text-gray-700">
-                        Functions
-                      </th>
-                      <th className="px-4 py-2 text-right font-semibold text-gray-700">
-                        Complexity
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {selectedAnalysis.topComplexFiles.map((file, idx) => (
-                      <tr key={idx} className="border-b border-gray-200 hover:bg-gray-50">
-                        <td className="px-4 py-2 text-gray-900">
-                          {file.path.split("/").pop()}
-                        </td>
-                        <td className="px-4 py-2 text-right text-gray-600">{file.loc}</td>
-                        <td className="px-4 py-2 text-right text-gray-600">
-                          {file.functions}
-                        </td>
-                        <td className="px-4 py-2 text-right">
-                          <span
-                            className={`px-2 py-1 rounded-full text-white text-xs font-semibold ${getComplexityColor(file.complexity)}`}
-                          >
-                            {file.complexity}
-                          </span>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+            <div className="lg:pl-6">
+              <AnalysisColumn
+                title="Previous Analysis"
+                subtitle={new Date(selectedAnalysis.timestamp).toLocaleDateString()}
+                analysis={selectedAnalysis}
+                chartHeight={chartHeight}
+              />
             </div>
           </div>
         </div>

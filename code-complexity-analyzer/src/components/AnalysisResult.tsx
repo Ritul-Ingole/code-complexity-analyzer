@@ -1,8 +1,10 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { X } from "lucide-react"
 import dynamic from "next/dynamic"
+import TrendCard from "./TrendCard"
+import ComparisonSection from "./ComparisonSection"
 
 const BarChartComponent = dynamic(
   () => import("recharts").then((mod) => mod.BarChart),
@@ -30,15 +32,17 @@ interface ComplexFile {
   complexity: number
 }
 
+interface Analysis {
+  timestamp: string
+  repoUrl: string
+  headSha: string
+  totalCommits: number
+  metrics: Metric
+  topComplexFiles: ComplexFile[]
+}
+
 interface AnalysisResultsProps {
-  data: {
-    timestamp: string
-    repoUrl: string
-    headSha: string
-    totalCommits: number
-    metrics: Metric
-    topComplexFiles: ComplexFile[]
-  }
+  data: Analysis
   onBack: () => void
 }
 
@@ -51,9 +55,38 @@ function getComplexityColor(complexity: number): string {
 export default function AnalysisResults({ data, onBack }: AnalysisResultsProps) {
   const { metrics, topComplexFiles, repoUrl, totalCommits } = data
   const [selectedFile, setSelectedFile] = useState<ComplexFile | null>(null)
+  const [priorAnalyses, setPriorAnalyses] = useState<Analysis[]>([])
+  const [loadingComparison, setLoadingComparison] = useState(false)
+
+  // Fetch prior analyses on mount
+  useEffect(() => {
+    const fetchPriorAnalyses = async () => {
+      try {
+        setLoadingComparison(true)
+        const res = await fetch(`/api/analyses-for-repo?url=${encodeURIComponent(repoUrl)}`)
+        if (!res.ok) throw new Error("Failed to fetch prior analyses")
+        const result = await res.json()
+
+        // Filter out the current analysis (by timestamp - current should be the most recent)
+        const allAnalyses = result.analyses || []
+        const filtered = allAnalyses.filter(
+          (analysis: Analysis) => analysis.timestamp !== data.timestamp
+        )
+
+        setPriorAnalyses(filtered)
+      } catch (err) {
+        console.error("Error fetching prior analyses:", err)
+        // Silently fail - comparison section just won't show
+      } finally {
+        setLoadingComparison(false)
+      }
+    }
+
+    fetchPriorAnalyses()
+  }, [repoUrl, data.timestamp])
 
   // Transform data for chart: show only filename
-  const chartData = topComplexFiles.map(file => ({
+  const chartData = topComplexFiles.map((file) => ({
     ...file,
     displayName: file.path.split("/").pop() || file.path,
   }))
@@ -86,6 +119,15 @@ export default function AnalysisResults({ data, onBack }: AnalysisResultsProps) 
         <MetricCard label="Avg Complexity" value={metrics.averageComplexity.toFixed(1)} />
         <MetricCard label="Files" value={metrics.fileCount.toLocaleString()} />
       </div>
+
+      {/* Trend Card - only show if there are prior analyses */}
+      {!loadingComparison && priorAnalyses.length > 0 && (
+        <TrendCard
+          current={metrics}
+          previous={priorAnalyses[0].metrics}
+          previousDate={priorAnalyses[0].timestamp}
+        />
+      )}
 
       {/* Top Complex Files Chart - Horizontal bars so file names never get cut off */}
       <div className="bg-white rounded-lg shadow p-6">
@@ -215,6 +257,11 @@ export default function AnalysisResults({ data, onBack }: AnalysisResultsProps) 
             </div>
           </div>
         </div>
+      )}
+
+      {/* Comparison Section - collapsible, only shows if prior analyses exist */}
+      {!loadingComparison && priorAnalyses.length > 0 && (
+        <ComparisonSection current={data} priorAnalyses={priorAnalyses} />
       )}
     </div>
   )

@@ -71,7 +71,7 @@ export default function AnalyzeForm() {
 
       if (!res.ok) {
         // Display Lambda error message if available
-        throw new Error(response.data?.message || (response as any).error || "Analysis failed")
+        throw new Error((response as any).message || (response as any).error || "Analysis failed")
       }
 
       // Show the "ready" confirmation briefly before revealing results,

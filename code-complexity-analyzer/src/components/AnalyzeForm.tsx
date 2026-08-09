@@ -23,6 +23,12 @@ interface AnalysisData {
   }>
 }
 
+interface AnalysisResponse {
+  data: AnalysisData
+  userID: string
+  analysisId: string
+}
+
 // How long to show the "Analysis ready" confirmation before revealing results.
 // Long enough to not feel abrupt, short enough to not feel like a delay.
 const READY_GRACE_PERIOD_MS = 1800
@@ -33,11 +39,15 @@ export default function AnalyzeForm() {
   const [ready, setReady] = useState(false)
   const [error, setError] = useState("")
   const [results, setResults] = useState<AnalysisData | null>(null)
+  const [userId, setUserId] = useState<string | null>(null)
+  const [analysisId, setAnalysisId] = useState<string | null>(null)
 
   const handleAnalyze = async (e: React.FormEvent) => {
     e.preventDefault()
     setError("")
     setResults(null)
+    setUserId(null)
+    setAnalysisId(null)
 
     // Validate before entering the loading state, so a bad URL never
     // leaves the button stuck on "Analyzing..."
@@ -57,18 +67,20 @@ export default function AnalyzeForm() {
         body: JSON.stringify({ repoUrl })
       })
 
-      const data = await res.json()
+      const response: AnalysisResponse = await res.json()
 
       if (!res.ok) {
         // Display Lambda error message if available
-        throw new Error(data.message || data.error || "Analysis failed")
+        throw new Error(response.data?.message || (response as any).error || "Analysis failed")
       }
 
       // Show the "ready" confirmation briefly before revealing results,
       // so we don't cut someone off mid-fact.
       setReady(true)
       setTimeout(() => {
-        setResults(data.data)
+        setResults(response.data)
+        setUserId(response.userID)
+        setAnalysisId(response.analysisId)
         setLoading(false)
       }, READY_GRACE_PERIOD_MS)
     } catch (err) {
@@ -80,10 +92,19 @@ export default function AnalyzeForm() {
   }
 
   if (results) {
-    return <AnalysisResults data={results} onBack={() => {
-      setResults(null)
-      setReady(false)
-    }} />
+    return (
+      <AnalysisResults
+        data={results}
+        onBack={() => {
+          setResults(null)
+          setReady(false)
+          setUserId(null)
+          setAnalysisId(null)
+        }}
+        userId={userId || undefined}
+        analysisId={analysisId || undefined}
+      />
+    )
   }
 
   if (loading) {

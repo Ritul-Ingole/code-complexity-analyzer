@@ -5,6 +5,7 @@ import { X } from "lucide-react"
 import dynamic from "next/dynamic"
 import TrendCard from "./TrendCard"
 import ComparisonSection from "./ComparisonSection"
+import ShareModal from "./ShareModal"
 
 const BarChartComponent = dynamic(
   () => import("recharts").then((mod) => mod.BarChart),
@@ -44,6 +45,9 @@ interface Analysis {
 interface AnalysisResultsProps {
   data: Analysis
   onBack: () => void
+  isShared?: boolean
+  userId?: string
+  analysisId?: string
 }
 
 function getComplexityColor(complexity: number): string {
@@ -52,14 +56,23 @@ function getComplexityColor(complexity: number): string {
   return "bg-green-500"
 }
 
-export default function AnalysisResults({ data, onBack }: AnalysisResultsProps) {
+export default function AnalysisResults({
+  data,
+  onBack,
+  isShared = false,
+  userId,
+  analysisId,
+}: AnalysisResultsProps) {
   const { metrics, topComplexFiles, repoUrl, totalCommits } = data
   const [selectedFile, setSelectedFile] = useState<ComplexFile | null>(null)
   const [priorAnalyses, setPriorAnalyses] = useState<Analysis[]>([])
   const [loadingComparison, setLoadingComparison] = useState(false)
+  const [showShareModal, setShowShareModal] = useState(false)
 
-  // Fetch prior analyses on mount
+  // Fetch prior analyses on mount (skip if shared)
   useEffect(() => {
+    if (isShared) return
+
     const fetchPriorAnalyses = async () => {
       try {
         setLoadingComparison(true)
@@ -83,7 +96,7 @@ export default function AnalysisResults({ data, onBack }: AnalysisResultsProps) 
     }
 
     fetchPriorAnalyses()
-  }, [repoUrl, data.timestamp])
+  }, [repoUrl, data.timestamp, isShared])
 
   // Transform data for chart: show only filename
   const chartData = topComplexFiles.map((file) => ({
@@ -104,12 +117,14 @@ export default function AnalysisResults({ data, onBack }: AnalysisResultsProps) 
             {totalCommits} commits • Analyzed {new Date(data.timestamp).toLocaleDateString()}
           </p>
         </div>
-        <button
-          onClick={onBack}
-          className="px-4 py-2 text-sm border border-green-500 rounded-lg hover:bg-green-50 text-gray-900 transition-colors duration-200 border-2 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
-        >
-          Analyze Another
-        </button>
+        {!isShared && (
+          <button
+            onClick={onBack}
+            className="px-4 py-2 text-sm border border-green-500 rounded-lg hover:bg-green-50 text-gray-900 transition-colors duration-200 border-2 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
+          >
+            Analyze Another
+          </button>
+        )}
       </div>
 
       {/* Metrics Grid */}
@@ -120,8 +135,8 @@ export default function AnalysisResults({ data, onBack }: AnalysisResultsProps) 
         <MetricCard label="Files" value={metrics.fileCount.toLocaleString()} />
       </div>
 
-      {/* Trend Card - only show if there are prior analyses */}
-      {!loadingComparison && priorAnalyses.length > 0 && (
+      {/* Trend Card - only show if there are prior analyses and not shared */}
+      {!isShared && !loadingComparison && priorAnalyses.length > 0 && (
         <TrendCard
           current={metrics}
           previous={priorAnalyses[0].metrics}
@@ -259,9 +274,31 @@ export default function AnalysisResults({ data, onBack }: AnalysisResultsProps) 
         </div>
       )}
 
-      {/* Comparison Section - collapsible, only shows if prior analyses exist */}
-      {!loadingComparison && priorAnalyses.length > 0 && (
+      {/* Comparison Section - collapsible, only shows if prior analyses exist and not shared */}
+      {!isShared && !loadingComparison && priorAnalyses.length > 0 && (
         <ComparisonSection current={data} priorAnalyses={priorAnalyses} />
+      )}
+
+      {/* Share Modal */}
+      {userId && analysisId && (
+        <ShareModal
+          isOpen={showShareModal}
+          onClose={() => setShowShareModal(false)}
+          userId={userId}
+          analysisId={analysisId}
+        />
+      )}
+
+      {/* Share button - only show if not shared and we have userId/analysisId */}
+      {!isShared && userId && analysisId && (
+        <div className="flex justify-center pt-4">
+          <button
+            onClick={() => setShowShareModal(true)}
+            className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
+          >
+            Share Analysis
+          </button>
+        </div>
       )}
     </div>
   )

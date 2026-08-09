@@ -1,7 +1,8 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { ChevronDown, ChevronUp, Search, Filter, X, Download, MoreVertical } from "lucide-react"
+import { ChevronDown, ChevronUp, Search, Filter, X, Download, MoreVertical, Share2 } from "lucide-react"
+import ShareModal from "./ShareModal"
 
 interface TopComplexFile {
   path: string
@@ -70,7 +71,13 @@ function downloadJSON(analysis: Analysis) {
 }
 
 // Action menu component for mobile
-function ActionMenu({ analysis }: { analysis: Analysis }) {
+function ActionMenu({
+  analysis,
+  onShare,
+}: {
+  analysis: Analysis
+  onShare: (analysis: Analysis) => void
+}) {
   const [open, setOpen] = useState(false)
 
   return (
@@ -101,6 +108,16 @@ function ActionMenu({ analysis }: { analysis: Analysis }) {
             >
               <Download size={16} />
               Download JSON
+            </button>
+            <button
+              onClick={() => {
+                onShare(analysis)
+                setOpen(false)
+              }}
+              className="w-full text-left px-4 py-3 hover:bg-gray-50 flex items-center gap-2 text-gray-700 hover:text-blue-600 transition-colors border-b border-gray-100"
+            >
+              <Share2 size={16} />
+              Share
             </button>
             <a
               href={analysis.repoUrl}
@@ -205,6 +222,10 @@ export default function DashboardClient({ userId }: DashboardClientProps) {
   const [sortBy, setSortBy] = useState<SortOption>("newest")
   const [filterPanelOpen, setFilterPanelOpen] = useState(false)
 
+  // Share modal state
+  const [shareModalOpen, setShareModalOpen] = useState(false)
+  const [selectedAnalysisForShare, setSelectedAnalysisForShare] = useState<Analysis | null>(null)
+
   useEffect(() => {
     fetchAnalyses()
   }, [])
@@ -220,6 +241,11 @@ export default function DashboardClient({ userId }: DashboardClientProps) {
     } finally {
       setLoading(false)
     }
+  }
+
+  const handleShare = (analysis: Analysis) => {
+    setSelectedAnalysisForShare(analysis)
+    setShareModalOpen(true)
   }
 
   // Filter and sort logic
@@ -506,6 +532,12 @@ export default function DashboardClient({ userId }: DashboardClientProps) {
                           >
                             Download JSON <Download size={16} />
                           </button>
+                          <button
+                            onClick={() => handleShare(analysis)}
+                            className="hidden sm:flex text-sm text-blue-600 hover:text-blue-700 hover:underline items-center gap-1 flex-shrink-0"
+                          >
+                            Share <Share2 size={16} />
+                          </button>
                           <a
                             href={analysis.repoUrl}
                             target="_blank"
@@ -523,7 +555,7 @@ export default function DashboardClient({ userId }: DashboardClientProps) {
                             View on GitHub
                           </a>
                           {/* Mobile menu - shown only on mobile */}
-                          <ActionMenu analysis={analysis} />
+                          <ActionMenu analysis={analysis} onShare={handleShare} />
                         </div>
                       </div>
 
@@ -578,6 +610,16 @@ export default function DashboardClient({ userId }: DashboardClientProps) {
           </div>
         )}
       </div>
+
+      {/* Share Modal */}
+      {selectedAnalysisForShare && (
+        <ShareModal
+          isOpen={shareModalOpen}
+          onClose={() => setShareModalOpen(false)}
+          userId={selectedAnalysisForShare.userID}
+          analysisId={selectedAnalysisForShare.analysisId}
+        />
+      )}
     </div>
   )
 }

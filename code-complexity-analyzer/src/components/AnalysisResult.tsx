@@ -48,6 +48,7 @@ interface AnalysisResultsProps {
   isShared?: boolean
   userId?: string
   analysisId?: string
+  isPreview?: boolean
 }
 
 function getComplexityColor(complexity: number): string {
@@ -62,16 +63,19 @@ export default function AnalysisResults({
   isShared = false,
   userId,
   analysisId,
+  isPreview = false,
 }: AnalysisResultsProps) {
   const { metrics, topComplexFiles, repoUrl, totalCommits } = data
   const [selectedFile, setSelectedFile] = useState<ComplexFile | null>(null)
   const [priorAnalyses, setPriorAnalyses] = useState<Analysis[]>([])
   const [loadingComparison, setLoadingComparison] = useState(false)
   const [showShareModal, setShowShareModal] = useState(false)
+  const [migrating, setMigrating] = useState(false)
+  const [migrationMessage, setMigrationMessage] = useState("")
 
-  // Fetch prior analyses on mount (skip if shared)
+  // Fetch prior analyses on mount (skip if shared or preview)
   useEffect(() => {
-    if (isShared) return
+    if (isShared || isPreview) return
 
     const fetchPriorAnalyses = async () => {
       try {
@@ -80,7 +84,6 @@ export default function AnalysisResults({
         if (!res.ok) throw new Error("Failed to fetch prior analyses")
         const result = await res.json()
 
-        // Filter out the current analysis (by timestamp - current should be the most recent)
         const allAnalyses = result.analyses || []
         const filtered = allAnalyses.filter(
           (analysis: Analysis) => analysis.timestamp !== data.timestamp
@@ -89,22 +92,51 @@ export default function AnalysisResults({
         setPriorAnalyses(filtered)
       } catch (err) {
         console.error("Error fetching prior analyses:", err)
-        // Silently fail - comparison section just won't show
       } finally {
         setLoadingComparison(false)
       }
     }
 
     fetchPriorAnalyses()
-  }, [repoUrl, data.timestamp, isShared])
+  }, [repoUrl, data.timestamp, isShared, isPreview])
 
-  // Transform data for chart: show only filename
+  // Handle preview analysis migration to authenticated account
+  const handleMigrateAnalysis = async () => {
+    setMigrating(true)
+    setMigrationMessage("")
+
+    try {
+      const res = await fetch("/api/migrate-analysis", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      })
+
+      if (!res.ok) throw new Error("Failed to save analysis")
+
+      const result = await res.json()
+      setMigrationMessage("✓ Analysis saved to your history")
+      
+      // Clear sessionStorage
+      sessionStorage.removeItem("pendingAnalysis")
+      sessionStorage.removeItem("hasUsedFreeAnalysis")
+
+      setTimeout(() => {
+        onBack()
+      }, 1500)
+    } catch (err) {
+      setMigrationMessage("✗ Failed to save. Please try again.")
+      console.error("Migration error:", err)
+    } finally {
+      setMigrating(false)
+    }
+  }
+
   const chartData = topComplexFiles.map((file) => ({
     ...file,
     displayName: file.path.split("/").pop() || file.path,
   }))
 
-  // Dynamic chart height: more files = taller chart (horizontal bars need vertical space)
   const chartHeight = Math.max(300, chartData.length * 45)
 
   return (
@@ -117,7 +149,7 @@ export default function AnalysisResults({
             {totalCommits} commits • Analyzed {new Date(data.timestamp).toLocaleDateString()}
           </p>
         </div>
-        {!isShared && (
+        {!isShared && !isPreview && (
           <button
             onClick={onBack}
             className="px-4 py-2 text-sm border border-green-500 rounded-lg hover:bg-green-50 text-gray-900 transition-colors duration-200 border-2 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
@@ -127,6 +159,23 @@ export default function AnalysisResults({
         )}
       </div>
 
+      {/* Preview banner with sign in button */}
+      {isPreview && (
+        <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
+          <div className="flex items-center justify-between gap-4">
+            <p className="text-sm text-amber-900">
+              <span className="font-semibold">Preview analysis:</span> Sign in to save this result to your history and unlock trends & comparisons.
+            </p>
+            <a
+              href="/api/auth/login"
+              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm font-medium whitespace-nowrap transition-colors"
+            >
+              Sign in with GitHub
+            </a>
+          </div>
+        </div>
+      )}
+
       {/* Metrics Grid */}
       <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
         <MetricCard label="Total LOC" value={metrics.totalLoc.toLocaleString()} />
@@ -135,8 +184,8 @@ export default function AnalysisResults({
         <MetricCard label="Files" value={metrics.fileCount.toLocaleString()} />
       </div>
 
-      {/* Trend Card - only show if there are prior analyses and not shared */}
-      {!isShared && !loadingComparison && priorAnalyses.length > 0 && (
+      {/* Trend Card - only show if there are prior analyses and not shared/preview */}
+      {!isShared && !isPreview && !loadingComparison && priorAnalyses.length > 0 && (
         <TrendCard
           current={metrics}
           previous={priorAnalyses[0].metrics}
@@ -144,7 +193,7 @@ export default function AnalysisResults({
         />
       )}
 
-      {/* Top Complex Files Chart - Horizontal bars so file names never get cut off */}
+      {/* Top Complex Files Chart */}
       <div className="bg-white rounded-lg shadow p-6">
         <h3 className="text-lg font-semibold mb-4 text-gray-900">Top 10 Most Complex Files</h3>
         <ResponsiveContainerComponent width="100%" height={chartHeight}>
@@ -200,7 +249,7 @@ export default function AnalysisResults({
         </div>
       </div>
 
-      {/* Files List - Mobile only (below sm). Tap a row to open bottom sheet with full details. */}
+      {/* Files List - Mobile only */}
       <div className="sm:hidden bg-white rounded-lg shadow overflow-hidden">
         <div className="px-4 py-4 border-b border-gray-200">
           <h3 className="text-lg font-semibold text-gray-900">File Details</h3>
@@ -231,10 +280,7 @@ export default function AnalysisResults({
           className="fixed inset-0 z-50 sm:hidden"
           onClick={() => setSelectedFile(null)}
         >
-          {/* Backdrop */}
           <div className="absolute inset-0 bg-black/40" />
-
-          {/* Sheet */}
           <div
             className="absolute bottom-0 left-0 right-0 bg-white rounded-t-2xl p-6 pb-8 animate-slide-up"
             onClick={(e) => e.stopPropagation()}
@@ -274,8 +320,8 @@ export default function AnalysisResults({
         </div>
       )}
 
-      {/* Comparison Section - collapsible, only shows if prior analyses exist and not shared */}
-      {!isShared && !loadingComparison && priorAnalyses.length > 0 && (
+      {/* Comparison Section - collapsible, only shows if prior analyses exist and not shared/preview */}
+      {!isShared && !isPreview && !loadingComparison && priorAnalyses.length > 0 && (
         <ComparisonSection current={data} priorAnalyses={priorAnalyses} />
       )}
 
@@ -289,15 +335,36 @@ export default function AnalysisResults({
         />
       )}
 
-      {/* Share button - only show if not shared and we have userId/analysisId */}
-      {!isShared && userId && analysisId && (
-        <div className="flex justify-center pt-4">
-          <button
-            onClick={() => setShowShareModal(true)}
-            className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
-          >
-            Share Analysis
-          </button>
+      {/* Action buttons - differ based on auth/preview status */}
+      {!isShared && (
+        <div className="flex flex-col sm:flex-row gap-3 justify-center pt-4">
+          {isPreview ? (
+            <>
+              <button
+                onClick={handleMigrateAnalysis}
+                disabled={migrating}
+                className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:bg-gray-400 transition-colors font-medium"
+              >
+                {migrating ? "Saving..." : "Sign In & Save"}
+              </button>
+              {migrationMessage && (
+                <div className={`px-4 py-2 rounded-lg text-sm font-medium ${
+                  migrationMessage.startsWith("✓")
+                    ? "bg-green-100 text-green-700"
+                    : "bg-red-100 text-red-700"
+                }`}>
+                  {migrationMessage}
+                </div>
+              )}
+            </>
+          ) : userId && analysisId ? (
+            <button
+              onClick={() => setShowShareModal(true)}
+              className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
+            >
+              Share Analysis
+            </button>
+          ) : null}
         </div>
       )}
     </div>

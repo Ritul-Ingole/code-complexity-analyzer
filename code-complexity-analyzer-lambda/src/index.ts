@@ -178,6 +178,8 @@ export const handler = async (event: any) => {
       body: JSON.stringify({
         status: "analysis_complete",
         data: results,
+        userID: String(userId),
+        analysisId: analysisId,
       }),
     }
   } catch (error) {

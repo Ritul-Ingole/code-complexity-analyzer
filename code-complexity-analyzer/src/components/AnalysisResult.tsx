@@ -70,8 +70,6 @@ export default function AnalysisResults({
   const [priorAnalyses, setPriorAnalyses] = useState<Analysis[]>([])
   const [loadingComparison, setLoadingComparison] = useState(false)
   const [showShareModal, setShowShareModal] = useState(false)
-  const [migrating, setMigrating] = useState(false)
-  const [migrationMessage, setMigrationMessage] = useState("")
 
   // Fetch prior analyses on mount (skip if shared or preview)
   useEffect(() => {
@@ -100,38 +98,6 @@ export default function AnalysisResults({
     fetchPriorAnalyses()
   }, [repoUrl, data.timestamp, isShared, isPreview])
 
-  // Handle preview analysis migration to authenticated account
-  const handleMigrateAnalysis = async () => {
-    setMigrating(true)
-    setMigrationMessage("")
-
-    try {
-      const res = await fetch("/api/migrate-analysis", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
-      })
-
-      if (!res.ok) throw new Error("Failed to save analysis")
-
-      const result = await res.json()
-      setMigrationMessage("✓ Analysis saved to your history")
-      
-      // Clear sessionStorage
-      sessionStorage.removeItem("pendingAnalysis")
-      sessionStorage.removeItem("hasUsedFreeAnalysis")
-
-      setTimeout(() => {
-        onBack()
-      }, 1500)
-    } catch (err) {
-      setMigrationMessage("✗ Failed to save. Please try again.")
-      console.error("Migration error:", err)
-    } finally {
-      setMigrating(false)
-    }
-  }
-
   const chartData = topComplexFiles.map((file) => ({
     ...file,
     displayName: file.path.split("/").pop() || file.path,
@@ -159,7 +125,7 @@ export default function AnalysisResults({
         )}
       </div>
 
-      {/* Preview banner with sign in button */}
+      {/* Preview banner */}
       {isPreview && (
         <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
           <div className="flex items-center justify-between gap-4">
@@ -184,7 +150,7 @@ export default function AnalysisResults({
         <MetricCard label="Files" value={metrics.fileCount.toLocaleString()} />
       </div>
 
-      {/* Trend Card - only show if there are prior analyses and not shared/preview */}
+      {/* Trend Card */}
       {!isShared && !isPreview && !loadingComparison && priorAnalyses.length > 0 && (
         <TrendCard
           current={metrics}
@@ -193,7 +159,7 @@ export default function AnalysisResults({
         />
       )}
 
-      {/* Top Complex Files Chart */}
+      {/* Bar Chart */}
       <div className="bg-white rounded-lg shadow p-6">
         <h3 className="text-lg font-semibold mb-4 text-gray-900">Top 10 Most Complex Files</h3>
         <ResponsiveContainerComponent width="100%" height={chartHeight}>
@@ -216,7 +182,7 @@ export default function AnalysisResults({
         </ResponsiveContainerComponent>
       </div>
 
-      {/* Files Table - Desktop (sm and up) */}
+      {/* File Table - Desktop */}
       <div className="hidden sm:block bg-white rounded-lg shadow overflow-hidden">
         <div className="px-6 py-4 border-b border-gray-200">
           <h3 className="text-lg font-semibold text-gray-900">File Details</h3>
@@ -249,7 +215,7 @@ export default function AnalysisResults({
         </div>
       </div>
 
-      {/* Files List - Mobile only */}
+      {/* File List - Mobile */}
       <div className="sm:hidden bg-white rounded-lg shadow overflow-hidden">
         <div className="px-4 py-4 border-b border-gray-200">
           <h3 className="text-lg font-semibold text-gray-900">File Details</h3>
@@ -274,7 +240,7 @@ export default function AnalysisResults({
         </div>
       </div>
 
-      {/* Bottom Sheet - Mobile file detail modal */}
+      {/* Mobile detail sheet */}
       {selectedFile && (
         <div
           className="fixed inset-0 z-50 sm:hidden"
@@ -320,7 +286,7 @@ export default function AnalysisResults({
         </div>
       )}
 
-      {/* Comparison Section - collapsible, only shows if prior analyses exist and not shared/preview */}
+      {/* Comparison Section */}
       {!isShared && !isPreview && !loadingComparison && priorAnalyses.length > 0 && (
         <ComparisonSection current={data} priorAnalyses={priorAnalyses} />
       )}
@@ -335,36 +301,15 @@ export default function AnalysisResults({
         />
       )}
 
-      {/* Action buttons - differ based on auth/preview status */}
-      {!isShared && (
-        <div className="flex flex-col sm:flex-row gap-3 justify-center pt-4">
-          {isPreview ? (
-            <>
-              <button
-                onClick={handleMigrateAnalysis}
-                disabled={migrating}
-                className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:bg-gray-400 transition-colors font-medium"
-              >
-                {migrating ? "Saving..." : "Sign In & Save"}
-              </button>
-              {migrationMessage && (
-                <div className={`px-4 py-2 rounded-lg text-sm font-medium ${
-                  migrationMessage.startsWith("✓")
-                    ? "bg-green-100 text-green-700"
-                    : "bg-red-100 text-red-700"
-                }`}>
-                  {migrationMessage}
-                </div>
-              )}
-            </>
-          ) : userId && analysisId ? (
-            <button
-              onClick={() => setShowShareModal(true)}
-              className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
-            >
-              Share Analysis
-            </button>
-          ) : null}
+      {/* Share button - only for authenticated */}
+      {!isShared && userId && analysisId && (
+        <div className="flex justify-center pt-4">
+          <button
+            onClick={() => setShowShareModal(true)}
+            className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
+          >
+            Share Analysis
+          </button>
         </div>
       )}
     </div>

@@ -31,7 +31,8 @@ export async function GET(req: Request) {
       maxAge: 60 * 60 * 24 * 7 // 7 days
     })
 
-    redirect("/")
+    // Redirect to /analyze with migrate flag if there's a pending preview analysis
+    redirect("/analyze?migrate=true")
   } catch (error) {
     // NEXT_REDIRECT is not a real error, it's how Next.js handles redirects
     if (error instanceof Error && error.message === "NEXT_REDIRECT") {

@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import { useSearchParams } from "next/navigation"
 import AnalysisResults from "./AnalysisResult"
 import AnalyzingScreen from "./AnalyzingScreen"
 import Link from "next/link"
@@ -37,6 +38,9 @@ interface AnalyzeFormProps {
 }
 
 export default function AnalyzeForm({ isAuthenticated }: AnalyzeFormProps) {
+  const searchParams = useSearchParams()
+  const migrateParam = searchParams.get("migrate")
+
   const [repoUrl, setRepoUrl] = useState("")
   const [loading, setLoading] = useState(false)
   const [ready, setReady] = useState(false)
@@ -45,6 +49,45 @@ export default function AnalyzeForm({ isAuthenticated }: AnalyzeFormProps) {
   const [userId, setUserId] = useState<string | null>(null)
   const [analysisId, setAnalysisId] = useState<string | null>(null)
   const [hasUsedFreeAnalysis, setHasUsedFreeAnalysis] = useState(false)
+  const [migrating, setMigrating] = useState(false)
+
+  // Auto-migrate on signin if there's a pending analysis
+  useEffect(() => {
+    if (isAuthenticated && migrateParam === "true") {
+      const pendingAnalysis = sessionStorage.getItem("pendingAnalysis")
+      if (pendingAnalysis) {
+        handleMigration(JSON.parse(pendingAnalysis))
+      }
+    }
+  }, [isAuthenticated, migrateParam])
+
+  const handleMigration = async (analysisData: AnalysisData) => {
+    setMigrating(true)
+    try {
+      const res = await fetch("/api/migrate-analysis", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(analysisData),
+      })
+
+      if (!res.ok) throw new Error("Failed to save analysis")
+
+      const result = await res.json()
+      setResults(analysisData)
+      setUserId(result.userID || undefined)
+      setAnalysisId(result.analysisId)
+
+      // Clear sessionStorage
+      sessionStorage.removeItem("pendingAnalysis")
+      sessionStorage.removeItem("hasUsedFreeAnalysis")
+      setHasUsedFreeAnalysis(false)
+    } catch (err) {
+      console.error("Migration error:", err)
+      setError("Failed to save analysis. Please try again.")
+    } finally {
+      setMigrating(false)
+    }
+  }
 
   // Check if free analysis was already used
   useEffect(() => {
@@ -77,7 +120,6 @@ export default function AnalyzeForm({ isAuthenticated }: AnalyzeFormProps) {
     setReady(false)
 
     try {
-      // Use different endpoints based on auth status
       const endpoint = isAuthenticated ? "/api/analyze" : "/api/analyze-preview"
 
       const res = await fetch(endpoint, {
@@ -94,14 +136,14 @@ export default function AnalyzeForm({ isAuthenticated }: AnalyzeFormProps) {
 
       setReady(true)
       setTimeout(() => {
-        // For unauthenticated users, store in sessionStorage and mark as used
         if (!isAuthenticated) {
+          // Store in sessionStorage and mark as used
           sessionStorage.setItem("pendingAnalysis", JSON.stringify(response.data))
           sessionStorage.setItem("hasUsedFreeAnalysis", "true")
           setResults(response.data)
           setHasUsedFreeAnalysis(true)
         } else {
-          // For authenticated users, use the returned userID and analysisId
+          // For authenticated users, directly set results
           setResults(response.data)
           setUserId(response.userID)
           setAnalysisId(response.analysisId)
@@ -114,6 +156,10 @@ export default function AnalyzeForm({ isAuthenticated }: AnalyzeFormProps) {
       )
       setLoading(false)
     }
+  }
+
+  if (migrating) {
+    return <AnalyzingScreen ready={true} />
   }
 
   if (results) {

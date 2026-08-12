@@ -7,18 +7,49 @@ import { resolve } from "path"
 import { parse } from "@babel/parser"
 import { Node } from "@babel/types"
 import { DynamoDBClient } from "@aws-sdk/client-dynamodb"
-import { DynamoDBDocumentClient, PutCommand } from "@aws-sdk/lib-dynamodb"
+import { DynamoDBDocumentClient, PutCommand, GetCommand } from "@aws-sdk/lib-dynamodb"
 
 const dynamoClient = new DynamoDBClient({ region: process.env.AWS_REGION || "ap-south-1" })
 const docClient = DynamoDBDocumentClient.from(dynamoClient)
 
 export const handler = async (event: any) => {
   console.log("Lambda invoked with:", event)
-  const { repoUrl, userId } = event
+  const { repoUrl, userId, previewSessionId, isPreview } = event
 
   let repoPath: string | null = null
 
   try {
+    // If this is a preview request with a sessionId, check if it's already been used
+    if (isPreview && previewSessionId) {
+      console.log(`Checking if preview sessionId ${previewSessionId} has been used`)
+      
+      try {
+        const result = await docClient.send(
+          new GetCommand({
+            TableName: process.env.DYNAMODB_TABLE_NAME || "complexity-analyses",
+            Key: {
+              userID: "preview",
+              analysisId: previewSessionId,
+            },
+          })
+        )
+
+        if (result.Item) {
+          console.log(`Preview sessionId ${previewSessionId} already used`)
+          return {
+            statusCode: 429,
+            body: JSON.stringify({
+              error: "Preview analysis already used",
+              message: "You've already used your free analysis. Sign in to unlock unlimited analyses.",
+            }),
+          }
+        }
+      } catch (err) {
+        console.error("Error checking preview sessionId:", err)
+        // Continue — if DynamoDB check fails, don't block the analysis
+      }
+    }
+
     const match = repoUrl.match(/github\.com\/([^/]+)\/([^/]+?)(\.git)?$/)
     if (!match) {
       return {
@@ -33,7 +64,7 @@ export const handler = async (event: any) => {
     const repoSize = await getRepoSize(owner, repo)
     console.log(`Repo size: ${repoSize} KB (${(repoSize / 1024).toFixed(2)} MB)`)
 
-    if (repoSize > 102400) { // 100 MB limit
+    if (repoSize > 102400) {
       return {
         statusCode: 400,
         body: JSON.stringify({
@@ -64,7 +95,6 @@ export const handler = async (event: any) => {
     })
     console.log(`Found ${commits.length} commits`)
 
-    // ANALYZE HEAD ONLY
     const headCommit = commits[0]
     console.log(`Analyzing HEAD: ${headCommit.oid}`)
 
@@ -129,7 +159,6 @@ export const handler = async (event: any) => {
       }
     }
 
-    // Sort by complexity descending
     fileMetrics.sort((a, b) => b.complexity - a.complexity)
 
     const results = {
@@ -148,28 +177,50 @@ export const handler = async (event: any) => {
 
     console.log(`Analysis complete: ${fileMetrics.length} files analyzed`)
 
-    const analysisId = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
+    let analysisId = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
 
-    try {
-      await docClient.send(
-        new PutCommand({
-          TableName: process.env.DYNAMODB_TABLE_NAME || "complexity-analyses",
-          Item: {
-            userID: String(userId),
-            analysisId,
-            repoUrl,
-            timestamp: new Date().toISOString(),
-            headSha: headCommit.oid,
-            totalCommits: commits.length,
-            metrics: results.metrics,
-            topComplexFiles: results.topComplexFiles,
-            ttl: Math.floor(Date.now() / 1000) + 30 * 24 * 60 * 60,
-          },
-        })
-      )
-      console.log(`Analysis saved with ID: ${analysisId}`)
-    } catch (error) {
-      console.error("Failed to save to DynamoDB:", error)
+    // If this is a preview request, mark the sessionId as used
+    if (isPreview && previewSessionId) {
+      console.log(`Marking preview sessionId ${previewSessionId} as used`)
+      try {
+        await docClient.send(
+          new PutCommand({
+            TableName: process.env.DYNAMODB_TABLE_NAME || "complexity-analyses",
+            Item: {
+              userID: "preview",
+              analysisId: previewSessionId,
+              ttl: Math.floor(Date.now() / 1000) + 24 * 60 * 60, // 24 hour TTL
+            },
+          })
+        )
+        console.log(`Preview sessionId ${previewSessionId} marked as used`)
+      } catch (error) {
+        console.error("Failed to mark preview sessionId as used:", error)
+        // Don't fail the analysis if we can't record it
+      }
+    } else if (!isPreview) {
+      // Only save authenticated analyses to the real record
+      try {
+        await docClient.send(
+          new PutCommand({
+            TableName: process.env.DYNAMODB_TABLE_NAME || "complexity-analyses",
+            Item: {
+              userID: String(userId),
+              analysisId,
+              repoUrl,
+              timestamp: new Date().toISOString(),
+              headSha: headCommit.oid,
+              totalCommits: commits.length,
+              metrics: results.metrics,
+              topComplexFiles: results.topComplexFiles,
+              ttl: Math.floor(Date.now() / 1000) + 30 * 24 * 60 * 60,
+            },
+          })
+        )
+        console.log(`Analysis saved with ID: ${analysisId}`)
+      } catch (error) {
+        console.error("Failed to save to DynamoDB:", error)
+      }
     }
 
     return {
@@ -180,6 +231,7 @@ export const handler = async (event: any) => {
         data: results,
         userID: String(userId),
         analysisId: analysisId,
+        previewSessionId: isPreview ? previewSessionId : undefined,
       }),
     }
   } catch (error) {

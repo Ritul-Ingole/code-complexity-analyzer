@@ -35,15 +35,14 @@ export async function POST(req: NextRequest) {
 
     const response = NextResponse.json(body, { status: statusCode })
 
-    // Set the previewSessionId cookie if not already set (HTTP-only, survives tab close)
-    if (!cookieStore.get("previewSessionId")) {
-      response.cookies.set("previewSessionId", previewSessionId, {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === "production",
-        sameSite: "lax",
-        maxAge: 24 * 60 * 60, // 24 hours
-      })
-    }
+    // ALWAYS set the cookie to keep it fresh and persistent
+    response.cookies.set("previewSessionId", previewSessionId, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      maxAge: 24 * 60 * 60, // 24 hours
+      path: "/", // Explicitly set path to ensure it applies everywhere
+    })
 
     return response
   } catch (error) {

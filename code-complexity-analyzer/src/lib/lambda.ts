@@ -5,10 +5,7 @@ const lambda = new LambdaClient({ region: process.env.AWS_REGION || "ap-south-1"
 export async function invokeLambda(payload: Record<string, unknown>) {
   const command = new InvokeCommand({
     FunctionName: process.env.LAMBDA_FUNCTION_NAME,
-    Payload: JSON.stringify({
-      repoUrl: payload.repoUrl,
-      userId: payload.userId
-    })
+    Payload: JSON.stringify(payload)
   })
 
   const result = await lambda.send(command)

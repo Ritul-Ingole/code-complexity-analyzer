@@ -1,9 +1,3 @@
-import { APIGatewayProxyHandlerV2 } from "aws-lambda"
-import git from "isomorphic-git"
-import http from "isomorphic-git/http/node"
-import * as fs from "fs"
-import { rmSync, existsSync, mkdirSync } from "fs"
-import { resolve } from "path"
 import { parse } from "@babel/parser"
 import { Node } from "@babel/types"
 import { DynamoDBClient } from "@aws-sdk/client-dynamodb"
@@ -12,28 +6,26 @@ import { DynamoDBDocumentClient, PutCommand, GetCommand } from "@aws-sdk/lib-dyn
 const dynamoClient = new DynamoDBClient({ region: process.env.AWS_REGION || "ap-south-1" })
 const docClient = DynamoDBDocumentClient.from(dynamoClient)
 
+// Code-size gate: sum of JS/TS/JSX/TSX blob sizes only, NOT total repo size.
+// 25MB of actual source is already an enormous codebase - this is generous, not tight.
+const MAX_CODE_SIZE_BYTES = 25 * 1024 * 1024
+const MAX_FILE_COUNT = 500
+const FETCH_CONCURRENCY = 20
+
 export const handler = async (event: any) => {
   console.log("Lambda invoked with:", event)
   const { repoUrl, userId, previewSessionId, isPreview } = event
 
-  let repoPath: string | null = null
-
   try {
-    // If this is a preview request with a sessionId, check if it's already been used
     if (isPreview && previewSessionId) {
       console.log(`Checking if preview sessionId ${previewSessionId} has been used`)
-      
       try {
         const result = await docClient.send(
           new GetCommand({
             TableName: process.env.DYNAMODB_TABLE_NAME || "complexity-analyses",
-            Key: {
-              userID: "preview",
-              analysisId: previewSessionId,
-            },
+            Key: { userID: "preview", analysisId: previewSessionId },
           })
         )
-
         if (result.Item) {
           console.log(`Preview sessionId ${previewSessionId} already used`)
           return {
@@ -46,117 +38,70 @@ export const handler = async (event: any) => {
         }
       } catch (err) {
         console.error("Error checking preview sessionId:", err)
-        // Continue — if DynamoDB check fails, don't block the analysis
       }
     }
 
     const match = repoUrl.match(/github\.com\/([^/]+)\/([^/]+?)(\.git)?$/)
     if (!match) {
-      return {
-        statusCode: 400,
-        body: JSON.stringify({ error: "Invalid GitHub URL" }),
-      }
+      return { statusCode: 400, body: JSON.stringify({ error: "Invalid GitHub URL" }) }
     }
-
     const [, owner, repo] = match
 
-    console.log(`Checking repo size for ${owner}/${repo}`)
-    const repoSize = await getRepoSize(owner, repo)
-    console.log(`Repo size: ${repoSize} KB (${(repoSize / 1024).toFixed(2)} MB)`)
+    console.log(`Fetching repo info for ${owner}/${repo}`)
+    const { headSha } = await getRepoInfo(owner, repo)
+    console.log(`HEAD: ${headSha}`)
 
-    if (repoSize > 102400) {
-      return {
-        statusCode: 400,
-        body: JSON.stringify({
-          error: "Repository too large",
-          message: `This repository is ${(repoSize / 1024).toFixed(0)}MB. Shallow clone may exceed storage limits.`,
-          repoSize,
-        }),
-      }
-    }
+    console.log(`Fetching file tree`)
+    const tree = await getFileTree(owner, repo, headSha)
 
-    repoPath = resolve("/tmp", `repo-${userId}-${Date.now()}`)
-    mkdirSync(repoPath, { recursive: true })
-
-    console.log(`Cloning ${repoUrl} to ${repoPath}`)
-    await git.clone({
-      fs,
-      http,
-      dir: repoPath,
-      url: repoUrl,
-      singleBranch: true,
-      noTags: true,
-    })
-    console.log("Clone complete")
-
-    const commits = await git.log({
-      fs,
-      dir: repoPath,
-    })
-    console.log(`Found ${commits.length} commits`)
-
-    const headCommit = commits[0]
-    console.log(`Analyzing HEAD: ${headCommit.oid}`)
-
-    const files = await git.listFiles({
-      fs,
-      dir: repoPath,
-      ref: headCommit.oid,
-    })
-
-    const jsFiles = files.filter((f: string) =>
-      f.endsWith(".js") || f.endsWith(".jsx") || f.endsWith(".ts") || f.endsWith(".tsx")
+    const jsFiles = tree.filter(
+      f => f.path.endsWith(".js") || f.path.endsWith(".jsx") || f.path.endsWith(".ts") || f.path.endsWith(".tsx")
     )
-
     console.log(`Found ${jsFiles.length} JS/TS files`)
 
-    if (jsFiles.length > 500) {
+    if (jsFiles.length > MAX_FILE_COUNT) {
       return {
         statusCode: 400,
         body: JSON.stringify({
           error: "Too many files to analyze",
-          message: `This repository has ${jsFiles.length} JavaScript/TypeScript files, which exceeds the current limit of 500. Try a smaller repository or a specific subdirectory.`,
+          message: `This repository has ${jsFiles.length} JavaScript/TypeScript files, which exceeds the current limit of ${MAX_FILE_COUNT}. Try a smaller repository or a specific subdirectory.`,
           fileCount: jsFiles.length,
         }),
       }
     }
 
-    const fileMetrics: Array<{
-      path: string
-      loc: number
-      functions: number
-      complexity: number
-    }> = []
+    const totalCodeSize = jsFiles.reduce((sum, f) => sum + f.size, 0)
+    console.log(`Total JS/TS code size: ${(totalCodeSize / 1024 / 1024).toFixed(2)} MB`)
 
+    if (totalCodeSize > MAX_CODE_SIZE_BYTES) {
+      return {
+        statusCode: 400,
+        body: JSON.stringify({
+          error: "Codebase too large",
+          message: `This repository's JavaScript/TypeScript code totals ${(totalCodeSize / 1024 / 1024).toFixed(1)}MB, exceeding the ${MAX_CODE_SIZE_BYTES / 1024 / 1024}MB limit.`,
+          codeSize: totalCodeSize,
+        }),
+      }
+    }
+
+    console.log(`Fetching commit count`)
+    const totalCommits = await getCommitCount(owner, repo, headSha)
+
+    console.log(`Fetching ${jsFiles.length} file contents`)
+    const fetched = await fetchFilesWithConcurrency(owner, repo, headSha, jsFiles, FETCH_CONCURRENCY)
+
+    const fileMetrics: Array<{ path: string; loc: number; functions: number; complexity: number }> = []
     let totalLoc = 0
     let totalFunctions = 0
     let totalComplexity = 0
 
-    for (const file of jsFiles) {
-      try {
-        const { blob } = await git.readBlob({
-          fs,
-          dir: repoPath!,
-          oid: headCommit.oid,
-          filepath: file,
-        })
-
-        const content = Buffer.from(blob).toString("utf8")
-        const metrics = analyzeFile(content)
-
-        fileMetrics.push({
-          path: file,
-          loc: metrics.loc,
-          functions: metrics.functionCount,
-          complexity: metrics.complexity,
-        })
-
-        totalLoc += metrics.loc
-        totalFunctions += metrics.functionCount
-        totalComplexity += metrics.complexity
-      } catch {
-        // Skip unparseable files
-      }
+    for (const { path, content } of fetched) {
+      if (content === null) continue // fetch failed for this file, skip it
+      const metrics = analyzeFile(content)
+      fileMetrics.push({ path, loc: metrics.loc, functions: metrics.functionCount, complexity: metrics.complexity })
+      totalLoc += metrics.loc
+      totalFunctions += metrics.functionCount
+      totalComplexity += metrics.complexity
     }
 
     fileMetrics.sort((a, b) => b.complexity - a.complexity)
@@ -164,8 +109,8 @@ export const handler = async (event: any) => {
     const results = {
       timestamp: new Date().toISOString(),
       repoUrl,
-      headSha: headCommit.oid,
-      totalCommits: commits.length,
+      headSha,
+      totalCommits,
       metrics: {
         totalLoc,
         totalFunctions,
@@ -179,7 +124,6 @@ export const handler = async (event: any) => {
 
     let analysisId = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
 
-    // If this is a preview request, mark the sessionId as used
     if (isPreview && previewSessionId) {
       console.log(`Marking preview sessionId ${previewSessionId} as used`)
       try {
@@ -189,17 +133,15 @@ export const handler = async (event: any) => {
             Item: {
               userID: "preview",
               analysisId: previewSessionId,
-              ttl: Math.floor(Date.now() / 1000) + 24 * 60 * 60, // 24 hour TTL
+              ttl: Math.floor(Date.now() / 1000) + 24 * 60 * 60,
             },
           })
         )
         console.log(`Preview sessionId ${previewSessionId} marked as used`)
       } catch (error) {
         console.error("Failed to mark preview sessionId as used:", error)
-        // Don't fail the analysis if we can't record it
       }
     } else if (!isPreview) {
-      // Only save authenticated analyses to the real record
       try {
         await docClient.send(
           new PutCommand({
@@ -209,8 +151,8 @@ export const handler = async (event: any) => {
               analysisId,
               repoUrl,
               timestamp: new Date().toISOString(),
-              headSha: headCommit.oid,
-              totalCommits: commits.length,
+              headSha,
+              totalCommits,
               metrics: results.metrics,
               topComplexFiles: results.topComplexFiles,
               ttl: Math.floor(Date.now() / 1000) + 30 * 24 * 60 * 60,
@@ -236,22 +178,12 @@ export const handler = async (event: any) => {
     }
   } catch (error) {
     console.error("Lambda error:", error)
+    const message = error instanceof Error ? error.message : "Unknown error"
+    // Repo-not-found / private-repo errors are user errors, not server errors
+    const statusCode = message.includes("not found") || message.includes("private") ? 400 : 500
     return {
-      statusCode: 500,
-      body: JSON.stringify({
-        error: "Analysis failed",
-        message: error instanceof Error ? error.message : "Unknown error",
-      }),
-    }
-  } finally {
-    if (repoPath && existsSync(repoPath)) {
-      try {
-        console.log(`Cleaning up ${repoPath}`)
-        rmSync(repoPath, { recursive: true, force: true })
-        console.log("Cleanup complete")
-      } catch (err) {
-        console.error("Cleanup failed:", err)
-      }
+      statusCode,
+      body: JSON.stringify({ error: "Analysis failed", message }),
     }
   }
 }
@@ -310,27 +242,112 @@ function analyzeFile(content: string): { loc: number; functionCount: number; com
   }
 }
 
-async function getRepoSize(owner: string, repo: string): Promise<number> {
-  const url = `https://api.github.com/repos/${owner}/${repo}`
+function githubHeaders(): Record<string, string> {
+  return {
+    Accept: "application/vnd.github+json",
+    ...(process.env.GITHUB_TOKEN && { Authorization: `token ${process.env.GITHUB_TOKEN}` }),
+  }
+}
 
-  const response = await fetch(url, {
-    headers: {
-      ...(process.env.GITHUB_TOKEN && {
-        Authorization: `token ${process.env.GITHUB_TOKEN}`,
-      }),
-    },
-  })
+async function getRepoInfo(owner: string, repo: string): Promise<{ defaultBranch: string; headSha: string }> {
+  const repoUrl = `https://api.github.com/repos/${owner}/${repo}`
+  const repoRes = await fetch(repoUrl, { headers: githubHeaders() })
 
-  if (response.status === 404) {
+  if (repoRes.status === 404) {
     throw new Error(
       "Repository not found. It may be private, misspelled, or deleted. This tool only supports public repositories."
     )
   }
-
-  if (!response.ok) {
-    throw new Error(`Failed to fetch repo metadata: ${response.statusText}`)
+  if (!repoRes.ok) {
+    throw new Error(`Failed to fetch repo metadata: ${repoRes.statusText}`)
   }
 
-  const data = await response.json() as { size: number }
-  return data.size
+  const repoData = (await repoRes.json()) as { default_branch: string; private: boolean }
+  if (repoData.private) {
+    throw new Error("This repository is private. This tool only supports public repositories.")
+  }
+
+  const branchUrl = `https://api.github.com/repos/${owner}/${repo}/branches/${repoData.default_branch}`
+  const branchRes = await fetch(branchUrl, { headers: githubHeaders() })
+  if (!branchRes.ok) {
+    throw new Error(`Failed to fetch branch info: ${branchRes.statusText}`)
+  }
+  const branchData = (await branchRes.json()) as { commit: { sha: string } }
+
+  return { defaultBranch: repoData.default_branch, headSha: branchData.commit.sha }
+}
+
+async function getFileTree(owner: string, repo: string, sha: string): Promise<Array<{ path: string; size: number }>> {
+  const url = `https://api.github.com/repos/${owner}/${repo}/git/trees/${sha}?recursive=1`
+  const res = await fetch(url, { headers: githubHeaders() })
+  if (!res.ok) {
+    throw new Error(`Failed to fetch file tree: ${res.statusText}`)
+  }
+  const data = (await res.json()) as {
+    tree: Array<{ path: string; type: string; size?: number }>
+    truncated: boolean
+  }
+
+  if (data.truncated) {
+    console.warn(`Tree response truncated for ${owner}/${repo} - repo has more files than GitHub returned in one call`)
+  }
+
+  return data.tree.filter(item => item.type === "blob").map(item => ({ path: item.path, size: item.size || 0 }))
+}
+
+async function getCommitCount(owner: string, repo: string, sha: string): Promise<number> {
+  try {
+    const url = `https://api.github.com/repos/${owner}/${repo}/commits?sha=${sha}&per_page=1`
+    const res = await fetch(url, { headers: githubHeaders() })
+    if (!res.ok) return 0
+
+    const linkHeader = res.headers.get("link")
+    if (!linkHeader) {
+      const data = (await res.json()) as unknown[]
+      return data.length
+    }
+    const match = linkHeader.match(/[?&]page=(\d+)>;\s*rel="last"/)
+    return match ? parseInt(match[1], 10) : 1
+  } catch (err) {
+    console.error("Failed to get commit count:", err)
+    return 0
+  }
+}
+
+async function fetchFileContent(owner: string, repo: string, sha: string, path: string): Promise<string> {
+  const encodedPath = path.split("/").map(encodeURIComponent).join("/")
+  const url = `https://raw.githubusercontent.com/${owner}/${repo}/${sha}/${encodedPath}`
+  const res = await fetch(url)
+  if (!res.ok) {
+    throw new Error(`Failed to fetch ${path}: ${res.statusText}`)
+  }
+  return res.text()
+}
+
+async function fetchFilesWithConcurrency(
+  owner: string,
+  repo: string,
+  sha: string,
+  files: Array<{ path: string }>,
+  concurrency: number
+): Promise<Array<{ path: string; content: string | null }>> {
+  const results: Array<{ path: string; content: string | null }> = []
+
+  for (let i = 0; i < files.length; i += concurrency) {
+    const batch = files.slice(i, i + concurrency)
+    const batchResults = await Promise.all(
+      batch.map(async f => {
+        try {
+          const content = await fetchFileContent(owner, repo, sha, f.path)
+          return { path: f.path, content }
+        } catch (err) {
+          console.error(`Skipping ${f.path}:`, err instanceof Error ? err.message : err)
+          return { path: f.path, content: null }
+        }
+      })
+    )
+    results.push(...batchResults)
+  }
+
+  return results
 }

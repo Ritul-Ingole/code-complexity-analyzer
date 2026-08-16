@@ -1,0 +1,207 @@
+## Known Constraints
+
+- **Max code size:** 25MB of JavaScript/TypeScript source (measured across .js, .jsx, .ts, .tsx files only)
+- **Max file count:** 500 JavaScript/TypeScript files per analysis
+- **Supported languages:** JavaScript, TypeScript, JSX, TSX
+- **Analysis scope:** HEAD commit only (latest default branch)
+- **Public repositories only:** Private repos are not supported
+- **Typical analysis time:** 7-12 seconds for 100-250 files; scales sub-linearly with concurrency-capped fetching
+
+### Why these limits?
+
+- **Code-size gate** protects Lambda from memory exhaustion during AST parsing on massive codebases. Measures only .js/.ts/.jsx/.tsx files, ignoring assets, images, and build artifacts — a 500MB repo with 2MB of source code will analyze fine.
+- **File count cap** prevents timeout on repos with thousands of trivial files.
+- **HEAD-only analysis** keeps runtime predictable; per-commit analysis was abandoned as unscalable (89s for 59 commits). This tool analyzes the latest commit on the default branch only.
+- **Public repos only** avoids the need for per-user GitHub token management.
+
+### Performance
+
+Real-world benchmarks (3008MB Lambda, Node.js 24.x):
+- **100 files, 0.5MB code:** ~6 seconds
+- **227 files, 2.3MB code:** ~10 seconds  
+- **1000+ files:** Not tested yet; approaching 500-file limit
+
+
+
+# Code Complexity Analyzer — Project Context for UI Design
+
+You are helping design/build the UI for a web application called **Code Complexity Analyzer**. Read this entire document before generating anything. Do not modify backend logic, API contracts, data schemas, or routing — this is a **frontend/UI-only task**.
+
+---
+
+## 1. What This Project Is
+
+A web app that analyzes any public GitHub repository and reports code complexity metrics: cyclomatic complexity, lines of code, function counts, and a ranked list of the most complex files. Think of it as a "code health scanner" — a user pastes a GitHub repo URL, and within 5-12 seconds they get a dashboard of metrics and charts.
+
+**Purpose:** This is a portfolio project built by a 4th-year college student for campus placement interviews. It needs to look **professional, polished, and demo-ready** — the kind of product a recruiter would be impressed to see built solo. It is not a hobby project; it should not look like a bootcamp tutorial clone.
+
+**Target users:** Two types —
+1. **Unauthenticated visitors** who want to try it instantly (free preview, one analysis, no login)
+2. **Authenticated users** (via GitHub OAuth) who get unlimited analyses, saved history, trend tracking, and shareable links
+
+---
+
+## 2. Tech Stack (do not change)
+
+- **Frontend:** Next.js 14 (App Router), TypeScript, Tailwind CSS, shadcn/ui components, Recharts for data visualization
+- **Deployment:** Vercel
+- **Backend:** AWS Lambda (Node.js), invoked directly from Next.js API routes
+- **Database:** DynamoDB
+- **Auth:** GitHub OAuth (manual implementation, HTTP-only cookie sessions)
+
+The UI must be built with **Tailwind CSS + shadcn/ui conventions** — use shadcn component patterns (Card, Button, Dialog, Dropdown, Skeleton, etc.) rather than inventing a new design system from scratch, since the existing codebase already uses shadcn/ui and inconsistency would look broken when merged in.
+
+---
+
+## 3. Core User Flow (this determines the UI structure)
+
+1. User lands on `/` — sees a landing page with two CTAs: **"Try Free Analysis"** (no login required) and **"Sign in for Unlimited"** (GitHub OAuth)
+2. User (authenticated or not) goes to `/analyze` — a form with a single input: GitHub repo URL, and a submit button
+3. User submits → a loading/analyzing screen shows (this takes ~5-12 seconds depending on repo size) — should feel alive, not like a frozen spinner
+4. Results appear inline on the same page: metric cards, a bar chart of top complex files, a sortable file details table
+5. **If unauthenticated:** a banner appears saying they've used their free analysis, with a "Sign in with GitHub" link to unlock more. The button to submit another analysis becomes disabled.
+6. **If authenticated:** the user can click "Analyze Another," see a "Share" button, download JSON, and see trend comparisons against their past analyses of the same repo
+7. Authenticated users can visit `/dashboard` — a history view of all past analyses with search, filter (by date range, complexity level), and sort
+8. Shared analyses are viewable at a public read-only URL `/share/[userId]/[analysisId]` — no login required to view
+
+---
+
+## 4. Page Routes
+
+| Route | Purpose | Auth required? |
+|---|---|---|
+| `/` | Landing page, two CTAs | No |
+| `/analyze` | Repo URL input + results display | No (works both ways) |
+| `/dashboard` | Analysis history, search/filter/sort | Yes |
+| `/share/[userId]/[analysisId]` | Public read-only analysis view | No |
+
+---
+
+## 5. Key Components (existing — describe their job, don't rename them)
+
+- **`AnalyzeForm.tsx`** — the repo URL input form. Detects if the user is authenticated. Disables the submit button after a free analysis is used (unauthenticated case). Shows validation errors (invalid URL, repo not found, repo too large, too many files, private repo).
+- **`AnalysisResult.tsx`** — the main results view: metric cards (total LOC, total functions, average complexity, file count), a Recharts bar chart of the top 10 most complex files, and a file details table. Includes a "Share" button (authenticated only) and a preview banner with sign-in CTA (unauthenticated only).
+- **`AnalyzingScreen.tsx`** — the loading state shown while Lambda runs. Has a short "ready" grace period (~1.8s) before showing results, to avoid jarring flash. Currently has rotating facts/tips to keep it engaging — this is a good candidate for a UI upgrade (progress steps, skeleton states, etc.)
+- **`TrendCard.tsx`** — shows deltas (LOC, complexity, function count) vs. the user's most recent prior analysis of the same repo. Color-coded: green = improvement, red = regression.
+- **`ComparisonSection.tsx`** — collapsible section below the file table, letting the user pick a prior analysis from a dropdown and see it side-by-side (desktop) or stacked (mobile) with the current one.
+- **`DashboardClient.tsx`** — the `/dashboard` page: a grid/list of past analyses, search bar, collapsible filter panel (date range, complexity level, sort order), and a mobile three-dot menu per item (Download JSON / Share / View on GitHub).
+- **`ShareModal.tsx`** — a modal showing the shareable public URL with a copy-to-clipboard button (shows a green "Copied!" confirmation state briefly).
+
+---
+
+## 6. Data the UI Displays
+
+Each analysis produces:
+
+```json
+{
+  "timestamp": "ISO 8601 string",
+  "repoUrl": "string",
+  "headSha": "git commit SHA",
+  "totalCommits": "number",
+  "metrics": {
+    "totalLoc": "number",
+    "totalFunctions": "number",
+    "averageComplexity": "number (float)",
+    "fileCount": "number"
+  },
+  "topComplexFiles": [
+    { "path": "string", "loc": "number", "functions": "number", "complexity": "number" }
+  ]
+}
+```
+
+**Complexity color coding (already established, keep this convention):**
+- Green: complexity < 25 (healthy)
+- Yellow: complexity 25–40 (moderate)
+- Red: complexity > 40 (high — needs refactor)
+
+---
+
+## 7. Button / Interaction Behaviors (be precise about these — don't invent new ones)
+
+- **"Try Free Analysis"** (landing page) → navigates to `/analyze`, unauthenticated flow
+- **"Sign in for Unlimited"** (landing page) → initiates GitHub OAuth flow
+- **"Analyze" / submit button** (analyze form) → disabled while loading; disabled permanently for unauth users after their one free analysis is used; shows inline validation errors for bad URLs
+- **"Analyze Another"** (post-results, authenticated) → resets the form, keeps the results section as ready to replace
+- **"Share" button** (results, authenticated only) → opens `ShareModal` with the public link
+- **Copy-to-clipboard button** (inside ShareModal) → copies link, shows temporary "Copied!" success state (a few seconds), then reverts
+- **"Download JSON"** → client-side download of the current analysis as a `.json` file, no server round-trip
+- **Dashboard search bar** → filters the analysis list by repo name/URL as the user types
+- **Dashboard filter panel** → collapsible; filters by date range and complexity level; has a sort control (likely newest/oldest, highest/lowest complexity)
+- **Mobile three-dot menu** (dashboard, per-item) → opens a small action sheet: Download JSON / Share / View on GitHub
+- **"Sign in with GitHub" link** (inside the free-preview banner) → triggers OAuth, and on successful return, the user's just-completed free analysis is automatically migrated into their authenticated history (no re-entry needed) — this should feel seamless in the UI, not like starting over
+
+---
+
+## 8. Design Tone / Direction
+
+- Should read as **credible and modern**, not playful/toy-like — this analyzes real code and will be shown to recruiters
+- Complexity badges (green/yellow/red) should be a consistent, recognizable visual language throughout — dashboard, results, and share pages should all use identical badge styling
+- Mobile matters — dashboard already uses a bottom-sheet pattern for actions on mobile; keep mobile as a first-class citizen, not an afterthought
+- Loading/analyzing state (5-12 second wait) needs to feel alive and informative, not like a frozen spinner — progress indication, skeleton states, or step-by-step status ("Fetching repo... Analyzing files... Calculating complexity...") are all reasonable directions
+- Charts (Recharts) should be legible at a glance — the bar chart of top 10 complex files is often the first thing a viewer's eye goes to
+
+---
+
+## 9. What NOT to Touch
+
+This is a **UI/visual/interaction design task only**. Do not:
+- Change API routes, request/response shapes, or field names
+- Change the DynamoDB schema
+- Change auth logic or cookie handling
+- Add new pages/routes not listed above
+- Add new features (PDF export, per-commit history, Docker, etc. — all explicitly out of scope for this project)
+- Rename existing components
+
+If you want to propose a new UI pattern (e.g., a different loading state, a redesigned metric card layout), that's welcome — just don't change what data it needs or how it's fetched.
+
+---
+
+## 10. What a Good Output Looks Like
+
+Ideally: React/Next.js components using Tailwind CSS classes and shadcn/ui primitives, matching the component names and props described above, that could realistically be dropped into an existing Next.js 14 App Router project. If generating full pages, structure them the way `/analyze`, `/dashboard`, and `/share/[userId]/[analysisId]` are described above.
+
+
+## File structure:
+code-complexity-analyzer/
+├──code-complexity-analyzer/
+│  ├── src/
+│  │   ├── app/
+│  │   │   ├── page.tsx (landing page, two CTAs)
+│  │   │   ├── analyze/page.tsx (analyze form, works both auth/unauth)
+│  │   │   ├── dashboard/page.tsx (history view)
+│  │   │   ├── share/[userId]/[analysisId]/page.tsx (public share view)
+│  │   │   ├── api/
+│  │   │   │   ├── auth/
+│  │   │   │   │   ├── login/route.ts
+│  │   │   │   │   ├── callback/route.ts
+│  │   │   │   │   └── logout/route.ts
+│  │   │   │   ├── analyze/route.ts (authenticated)
+│  │   │   │   ├── analyze-preview/route.ts (unauthenticated)
+│  │   │   │   ├── migrate-analysis/route.ts (authenticated, saves preview to user)
+│  │   │   │   ├── analyses/route.ts (user's history)
+│  │   │   │   ├── analyses-for-repo/route.ts (prior analyses for trend tracking)
+│  │   │   │   └── shared-analysis/route.ts (public, unauthenticated)
+│  │   ├── components/
+│  │   │   ├── AnalyzeForm.tsx
+│  │   │   ├── AnalysisResult.tsx
+│  │   │   ├── AnalyzingScreen.tsx
+│  │   │   ├── TrendCard.tsx
+│  │   │   ├── ComparisonSection.tsx
+│  │   │   ├── DashboardClient.tsx
+│  │   │   ├── ShareModal.tsx
+│  │   │   └── [other components]
+│  │   ├── lib/
+│  │   │   ├── lambda.ts (invokeLambda function)
+│  │   │   ├── session.ts (getSession helper)
+│  │   │   ├── github-oauth.ts (OAuth helpers)
+│  │   │   └── [other utils]
+│  │
+├──code-complexity-analyzer-lambda/
+│  ├── src/
+│  │   └── index.ts (Lambda handler with preview sessionId tracking)
+│  ├── dist/ (compiled output)
+│  └── node_modules/
+
+please build a website for my project, and all the context you need are in the markdown file present in this directory only. initialize a fresh Next.js 14 (app router) + TS + Tailwind + shadcn/ui project here, then build all the UI into it. The UI should have smooth transitions and animations with 3D elements

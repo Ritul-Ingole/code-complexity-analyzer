@@ -2,6 +2,7 @@ import { getSession } from "@/lib/session"
 import Link from "next/link"
 import { ArrowRight, Lock, TrendingUp, Zap } from "lucide-react"
 import HeroVisual from "@/components/HeroVisual"
+import ParallaxReveal from "@/components/ParallaxReveal"
 
 export default async function Home() {
   const session = await getSession()
@@ -79,7 +80,7 @@ export default async function Home() {
               </div>
             )}
           </div>
-
+            
           {/* Right: 3D node cluster */}
           <div className="order-1 md:order-2">
             <HeroVisual />

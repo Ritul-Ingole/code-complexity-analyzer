@@ -14,16 +14,18 @@ interface FileNode {
 
 // Node layout: loosely mirrors a real dependency graph — core repo,
 // orbiting analyzed files at varying depth/size to suggest hierarchy.
+// Muted, desaturated palette — dusty coral / soft mustard / soft mint / pale slate-blue.
+// Deliberately avoiding neon saturation so the cluster reads as calm and premium, not toy-like.
 const NODES: FileNode[] = [
-  { name: "analyzer.ts", color: "#22d3ee", position: [-2.5, 1.5, 0.6], size: 0.22 },
-  { name: "parser.ts", color: "#22d3ee", position: [-1.5, 2.4, -0.7], size: 0.15 },
-  { name: "lambda.ts", color: "#a78bfa", position: [2.3, 1.8, 0.5], size: 0.2 },
-  { name: "session.ts", color: "#a78bfa", position: [1.3, 2.5, -0.8], size: 0.13 },
-  { name: "dashboard.tsx", color: "#34d399", position: [-2.7, -0.5, -0.5], size: 0.18 },
-  { name: "trends.ts", color: "#34d399", position: [-1.7, -1.7, 0.6], size: 0.12 },
-  { name: "oauth.ts", color: "#fbbf24", position: [2.5, -0.7, 0.5], size: 0.17 },
-  { name: "dynamo.ts", color: "#fbbf24", position: [1.8, -1.9, -0.4], size: 0.12 },
-  { name: "index.ts", color: "#60a5fa", position: [0.1, -2.6, 0.3], size: 0.14 },
+  { name: "analyzer.ts", color: "#95c4ae", position: [-2.5, 1.5, 0.6], size: 0.22 },
+  { name: "parser.ts", color: "#d9b96e", position: [-1.5, 2.4, -0.7], size: 0.15 },
+  { name: "lambda.ts", color: "#d29b85", position: [2.3, 1.8, 0.5], size: 0.2 },
+  { name: "session.ts", color: "#dfc281", position: [1.3, 2.5, -0.8], size: 0.13 },
+  { name: "dashboard.tsx", color: "#9bc9b3", position: [-2.7, -0.5, -0.5], size: 0.18 },
+  { name: "trends.ts", color: "#84b39c", position: [-1.7, -1.7, 0.6], size: 0.12 },
+  { name: "oauth.ts", color: "#d29b85", position: [2.5, -0.7, 0.5], size: 0.17 },
+  { name: "dynamo.ts", color: "#93b2c2", position: [1.8, -1.9, -0.4], size: 0.12 },
+  { name: "index.ts", color: "#a8d0bc", position: [0.1, -2.6, 0.3], size: 0.14 },
 ]
 
 function NetworkCore() {
@@ -38,7 +40,7 @@ function NetworkCore() {
   return (
     <mesh ref={meshRef}>
       <icosahedronGeometry args={[1.15, 1]} />
-      <meshBasicMaterial color="#38bdf8" wireframe transparent opacity={0.3} />
+      <meshBasicMaterial color="#4a6b7c" wireframe transparent opacity={0.38} />
     </mesh>
   )
 }
@@ -82,10 +84,10 @@ function FileNodeMesh({ node, index }: { node: FileNode; index: number }) {
         <icosahedronGeometry args={[node.size, 0]} />
         <meshStandardMaterial
           color={node.color}
-          roughness={0.35}
-          metalness={0.15}
+          roughness={0.55}
+          metalness={0.05}
           emissive={node.color}
-          emissiveIntensity={0.3}
+          emissiveIntensity={0.12}
         />
       </mesh>
       <Html distanceFactor={9} occlude={false} className="pointer-events-none select-none">
@@ -97,11 +99,35 @@ function FileNodeMesh({ node, index }: { node: FileNode; index: number }) {
   )
 }
 
-function GroundShadow() {
+function ScannerDisk() {
+  const diskRef = useRef<THREE.Mesh>(null)
+  const materialRef = useRef<THREE.MeshBasicMaterial>(null)
+
+  useFrame(({ clock }) => {
+    if (!diskRef.current || !materialRef.current) return
+    const t = clock.getElapsedTime()
+
+    // Smooth 0→1→0 cycle (not a raw sine, so it eases at the top/bottom
+    // instead of moving fastest at the extremes) driving the sweep.
+    const cycle = (Math.sin(t * 0.32 - Math.PI / 2) + 1) / 2
+    diskRef.current.position.y = -1.9 + cycle * 3.8
+
+    // Brighten slightly as it passes through the core's middle, fade at the extremes —
+    // reads as an active "scan" rather than a flat oscillation.
+    const midPass = Math.sin(cycle * Math.PI)
+    materialRef.current.opacity = 0.1 + midPass * 0.16
+  })
+
   return (
-    <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -3, 0]}>
-      <circleGeometry args={[2.8, 64]} />
-      <meshBasicMaterial color="#0ea5e9" transparent opacity={0.05} />
+    <mesh ref={diskRef} rotation={[-Math.PI / 2, 0, 0]}>
+      <circleGeometry args={[2.3, 64]} />
+      <meshBasicMaterial
+        ref={materialRef}
+        color="#6b98a3"
+        transparent
+        opacity={0.12}
+        side={THREE.DoubleSide}
+      />
     </mesh>
   )
 }
@@ -144,7 +170,7 @@ export default function CodeNetworkHero() {
       <pointLight position={[5, 5, 5]} intensity={0.9} />
       <pointLight position={[-5, -3, -5]} intensity={0.3} color="#a78bfa" />
       <Scene />
-      <GroundShadow />
+      <ScannerDisk />
     </Canvas>
   )
 }

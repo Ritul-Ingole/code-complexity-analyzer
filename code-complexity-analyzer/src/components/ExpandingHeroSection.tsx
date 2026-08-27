@@ -27,6 +27,14 @@ export default function ExpandingHeroSection({ isAuthenticated, login }: Expandi
 
   useEffect(() => {
     const ctx = gsap.context(() => {
+      // Initial state: small, shifted right — mimics the old two-column layout
+      // even though the element itself is a full-bleed absolute box underneath.
+      gsap.set(canvasWrapRef.current, {
+        scale: 0.80,
+        xPercent: 28,
+        transformOrigin: "50% 50%",
+      })
+
       const tl = gsap.timeline({
         scrollTrigger: {
           trigger: sectionRef.current,
@@ -36,8 +44,8 @@ export default function ExpandingHeroSection({ isAuthenticated, login }: Expandi
         },
       })
 
-      // Canvas scales up to fill the frame as the user scrolls through the tall wrapper
-      tl.to(canvasWrapRef.current, { scale: 2.4, ease: "none" }, 0)
+      // Canvas grows from its small right-shifted starting box to fill the frame
+      tl.to(canvasWrapRef.current, { scale: 1, xPercent: 0, ease: "none" }, 0)
       // Hero text fades and lifts out of the way
       tl.to(heroTextRef.current, { opacity: 0, y: -40, ease: "none" }, 0)
       // Reveal content fades in once the scene has expanded enough to read as a backdrop
@@ -62,12 +70,14 @@ export default function ExpandingHeroSection({ isAuthenticated, login }: Expandi
           <div className="w-72 h-72 rounded-full bg-gradient-to-br from-[#d9a441]/20 via-[#c1694f]/15 to-[#8a9a5b]/20 blur-2xl" />
         </div>
 
-        {/* Hero text — fades out as the scene expands */}
+        {/* Hero text — fades out as the scene expands. pointer-events-none on the
+            wrapper so empty space lets mouse-move through to the canvas underneath;
+            pointer-events-auto is re-enabled only on the actual content. */}
         <div
           ref={heroTextRef}
-          className="relative z-10 h-full flex items-center px-6 md:px-16 lg:px-24"
+          className="relative z-10 h-full flex items-center px-6 md:px-16 lg:px-24 pointer-events-none"
         >
-          <div className="max-w-xl">
+          <div className="max-w-xl pointer-events-auto">
             <div className="inline-flex items-center gap-2 border border-[#d8d2c4] rounded-full px-3 py-1.5 mb-8 bg-[#faf8f3]">
               <Zap className="w-3.5 h-3.5 text-[#c1694f]" />
               <span className="text-xs font-mono text-[#6f665a] tracking-wide">

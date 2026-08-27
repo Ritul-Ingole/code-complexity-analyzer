@@ -16,16 +16,18 @@ interface FileNode {
 // orbiting analyzed files at varying depth/size to suggest hierarchy.
 // Muted, desaturated palette — dusty coral / soft mustard / soft mint / pale slate-blue.
 // Deliberately avoiding neon saturation so the cluster reads as calm and premium, not toy-like.
+// Warm palette — terracotta, amber, olive, sand — to match a light, warm background
+// instead of the cool mint/coral/blue set used on the dark theme.
 const NODES: FileNode[] = [
-  { name: "analyzer.ts", color: "#95c4ae", position: [-2.5, 1.5, 0.6], size: 0.22 },
-  { name: "parser.ts", color: "#d9b96e", position: [-1.5, 2.4, -0.7], size: 0.15 },
-  { name: "lambda.ts", color: "#d29b85", position: [2.3, 1.8, 0.5], size: 0.2 },
-  { name: "session.ts", color: "#dfc281", position: [1.3, 2.5, -0.8], size: 0.13 },
-  { name: "dashboard.tsx", color: "#9bc9b3", position: [-2.7, -0.5, -0.5], size: 0.18 },
-  { name: "trends.ts", color: "#84b39c", position: [-1.7, -1.7, 0.6], size: 0.12 },
-  { name: "oauth.ts", color: "#d29b85", position: [2.5, -0.7, 0.5], size: 0.17 },
-  { name: "dynamo.ts", color: "#93b2c2", position: [1.8, -1.9, -0.4], size: 0.12 },
-  { name: "index.ts", color: "#a8d0bc", position: [0.1, -2.6, 0.3], size: 0.14 },
+  { name: "analyzer.ts", color: "#8a9a5b", position: [-2.5, 1.5, 0.6], size: 0.22 },
+  { name: "parser.ts", color: "#d9a441", position: [-1.5, 2.4, -0.7], size: 0.15 },
+  { name: "lambda.ts", color: "#c1694f", position: [2.3, 1.8, 0.5], size: 0.2 },
+  { name: "session.ts", color: "#d9a441", position: [1.3, 2.5, -0.8], size: 0.13 },
+  { name: "dashboard.tsx", color: "#8a9a5b", position: [-2.7, -0.5, -0.5], size: 0.18 },
+  { name: "trends.ts", color: "#a3ab6f", position: [-1.7, -1.7, 0.6], size: 0.12 },
+  { name: "oauth.ts", color: "#c1694f", position: [2.5, -0.7, 0.5], size: 0.17 },
+  { name: "dynamo.ts", color: "#c2a878", position: [1.8, -1.9, -0.4], size: 0.12 },
+  { name: "index.ts", color: "#a85c42", position: [0.1, -2.6, 0.3], size: 0.14 },
 ]
 
 function NetworkCore() {
@@ -40,7 +42,7 @@ function NetworkCore() {
   return (
     <mesh ref={meshRef}>
       <icosahedronGeometry args={[1.15, 1]} />
-      <meshBasicMaterial color="#4a6b7c" wireframe transparent opacity={0.38} />
+      <meshBasicMaterial color="#7a6f5d" wireframe transparent opacity={0.45} />
     </mesh>
   )
 }
@@ -91,7 +93,7 @@ function FileNodeMesh({ node, index }: { node: FileNode; index: number }) {
         />
       </mesh>
       <Html distanceFactor={9} occlude={false} className="pointer-events-none select-none">
-        <span className="text-[11px] font-mono text-slate-300/70 whitespace-nowrap block -translate-y-5">
+        <span className="text-[11px] font-mono text-[#5c5346]/80 whitespace-nowrap block -translate-y-5">
           {node.name}
         </span>
       </Html>
@@ -123,9 +125,9 @@ function ScannerDisk() {
       <circleGeometry args={[2.3, 64]} />
       <meshBasicMaterial
         ref={materialRef}
-        color="#6b98a3"
+        color="#9c8f78"
         transparent
-        opacity={0.12}
+        opacity={0.16}
         side={THREE.DoubleSide}
       />
     </mesh>

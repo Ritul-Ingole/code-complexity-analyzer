@@ -29,7 +29,7 @@ export default function ExpandingHeroSection({ isAuthenticated, login }: Expandi
     const ctx = gsap.context(() => {
       // Initial state: small, shifted right — mimics the old two-column layout
       // even though the element itself is a full-bleed absolute box underneath.
-      gsap.set(canvasWrapRef.current, {
+      gsap.set(canvasWrapRef.current,{
         scale: 0.80,
         xPercent: 28,
         transformOrigin: "50% 50%",

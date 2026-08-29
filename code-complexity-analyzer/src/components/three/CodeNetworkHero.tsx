@@ -92,7 +92,12 @@ function FileNodeMesh({ node, index }: { node: FileNode; index: number }) {
           emissiveIntensity={0.12}
         />
       </mesh>
-      <Html distanceFactor={9} occlude={false} className="pointer-events-none select-none">
+      <Html
+        distanceFactor={9}
+        occlude={false}
+        className="pointer-events-none select-none"
+        style={{ opacity: "var(--label-opacity, 1)" }}
+      >
         <span className="text-[11px] font-mono text-[#5c5346]/80 whitespace-nowrap block -translate-y-5">
           {node.name}
         </span>
@@ -164,8 +169,8 @@ export default function CodeNetworkHero() {
   return (
     <Canvas
       camera={{ position: [0, 0, 7], fov: 42 }}
-      dpr={[1, 1.5]}
-      gl={{ antialias: true, alpha: true }}
+      dpr={[1, 1.25]}
+      gl={{ antialias: true, alpha: true, powerPreference: "high-performance" }}
       style={{ width: "100%", height: "100%" }}
     >
       <ambientLight intensity={0.6} />

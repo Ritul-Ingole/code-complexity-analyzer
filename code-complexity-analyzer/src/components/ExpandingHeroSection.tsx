@@ -33,6 +33,8 @@ export default function ExpandingHeroSection({ isAuthenticated, login }: Expandi
         scale: 0.80,
         xPercent: 28,
         transformOrigin: "50% 50%",
+        // Drives the node-label fade; labels read var(--label-opacity)
+        "--label-opacity": 1,
       })
 
       const tl = gsap.timeline({
@@ -40,16 +42,24 @@ export default function ExpandingHeroSection({ isAuthenticated, login }: Expandi
           trigger: sectionRef.current,
           start: "top top",
           end: "bottom bottom",
-          scrub: 1,
+          // Lenis already smooths the scroll; a long scrub re-eases on top of
+          // it and reads as lag/rubber-banding. Short scrub just tracks it.
+          scrub: 0.5,
         },
       })
 
-      // Canvas grows from its small right-shifted starting box to fill the frame
-      tl.to(canvasWrapRef.current, { scale: 1, xPercent: 0, ease: "none" }, 0)
-      // Hero text fades and lifts out of the way
-      tl.to(heroTextRef.current, { opacity: 0, y: -40, ease: "none" }, 0)
-      // Reveal content fades in once the scene has expanded enough to read as a backdrop
-      tl.to(revealTextRef.current, { opacity: 1, ease: "none" }, 0.5)
+      // Expansion finishes at 75% of the scroll distance. The remaining 25%
+      // (spacer tween below) is a dwell: the scene sits full-bleed and
+      // centered as the background before the sticky releases.
+      tl.to(canvasWrapRef.current, { scale: 1, xPercent: 0, ease: "none", duration: 0.75 }, 0)
+      // Labels fade out during the first half of the expansion, gone before settle
+      tl.to(canvasWrapRef.current, { "--label-opacity": 0, ease: "none", duration: 0.3 }, 0.1)
+      // Hero text fades and lifts out of the way early in the expansion
+      tl.to(heroTextRef.current, { opacity: 0, y: -40, ease: "none", duration: 0.4 }, 0)
+      // Reveal content fades in over the already-settled scene
+      tl.to(revealTextRef.current, { opacity: 1, ease: "none", duration: 0.25 }, 0.6)
+      // Spacer: holds the centered background state for the last 25% of scroll
+      tl.to({}, { duration: 0.25 }, 0.75)
     }, sectionRef)
 
     return () => ctx.revert()
@@ -149,7 +159,7 @@ export default function ExpandingHeroSection({ isAuthenticated, login }: Expandi
           ref={revealTextRef}
           className="absolute inset-0 z-10 flex items-center justify-center px-6 opacity-0 pointer-events-none"
         >
-          <div className="max-w-2xl text-center bg-[#f4f1ea]/85 backdrop-blur-sm rounded-2xl p-10 border border-[#d8d2c4]">
+          <div className="max-w-2xl text-center bg-[#f4f1ea]/95 rounded-2xl p-10 border border-[#d8d2c4]">
             <span className="text-xs font-mono text-[#a85c42] tracking-wide">02 —</span>
             <h2 className="text-3xl md:text-4xl font-bold text-[#2b2620] mt-4 mb-4">
               See the hotspots.

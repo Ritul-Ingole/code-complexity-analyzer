@@ -65,6 +65,7 @@ export default function ExpandingHeroSection({ isAuthenticated, login }: Expandi
     return () => ctx.revert()
   }, [])
 
+  
   return (
     // Tall wrapper defines how much scroll distance the whole expand sequence consumes.
     <div ref={sectionRef} className="relative h-[240vh] bg-[#f4f1ea]">

@@ -1,5 +1,5 @@
 import { getSession } from "@/lib/session"
-import ExpandingHeroSection from "@/components/ExpandingHeroSection"
+import HeroSection from "@/components/hero/HeroSection"
 import Link from "next/link"
 import { Link2, Gauge, TrendingUp, ArrowRight, Lock } from "lucide-react"
 
@@ -11,10 +11,7 @@ interface NavProps {
 function Navbar({ isAuthenticated, login }: NavProps) {
   return (
     <nav className="sticky top-0 z-30 flex items-center justify-between border-b border-[#e6e0d4] bg-[#f4f1ea]/85 px-6 py-4 backdrop-blur-md md:px-16 lg:px-24">
-      <Link
-        href="/"
-        className="font-mono text-sm tracking-tight text-[#2b2620]"
-      >
+      <Link href="/" className="font-mono text-sm tracking-tight text-[#2b2620]">
         code<span className="text-[#c1694f]">·</span>complexity
       </Link>
       <div className="flex items-center gap-5">
@@ -73,17 +70,14 @@ function HowItWorks({ isAuthenticated }: { isAuthenticated: boolean }) {
   return (
     <section className="relative z-10 bg-[#faf8f3]/95 px-6 py-24 md:px-16 lg:px-24">
       <div className="mx-auto max-w-5xl">
-        <span className="text-xs font-mono tracking-wide text-[#a85c42]">03 — HOW IT WORKS</span>
+        <span className="font-mono text-xs tracking-wide text-[#a85c42]">03 — HOW IT WORKS</span>
         <h2 className="mt-4 text-3xl font-bold text-[#2b2620] md:text-4xl">
           Three steps. No setup.
         </h2>
 
         <div className="mt-12 grid gap-6 md:grid-cols-3">
           {steps.map((step) => (
-            <div
-              key={step.n}
-              className="rounded-2xl border border-[#e6e0d4] bg-white p-7"
-            >
+            <div key={step.n} className="rounded-2xl border border-[#e6e0d4] bg-white p-7">
               <div className="flex items-center justify-between">
                 <step.icon className="h-5 w-5 text-[#c1694f]" />
                 <span className="font-mono text-xs text-[#8a8172]">{step.n}</span>
@@ -122,7 +116,7 @@ export default async function Home() {
   return (
     <div className="min-h-screen bg-[#f4f1ea]">
       <Navbar isAuthenticated={!!session} login={session?.login} />
-      <ExpandingHeroSection isAuthenticated={!!session} login={session?.login} />
+      <HeroSection isAuthenticated={!!session} login={session?.login} />
       <HowItWorks isAuthenticated={!!session} />
     </div>
   )

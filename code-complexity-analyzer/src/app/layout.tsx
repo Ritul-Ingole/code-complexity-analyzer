@@ -1,10 +1,9 @@
 import type { Metadata } from "next"
 import "./globals.css"
-import SmoothScrollProvider from "@/components/SmoothScrollProvider"
 
 export const metadata: Metadata = {
   title: "Code Complexity Analyzer",
-  description: "Analyze JavaScript repositories for complexity metrics"
+  description: "Analyze JavaScript repositories for complexity metrics",
 }
 
 export default function RootLayout({
@@ -14,9 +13,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body>
-        <SmoothScrollProvider>{children}</SmoothScrollProvider>
-      </body>
+      <body>{children}</body>
     </html>
   )
 }

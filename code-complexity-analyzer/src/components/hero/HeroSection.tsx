@@ -5,27 +5,27 @@ import dynamic from "next/dynamic"
 import Link from "next/link"
 import { ArrowRight, Lock, TrendingUp } from "lucide-react"
 
-const CodeNetworkHero = dynamic(() => import("./three/CodeNetworkHero"), {
+const HeroScene = dynamic(() => import("./HeroScene"), {
   ssr: false,
   loading: () => null,
 })
 
-interface ExpandingHeroSectionProps {
+interface HeroSectionProps {
   isAuthenticated: boolean
   login?: string
 }
 
-// Scroll-driven expansion, ported from sample/js/hero3d.js:
+// Scroll-driven expansion (ported from sample/js/hero3d.js):
 // the 3D panel is position:fixed; its home slot is measured once, and on
-// scroll its rect lerps (easeInOutCubic) from home slot to the full
-// viewport. Radius/border/shadow fade so it melts into a seamless
-// background; later sections scroll over it. No sticky, no transform,
-// canvas re-renders at true size — that is what makes it smooth.
+// scroll its rect lerps (easeInOutCubic) from the home slot to the full
+// viewport. Radius/border/shadow melt away so it becomes a seamless
+// background; later sections scroll over it.
 const ease = (t: number) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2)
 
-export default function ExpandingHeroSection({ isAuthenticated, login }: ExpandingHeroSectionProps) {
+export default function HeroSection({ isAuthenticated, login }: HeroSectionProps) {
   const panelRef = useRef<HTMLDivElement>(null)
   const spacerRef = useRef<HTMLDivElement>(null)
+  const labelOpacity = useRef(1)
 
   useLayoutEffect(() => {
     const panel = panelRef.current
@@ -57,7 +57,7 @@ export default function ExpandingHeroSection({ isAuthenticated, login }: Expandi
       panel.style.borderWidth = 1 - p + "px"
       panel.style.boxShadow = `0 24px 60px rgba(168, 92, 66, ${0.12 * (1 - p)})`
       // Node labels die by p=0.5, same cadence as the sample's chip (1 - 2p)
-      panel.style.setProperty("--label-opacity", String(Math.max(0, 1 - p * 2)))
+      labelOpacity.current = Math.max(0, 1 - p * 2)
       panel.style.visibility = "visible"
     }
 
@@ -82,19 +82,19 @@ export default function ExpandingHeroSection({ isAuthenticated, login }: Expandi
       {/* Fixed 3D panel — hidden until first measure so SSR never paints it unpositioned */}
       <div
         ref={panelRef}
-        className="fixed top-0 left-0 z-0 overflow-hidden border border-[#d8d2c4] will-change-[width,height,left,top]"
+        className="fixed left-0 top-0 z-0 overflow-hidden border border-[#d8d2c4] will-change-[width,height,left,top]"
         style={{
           background: "radial-gradient(circle at 30% 20%, #faf8f3, #f4f1ea)",
           visibility: "hidden",
         }}
       >
-        <CodeNetworkHero />
+        <HeroScene labelOpacity={labelOpacity} />
       </div>
 
       {/* Hero copy (scrolls away naturally) + spacer holding the panel's home slot */}
       <section className="relative z-10 mx-auto grid min-h-[calc(100vh-72px)] max-w-[1200px] grid-cols-1 items-center gap-10 px-6 py-16 md:grid-cols-[1.05fr_0.95fr] md:gap-12 md:px-16 lg:px-24">
         <div className="max-w-xl">
-          <p className="mb-6 text-xs font-mono tracking-wide text-[#a85c42]">
+          <p className="mb-6 font-mono text-xs tracking-wide text-[#a85c42]">
             01 — STATIC ANALYSIS, NO SETUP
           </p>
 

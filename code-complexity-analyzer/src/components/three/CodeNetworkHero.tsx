@@ -69,6 +69,7 @@ function Connections() {
 
 function FileNodeMesh({ node, index }: { node: FileNode; index: number }) {
   const groupRef = useRef<THREE.Group>(null)
+  const meshRef = useRef<THREE.Mesh>(null)
   const basePos = useMemo(() => new THREE.Vector3(...node.position), [node.position])
 
   // Gentle independent bob per node so the cluster feels alive, not static
@@ -78,11 +79,15 @@ function FileNodeMesh({ node, index }: { node: FileNode; index: number }) {
     const offset = index * 1.7
     groupRef.current.position.y = basePos.y + Math.sin(t * 0.55 + offset) * 0.09
     groupRef.current.position.x = basePos.x + Math.cos(t * 0.35 + offset) * 0.05
+    // Soft heartbeat pulse, phase-offset per node so they don't beat in lockstep
+    if (meshRef.current) {
+      meshRef.current.scale.setScalar(1 + Math.sin(t * 1.6 + offset) * 0.12)
+    }
   })
 
   return (
     <group ref={groupRef} position={node.position}>
-      <mesh>
+      <mesh ref={meshRef}>
         <icosahedronGeometry args={[node.size, 0]} />
         <meshStandardMaterial
           color={node.color}

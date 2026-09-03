@@ -4,10 +4,6 @@ import { useEffect, useRef } from "react"
 import dynamic from "next/dynamic"
 import Link from "next/link"
 import { ArrowRight, Lock, TrendingUp, Zap } from "lucide-react"
-import gsap from "gsap"
-import { ScrollTrigger } from "gsap/ScrollTrigger"
-
-gsap.registerPlugin(ScrollTrigger)
 
 const CodeNetworkHero = dynamic(() => import("./three/CodeNetworkHero"), {
   ssr: false,
@@ -19,6 +15,16 @@ interface ExpandingHeroSectionProps {
   login?: string
 }
 
+// Scroll-driven hero, no animation library: one rAF loop maps scroll
+// progress p (0..1 across the sticky range) onto four phases:
+//   0.00-0.75  scene expands from right-half framing to full-bleed centered
+//   0.10-0.40  node labels fade out
+//   0.00-0.40  hero text fades and lifts away
+//   0.60-0.85  reveal card fades in over the settled scene
+//   0.75-1.00  dwell — scene holds as the centered background before release
+const clamp01 = (v: number) => Math.min(1, Math.max(0, v))
+const range = (p: number, a: number, b: number) => clamp01((p - a) / (b - a))
+
 export default function ExpandingHeroSection({ isAuthenticated, login }: ExpandingHeroSectionProps) {
   const sectionRef = useRef<HTMLDivElement>(null)
   const canvasWrapRef = useRef<HTMLDivElement>(null)
@@ -26,54 +32,59 @@ export default function ExpandingHeroSection({ isAuthenticated, login }: Expandi
   const revealTextRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
-    const ctx = gsap.context(() => {
-      // Initial state: small, shifted right — mimics the old two-column layout
-      // even though the element itself is a full-bleed absolute box underneath.
-      gsap.set(canvasWrapRef.current,{
-        scale: 0.80,
-        xPercent: 28,
-        transformOrigin: "50% 50%",
-        // Drives the node-label fade; labels read var(--label-opacity)
-        "--label-opacity": 1,
-      })
+    const section = sectionRef.current
+    const canvasWrap = canvasWrapRef.current
+    const heroText = heroTextRef.current
+    const revealText = revealTextRef.current
+    if (!section || !canvasWrap || !heroText || !revealText) return
 
-      const tl = gsap.timeline({
-        scrollTrigger: {
-          trigger: sectionRef.current,
-          start: "top top",
-          end: "bottom bottom",
-          // Lenis already smooths the scroll; a long scrub re-eases on top of
-          // it and reads as lag/rubber-banding. Short scrub just tracks it.
-          scrub: 0.5,
-        },
-      })
+    let raf = 0
+    let last = -1
 
-      // Expansion finishes at 75% of the scroll distance. The remaining 25%
-      // (spacer tween below) is a dwell: the scene sits full-bleed and
-      // centered as the background before the sticky releases.
-      tl.to(canvasWrapRef.current, { scale: 1, xPercent: 0, ease: "none", duration: 0.75 }, 0)
-      // Labels fade out during the first half of the expansion, gone before settle
-      tl.to(canvasWrapRef.current, { "--label-opacity": 0, ease: "none", duration: 0.3 }, 0.1)
-      // Hero text fades and lifts out of the way early in the expansion
-      tl.to(heroTextRef.current, { opacity: 0, y: -40, ease: "none", duration: 0.4 }, 0)
-      // Reveal content fades in over the already-settled scene
-      tl.to(revealTextRef.current, { opacity: 1, ease: "none", duration: 0.25 }, 0.6)
-      // Spacer: holds the centered background state for the last 25% of scroll
-      tl.to({}, { duration: 0.25 }, 0.75)
-    }, sectionRef)
+    const tick = () => {
+      const rect = section.getBoundingClientRect()
+      const total = section.offsetHeight - window.innerHeight
+      const p = total > 0 ? clamp01(-rect.top / total) : 0
 
-    return () => ctx.revert()
+      // Write styles only when scroll actually moved — no idle churn
+      if (p !== last) {
+        last = p
+
+        const expand = range(p, 0, 0.75)
+        canvasWrap.style.transform = `translateX(${28 * (1 - expand)}%) scale(${0.8 + 0.2 * expand})`
+        canvasWrap.style.setProperty("--label-opacity", String(1 - range(p, 0.1, 0.4)))
+
+        const heroOut = range(p, 0, 0.4)
+        heroText.style.opacity = String(1 - heroOut)
+        heroText.style.transform = `translateY(${-40 * heroOut}px)`
+        // Fully faded hero text must not block clicks on the scene beneath
+        heroText.style.visibility = heroOut >= 1 ? "hidden" : "visible"
+
+        revealText.style.opacity = String(range(p, 0.6, 0.85))
+      }
+
+      raf = requestAnimationFrame(tick)
+    }
+
+    raf = requestAnimationFrame(tick)
+    return () => cancelAnimationFrame(raf)
   }, [])
 
-  
   return (
     // Tall wrapper defines how much scroll distance the whole expand sequence consumes.
     <div ref={sectionRef} className="relative h-[240vh] bg-[#f4f1ea]">
       <div className="sticky top-0 h-screen w-full overflow-hidden">
-        {/* 3D scene — hidden on mobile for performance, static fallback shown instead */}
+        {/* 3D scene — hidden on mobile for performance, static fallback shown instead.
+            Initial transform matches p=0 so SSR paints the right first frame. */}
         <div
           ref={canvasWrapRef}
           className="absolute inset-0 hidden md:block origin-center will-change-transform"
+          style={
+            {
+              transform: "translateX(28%) scale(0.8)",
+              "--label-opacity": "1",
+            } as React.CSSProperties
+          }
         >
           <CodeNetworkHero />
         </div>

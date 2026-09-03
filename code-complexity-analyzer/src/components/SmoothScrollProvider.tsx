@@ -2,10 +2,6 @@
 
 import { useEffect } from "react"
 import Lenis from "lenis"
-import gsap from "gsap"
-import { ScrollTrigger } from "gsap/ScrollTrigger"
-
-gsap.registerPlugin(ScrollTrigger)
 
 export default function SmoothScrollProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
@@ -15,16 +11,15 @@ export default function SmoothScrollProvider({ children }: { children: React.Rea
       smoothWheel: true,
     })
 
-    // Keep ScrollTrigger's internal scroll position synced to Lenis's
-    // virtual (smoothed) position, not the raw native scroll event.
-    lenis.on("scroll", ScrollTrigger.update)
-
-    const rafCallback = (time: number) => lenis.raf(time * 1000)
-    gsap.ticker.add(rafCallback)
-    gsap.ticker.lagSmoothing(0)
+    let raf = 0
+    const loop = (time: number) => {
+      lenis.raf(time)
+      raf = requestAnimationFrame(loop)
+    }
+    raf = requestAnimationFrame(loop)
 
     return () => {
-      gsap.ticker.remove(rafCallback)
+      cancelAnimationFrame(raf)
       lenis.destroy()
     }
   }, [])

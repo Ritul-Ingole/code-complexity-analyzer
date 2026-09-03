@@ -1,9 +1,9 @@
 "use client"
 
-import { useEffect, useRef } from "react"
+import { useLayoutEffect, useRef } from "react"
 import dynamic from "next/dynamic"
 import Link from "next/link"
-import { ArrowRight, Lock, TrendingUp, Zap } from "lucide-react"
+import { ArrowRight, Lock, TrendingUp } from "lucide-react"
 
 const CodeNetworkHero = dynamic(() => import("./three/CodeNetworkHero"), {
   ssr: false,
@@ -15,176 +15,159 @@ interface ExpandingHeroSectionProps {
   login?: string
 }
 
-// Scroll-driven hero, no animation library: one rAF loop maps scroll
-// progress p (0..1 across the sticky range) onto four phases:
-//   0.00-0.75  scene expands from right-half framing to full-bleed centered
-//   0.10-0.40  node labels fade out
-//   0.00-0.40  hero text fades and lifts away
-//   0.60-0.85  reveal card fades in over the settled scene
-//   0.75-1.00  dwell — scene holds as the centered background before release
-const clamp01 = (v: number) => Math.min(1, Math.max(0, v))
-const range = (p: number, a: number, b: number) => clamp01((p - a) / (b - a))
+// Scroll-driven expansion, ported from sample/js/hero3d.js:
+// the 3D panel is position:fixed; its home slot is measured once, and on
+// scroll its rect lerps (easeInOutCubic) from home slot to the full
+// viewport. Radius/border/shadow fade so it melts into a seamless
+// background; later sections scroll over it. No sticky, no transform,
+// canvas re-renders at true size — that is what makes it smooth.
+const ease = (t: number) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2)
 
 export default function ExpandingHeroSection({ isAuthenticated, login }: ExpandingHeroSectionProps) {
-  const sectionRef = useRef<HTMLDivElement>(null)
-  const canvasWrapRef = useRef<HTMLDivElement>(null)
-  const heroTextRef = useRef<HTMLDivElement>(null)
-  const revealTextRef = useRef<HTMLDivElement>(null)
+  const panelRef = useRef<HTMLDivElement>(null)
+  const spacerRef = useRef<HTMLDivElement>(null)
 
-  useEffect(() => {
-    const section = sectionRef.current
-    const canvasWrap = canvasWrapRef.current
-    const heroText = heroTextRef.current
-    const revealText = revealTextRef.current
-    if (!section || !canvasWrap || !heroText || !revealText) return
+  useLayoutEffect(() => {
+    const panel = panelRef.current
+    const spacer = spacerRef.current
+    if (!panel || !spacer) return
 
-    let raf = 0
-    let last = -1
-
-    const tick = () => {
-      const rect = section.getBoundingClientRect()
-      const total = section.offsetHeight - window.innerHeight
-      const p = total > 0 ? clamp01(-rect.top / total) : 0
-
-      // Write styles only when scroll actually moved — no idle churn
-      if (p !== last) {
-        last = p
-
-        const expand = range(p, 0, 0.75)
-        canvasWrap.style.transform = `translateX(${28 * (1 - expand)}%) scale(${0.8 + 0.2 * expand})`
-        canvasWrap.style.setProperty("--label-opacity", String(1 - range(p, 0.1, 0.4)))
-
-        const heroOut = range(p, 0, 0.4)
-        heroText.style.opacity = String(1 - heroOut)
-        heroText.style.transform = `translateY(${-40 * heroOut}px)`
-        // Fully faded hero text must not block clicks on the scene beneath
-        heroText.style.visibility = heroOut >= 1 ? "hidden" : "visible"
-
-        revealText.style.opacity = String(range(p, 0.6, 0.85))
-      }
-
-      raf = requestAnimationFrame(tick)
+    // Home rect — measured once and on resize, never during scroll
+    let home = { x: 0, y: 0, w: 0, h: 0 }
+    const measure = () => {
+      const r = spacer.getBoundingClientRect()
+      home = { x: r.left, y: r.top + window.scrollY, w: r.width, h: r.height }
     }
 
-    raf = requestAnimationFrame(tick)
-    return () => cancelAnimationFrame(raf)
+    const update = () => {
+      const p = ease(Math.min(window.scrollY / (window.innerHeight * 0.9), 1))
+
+      const w = home.w + (window.innerWidth - home.w) * p
+      const h = home.h + (window.innerHeight - home.h) * p
+      const x = home.x * (1 - p)
+      // Early in the scroll the panel still travels with the page, then
+      // converges to full-bleed at (0, 0) — the "grows into background" feel.
+      const y = (home.y - window.scrollY) * (1 - p)
+
+      panel.style.width = w + "px"
+      panel.style.height = h + "px"
+      panel.style.left = x + "px"
+      panel.style.top = y + "px"
+      panel.style.borderRadius = 1.4 * (1 - p) + "rem"
+      panel.style.borderWidth = 1 - p + "px"
+      panel.style.boxShadow = `0 24px 60px rgba(168, 92, 66, ${0.12 * (1 - p)})`
+      // Node labels die by p=0.5, same cadence as the sample's chip (1 - 2p)
+      panel.style.setProperty("--label-opacity", String(Math.max(0, 1 - p * 2)))
+      panel.style.visibility = "visible"
+    }
+
+    const onResize = () => {
+      measure()
+      update()
+    }
+
+    measure()
+    update()
+    window.addEventListener("scroll", update, { passive: true })
+    window.addEventListener("resize", onResize)
+
+    return () => {
+      window.removeEventListener("scroll", update)
+      window.removeEventListener("resize", onResize)
+    }
   }, [])
 
   return (
-    // Tall wrapper defines how much scroll distance the whole expand sequence consumes.
-    <div ref={sectionRef} className="relative h-[240vh] bg-[#f4f1ea]">
-      <div className="sticky top-0 h-screen w-full overflow-hidden">
-        {/* 3D scene — hidden on mobile for performance, static fallback shown instead.
-            Initial transform matches p=0 so SSR paints the right first frame. */}
-        <div
-          ref={canvasWrapRef}
-          className="absolute inset-0 hidden md:block origin-center will-change-transform"
-          style={
-            {
-              transform: "translateX(28%) scale(0.8)",
-              "--label-opacity": "1",
-            } as React.CSSProperties
-          }
-        >
-          <CodeNetworkHero />
-        </div>
-        <div className="md:hidden absolute inset-0 flex items-center justify-center">
-          <div className="w-72 h-72 rounded-full bg-gradient-to-br from-[#d9a441]/20 via-[#c1694f]/15 to-[#8a9a5b]/20 blur-2xl" />
-        </div>
-
-        {/* Hero text — fades out as the scene expands. pointer-events-none on the
-            wrapper so empty space lets mouse-move through to the canvas underneath;
-            pointer-events-auto is re-enabled only on the actual content. */}
-        <div
-          ref={heroTextRef}
-          className="relative z-10 h-full flex items-center px-6 md:px-16 lg:px-24 pointer-events-none"
-        >
-          <div className="max-w-xl pointer-events-auto">
-            <div className="inline-flex items-center gap-2 border border-[#d8d2c4] rounded-full px-3 py-1.5 mb-8 bg-[#faf8f3]">
-              <Zap className="w-3.5 h-3.5 text-[#c1694f]" />
-              <span className="text-xs font-mono text-[#6f665a] tracking-wide">
-                STATIC ANALYSIS IN SECONDS
-              </span>
-            </div>
-
-            <h1 className="text-5xl md:text-6xl font-bold text-[#2b2620] leading-[1.1] mb-6">
-              Know where your
-              <br />
-              codebase <span className="text-[#c1694f]">hurts.</span>
-            </h1>
-
-            <p className="text-lg text-[#6f665a] mb-10 max-w-md leading-relaxed">
-              Paste a public GitHub repo. Get complexity metrics, hotspot
-              rankings, and trend tracking in under 10 seconds.
-            </p>
-
-            {!isAuthenticated ? (
-              <div className="space-y-5">
-                <div className="flex flex-col sm:flex-row gap-3">
-                  <Link
-                    href="/analyze"
-                    className="group inline-flex items-center justify-center gap-2 bg-[#d9a441] hover:bg-[#cc9738] text-[#2b2620] font-semibold px-6 py-3 rounded-lg transition-colors"
-                  >
-                    Try Free Analysis
-                    <ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
-                  </Link>
-                  <Link
-                    href="/api/auth/login"
-                    className="inline-flex items-center justify-center gap-2 border border-[#d8d2c4] hover:border-[#a89f8c] text-[#2b2620] font-semibold px-6 py-3 rounded-lg transition-colors bg-[#faf8f3]"
-                  >
-                    <Lock className="w-4 h-4" />
-                    Sign in for Unlimited
-                  </Link>
-                </div>
-                <p className="text-xs text-[#8a8172]">
-                  Free: one analysis per session, no login required.
-                </p>
-              </div>
-            ) : (
-              <div className="space-y-5">
-                <p className="text-sm text-[#6f665a]">
-                  Welcome back, <span className="text-[#c1694f] font-medium">{login}</span>
-                </p>
-                <div className="flex flex-col sm:flex-row gap-3">
-                  <Link
-                    href="/analyze"
-                    className="group inline-flex items-center justify-center gap-2 bg-[#d9a441] hover:bg-[#cc9738] text-[#2b2620] font-semibold px-6 py-3 rounded-lg transition-colors"
-                  >
-                    Analyze Repository
-                    <ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
-                  </Link>
-                  <Link
-                    href="/dashboard"
-                    className="inline-flex items-center justify-center gap-2 border border-[#d8d2c4] hover:border-[#a89f8c] text-[#2b2620] font-semibold px-6 py-3 rounded-lg transition-colors bg-[#faf8f3]"
-                  >
-                    <TrendingUp className="w-4 h-4" />
-                    View History
-                  </Link>
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Reveal content — fades in on top of the now-expanded scene */}
-        <div
-          ref={revealTextRef}
-          className="absolute inset-0 z-10 flex items-center justify-center px-6 opacity-0 pointer-events-none"
-        >
-          <div className="max-w-2xl text-center bg-[#f4f1ea]/95 rounded-2xl p-10 border border-[#d8d2c4]">
-            <span className="text-xs font-mono text-[#a85c42] tracking-wide">02 —</span>
-            <h2 className="text-3xl md:text-4xl font-bold text-[#2b2620] mt-4 mb-4">
-              See the hotspots.
-              <br />
-              Fix what matters first.
-            </h2>
-            <p className="text-[#6f665a] text-lg">
-              Every analysis ranks your most complex files, so you know where
-              refactoring actually pays off.
-            </p>
-          </div>
-        </div>
+    <>
+      {/* Fixed 3D panel — hidden until first measure so SSR never paints it unpositioned */}
+      <div
+        ref={panelRef}
+        className="fixed top-0 left-0 z-0 overflow-hidden border border-[#d8d2c4] will-change-[width,height,left,top]"
+        style={{
+          background: "radial-gradient(circle at 30% 20%, #faf8f3, #f4f1ea)",
+          visibility: "hidden",
+        }}
+      >
+        <CodeNetworkHero />
       </div>
-    </div>
+
+      {/* Hero copy (scrolls away naturally) + spacer holding the panel's home slot */}
+      <section className="relative z-10 mx-auto grid min-h-[calc(100vh-72px)] max-w-[1200px] grid-cols-1 items-center gap-10 px-6 py-16 md:grid-cols-[1.05fr_0.95fr] md:gap-12 md:px-16 lg:px-24">
+        <div className="max-w-xl">
+          <p className="mb-6 text-xs font-mono tracking-wide text-[#a85c42]">
+            01 — STATIC ANALYSIS, NO SETUP
+          </p>
+
+          <h1 className="mb-6 text-4xl font-bold leading-[1.08] text-[#2b2620] md:text-6xl">
+            Every repo has a
+            <br />
+            worst file.
+            <br />
+            <span className="text-[#c1694f]">Find yours.</span>
+          </h1>
+
+          <p className="mb-8 max-w-md text-lg leading-relaxed text-[#6f665a]">
+            Paste a public GitHub link and get complexity, LOC and hotspot
+            rankings in seconds.
+          </p>
+
+          {!isAuthenticated ? (
+            <div className="space-y-5">
+              <div className="flex flex-col gap-3 sm:flex-row">
+                <Link
+                  href="/analyze"
+                  className="group inline-flex items-center justify-center gap-2 rounded-lg bg-[#d9a441] px-6 py-3 font-semibold text-[#2b2620] transition-colors hover:bg-[#cc9738]"
+                >
+                  Try Free Analysis
+                  <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
+                </Link>
+                <Link
+                  href="/api/auth/login"
+                  className="inline-flex items-center justify-center gap-2 rounded-lg border border-[#d8d2c4] bg-[#faf8f3] px-6 py-3 font-semibold text-[#2b2620] transition-colors hover:border-[#a89f8c]"
+                >
+                  <Lock className="h-4 w-4" />
+                  Sign in for Unlimited
+                </Link>
+              </div>
+              <p className="text-xs text-[#8a8172]">
+                Free: one analysis per session, no login required.
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-5">
+              <p className="text-sm text-[#6f665a]">
+                Welcome back, <span className="font-medium text-[#c1694f]">{login}</span>
+              </p>
+              <div className="flex flex-col gap-3 sm:flex-row">
+                <Link
+                  href="/analyze"
+                  className="group inline-flex items-center justify-center gap-2 rounded-lg bg-[#d9a441] px-6 py-3 font-semibold text-[#2b2620] transition-colors hover:bg-[#cc9738]"
+                >
+                  Analyze Repository
+                  <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
+                </Link>
+                <Link
+                  href="/dashboard"
+                  className="inline-flex items-center justify-center gap-2 rounded-lg border border-[#d8d2c4] bg-[#faf8f3] px-6 py-3 font-semibold text-[#2b2620] transition-colors hover:border-[#a89f8c]"
+                >
+                  <TrendingUp className="h-4 w-4" />
+                  View History
+                </Link>
+              </div>
+            </div>
+          )}
+
+          <div className="mt-8 flex flex-wrap items-center gap-x-4 gap-y-1 font-mono text-xs text-[#8a8172]">
+            <span>&lt;10s per analysis</span>
+            <span className="text-[#d8d2c4]">/</span>
+            <span>top-10 hotspots</span>
+            <span className="text-[#d8d2c4]">/</span>
+            <span>trends &amp; compare</span>
+          </div>
+        </div>
+
+        <div ref={spacerRef} aria-hidden="true" className="min-h-[360px] md:min-h-[520px]" />
+      </section>
+    </>
   )
 }

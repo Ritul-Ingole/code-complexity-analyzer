@@ -19,15 +19,15 @@ interface FileNode {
 // Warm palette — terracotta, amber, olive, sand — to match a light, warm background
 // instead of the cool mint/coral/blue set used on the dark theme.
 const NODES: FileNode[] = [
-  { name: "analyzer.ts", color: "#8a9a5b", position: [-2.5, 1.5, 0.6], size: 0.22 },
-  { name: "parser.ts", color: "#d9a441", position: [-1.5, 2.4, -0.7], size: 0.15 },
-  { name: "lambda.ts", color: "#c1694f", position: [2.3, 1.8, 0.5], size: 0.2 },
-  { name: "session.ts", color: "#d9a441", position: [1.3, 2.5, -0.8], size: 0.13 },
-  { name: "dashboard.tsx", color: "#8a9a5b", position: [-2.7, -0.5, -0.5], size: 0.18 },
-  { name: "trends.ts", color: "#a3ab6f", position: [-1.7, -1.7, 0.6], size: 0.12 },
-  { name: "oauth.ts", color: "#c1694f", position: [2.5, -0.7, 0.5], size: 0.17 },
-  { name: "dynamo.ts", color: "#c2a878", position: [1.8, -1.9, -0.4], size: 0.12 },
-  { name: "index.ts", color: "#a85c42", position: [0.1, -2.6, 0.3], size: 0.14 },
+  { name: "analyzer.ts", color: "#8a9a5b", position: [-2.6, 0.9, 0.4], size: 0.2 },
+  { name: "parser.ts", color: "#d9a441", position: [-1.6, 2.2, -0.6], size: 0.14 },
+  { name: "lambda.ts", color: "#c1694f", position: [2.4, 1.6, 0.3], size: 0.18 },
+  { name: "session.ts", color: "#d9a441", position: [1.5, 2.6, -0.7], size: 0.12 },
+  { name: "dashboard.tsx", color: "#8a9a5b", position: [-2.4, -1.2, -0.4], size: 0.16 },
+  { name: "trends.ts", color: "#a3ab6f", position: [-1.3, -2.3, 0.5], size: 0.12 },
+  { name: "oauth.ts", color: "#c1694f", position: [2.6, -0.5, 0.6], size: 0.15 },
+  { name: "dynamo.ts", color: "#c2a878", position: [1.7, -1.8, -0.5], size: 0.12 },
+  { name: "index.ts", color: "#a85c42", position: [0.2, -2.9, 0.2], size: 0.14 },
 ]
 
 function NetworkCore() {
@@ -57,9 +57,9 @@ function Connections() {
             [0, 0, 0],
             node.position,
           ]}
-          color="#475569"
+          color="#8a9a5b"
           transparent
-          opacity={0.35}
+          opacity={0.3}
           lineWidth={1}
         />
       ))}
@@ -103,7 +103,7 @@ function FileNodeMesh({ node, index }: { node: FileNode; index: number }) {
         className="pointer-events-none select-none"
         style={{ opacity: "var(--label-opacity, 1)" }}
       >
-        <span className="text-[11px] font-mono text-[#5c5346]/80 whitespace-nowrap block -translate-y-5">
+        <span className="text-[10px] font-mono uppercase tracking-widest text-[#8a8172] whitespace-nowrap block -translate-y-5">
           {node.name}
         </span>
       </Html>
@@ -127,7 +127,7 @@ function ScannerDisk() {
     // Brighten slightly as it passes through the core's middle, fade at the extremes —
     // reads as an active "scan" rather than a flat oscillation.
     const midPass = Math.sin(cycle * Math.PI)
-    materialRef.current.opacity = 0.1 + midPass * 0.16
+    materialRef.current.opacity = 0.1 + midPass * 0.14
   })
 
   return (
@@ -135,9 +135,9 @@ function ScannerDisk() {
       <circleGeometry args={[2.3, 64]} />
       <meshBasicMaterial
         ref={materialRef}
-        color="#9c8f78"
+        color="#c1694f"
         transparent
-        opacity={0.16}
+        opacity={0.12}
         side={THREE.DoubleSide}
       />
     </mesh>

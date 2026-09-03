@@ -25,7 +25,7 @@ const ease = (t: number) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 
 export default function HeroSection({ isAuthenticated, login }: HeroSectionProps) {
   const panelRef = useRef<HTMLDivElement>(null)
   const spacerRef = useRef<HTMLDivElement>(null)
-  const labelOpacity = useRef(1)
+  const chipRef = useRef<HTMLDivElement>(null)
 
   useLayoutEffect(() => {
     const panel = panelRef.current
@@ -56,8 +56,8 @@ export default function HeroSection({ isAuthenticated, login }: HeroSectionProps
       panel.style.borderRadius = 1.4 * (1 - p) + "rem"
       panel.style.borderWidth = 1 - p + "px"
       panel.style.boxShadow = `0 24px 60px rgba(168, 92, 66, ${0.12 * (1 - p)})`
-      // Node labels die by p=0.5, same cadence as the sample's chip (1 - 2p)
-      labelOpacity.current = Math.max(0, 1 - p * 2)
+      // Chip dies by p=0.5, same cadence as the sample (1 - 2p)
+      if (chipRef.current) chipRef.current.style.opacity = String(Math.max(0, 1 - p * 2))
       panel.style.visibility = "visible"
     }
 
@@ -88,7 +88,13 @@ export default function HeroSection({ isAuthenticated, login }: HeroSectionProps
           visibility: "hidden",
         }}
       >
-        <HeroScene labelOpacity={labelOpacity} />
+        <HeroScene />
+        <div
+          ref={chipRef}
+          className="absolute bottom-4 left-4 rounded-lg border border-[#e6e0d4] bg-white/80 px-3 py-1.5 text-[0.78rem] text-[#6f665a] backdrop-blur-sm"
+        >
+          live · code dependency network
+        </div>
       </div>
 
       {/* Hero copy (scrolls away naturally) + spacer holding the panel's home slot */}

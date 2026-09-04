@@ -9,21 +9,34 @@ interface HeroSceneProps {
 }
 
 // Geodesic core + spoke-connected hex file nodes with WebGL sprite labels,
-// and a scanner disc sweeping up/down through the structure (game-style
+// and a scanner ring sweeping up/down through the structure (game-style
 // scan). Labels fade via the shared ref as the panel expands.
 // ponytail: single scene file; split only if a second 3D view appears
 
+const NODE_RADIUS = 3.6
+
 const NODES = [
-  { name: "analyzer.ts", color: "#77864a", size: 0.55, position: [-2.6, 1.1, 0.4] as const },
-  { name: "parser.ts", color: "#b8862f", size: 0.24, position: [-1.7, 2.5, -0.5] as const },
-  { name: "lambda.ts", color: "#7a3b2e", size: 0.5, position: [2.6, 1.7, 0.3] as const },
-  { name: "session.ts", color: "#b8862f", size: 0.28, position: [1.6, 2.6, -0.6] as const },
-  { name: "dashboard.tsx", color: "#77864a", size: 0.42, position: [-2.5, -1.0, -0.3] as const },
-  { name: "trends.ts", color: "#6b7a3f", size: 0.26, position: [-1.4, -2.4, 0.4] as const },
-  { name: "oauth.ts", color: "#7a3b2e", size: 0.4, position: [2.7, -0.9, 0.5] as const },
-  { name: "dynamo.ts", color: "#b8862f", size: 0.24, position: [1.8, -1.7, -0.4] as const },
-  { name: "index.ts", color: "#7a3b2e", size: 0.28, position: [0.3, -2.8, 0.2] as const },
+  { name: "analyzer.ts", color: "#77864a", size: 0.55 },
+  { name: "parser.ts", color: "#b8862f", size: 0.24 },
+  { name: "lambda.ts", color: "#7a3b2e", size: 0.5 },
+  { name: "session.ts", color: "#b8862f", size: 0.28 },
+  { name: "dashboard.tsx", color: "#77864a", size: 0.42 },
+  { name: "trends.ts", color: "#6b7a3f", size: 0.26 },
+  { name: "oauth.ts", color: "#7a3b2e", size: 0.4 },
+  { name: "dynamo.ts", color: "#b8862f", size: 0.24 },
+  { name: "index.ts", color: "#7a3b2e", size: 0.28 },
 ]
+
+// Even distribution over the full sphere (all directions), Fibonacci-style
+function nodePosition(i: number, total: number): [number, number, number] {
+  const phi = Math.acos(1 - (2 * (i + 0.5)) / total)
+  const theta = Math.PI * (1 + Math.sqrt(5)) * i
+  return [
+    NODE_RADIUS * Math.sin(phi) * Math.cos(theta),
+    NODE_RADIUS * Math.cos(phi),
+    NODE_RADIUS * Math.sin(phi) * Math.sin(theta),
+  ]
+}
 
 function makeLabel(name: string): THREE.Sprite {
   const canvas = document.createElement("canvas")
@@ -47,16 +60,19 @@ function makeLabel(name: string): THREE.Sprite {
   return sprite
 }
 
-function makeDiscTexture(): THREE.CanvasTexture {
+function makeRingTexture(): THREE.CanvasTexture {
   const canvas = document.createElement("canvas")
   canvas.width = 256
   canvas.height = 256
   const ctx = canvas.getContext("2d")
   if (ctx) {
-    const grad = ctx.createRadialGradient(128, 128, 20, 128, 128, 128)
-    grad.addColorStop(0, "rgba(190, 180, 155, 0.5)")
-    grad.addColorStop(0.75, "rgba(190, 180, 155, 0.26)")
-    grad.addColorStop(1, "rgba(190, 180, 155, 0)")
+    // Transparent hole (center) → bright band at the inner edge → soft outer
+    // falloff. Gradient r0 = hole radius, r1 = outer edge, both in canvas px.
+    const grad = ctx.createRadialGradient(128, 128, 98, 128, 128, 128)
+    grad.addColorStop(0, "rgba(193, 105, 79, 0)")
+    grad.addColorStop(0.1, "rgba(193, 105, 79, 0.95)")
+    grad.addColorStop(0.35, "rgba(193, 105, 79, 0.55)")
+    grad.addColorStop(1, "rgba(193, 105, 79, 0)")
     ctx.fillStyle = grad
     ctx.fillRect(0, 0, 256, 256)
   }
@@ -111,8 +127,9 @@ export default function HeroScene({ labelOpacity }: HeroSceneProps) {
 
     // ===== Spokes: thin lines from core to each node =====
     const spokePos: number[] = []
-    for (const node of NODES) {
-      spokePos.push(0, 0, 0, node.position[0], node.position[1], node.position[2])
+    for (let i = 0; i < NODES.length; i++) {
+      const [x, y, z] = nodePosition(i, NODES.length)
+      spokePos.push(0, 0, 0, x, y, z)
     }
     const spokeGeo = new THREE.BufferGeometry()
     spokeGeo.setAttribute("position", new THREE.Float32BufferAttribute(spokePos, 3))
@@ -128,8 +145,9 @@ export default function HeroScene({ labelOpacity }: HeroSceneProps) {
     const labelSprites: THREE.Sprite[] = []
 
     NODES.forEach((node, i) => {
+      const [x, y, z] = nodePosition(i, NODES.length)
       const group = new THREE.Group()
-      group.position.set(node.position[0], node.position[1], node.position[2])
+      group.position.set(x, y, z)
 
       const mesh = new THREE.Mesh(
         new THREE.CylinderGeometry(node.size, node.size, node.size * 0.85, 6),
@@ -154,18 +172,21 @@ export default function HeroScene({ labelOpacity }: HeroSceneProps) {
       labelSprites.push(label)
     })
 
-    // ===== Scanner disc sweeping up and down through the structure =====
-    const disc = new THREE.Mesh(
-      new THREE.PlaneGeometry(7.2, 7.2),
+    // ===== Scanner ring sweeping up and down through the structure =====
+    // Hole (4.3) clears the node sphere (3.6 radius + largest node), so the
+    // ring encircles it and the scan reads as passing over the files
+    const ring = new THREE.Mesh(
+      new THREE.RingGeometry(4.3, 5.6, 96),
       new THREE.MeshBasicMaterial({
-        map: makeDiscTexture(),
+        map: makeRingTexture(),
         transparent: true,
         depthWrite: false,
-        opacity: 0.4,
+        side: THREE.DoubleSide,
+        opacity: 0.9,
       })
     )
-    disc.rotation.x = -Math.PI / 2
-    scene.add(disc)
+    ring.rotation.x = -Math.PI / 2
+    scene.add(ring)
 
     // ===== Warm lighting =====
     scene.add(new THREE.AmbientLight(0xffe4c4, 0.6))
@@ -223,12 +244,12 @@ export default function HeroScene({ labelOpacity }: HeroSceneProps) {
         hexes[i].scale.setScalar(1 + Math.sin(elapsed * 1.4 + i * 1.9) * 0.05)
       }
 
-      // Scanner sweep: smooth 0→1→0 cycle easing at the extremes,
-      // brightening slightly as it passes through the middle
-      const cycle = (Math.sin(elapsed * 0.7 - Math.PI / 2) + 1) / 2
-      disc.position.y = -2.6 + cycle * 5.2
-      const discMat = disc.material as THREE.MeshBasicMaterial
-      discMat.opacity = 0.28 + Math.sin(cycle * Math.PI) * 0.2
+      // Scanner sweep: slower cycle easing at the extremes, brightest as it
+      // passes through the middle of the sphere
+      const cycle = (Math.sin(elapsed * 0.5 - Math.PI / 2) + 1) / 2
+      ring.position.y = -4.4 + cycle * 8.8
+      const ringMat = ring.material as THREE.MeshBasicMaterial
+      ringMat.opacity = 0.7 + Math.sin(cycle * Math.PI) * 0.3
 
       // Labels fade out as the panel expands
       const lo = labelOpacity.current

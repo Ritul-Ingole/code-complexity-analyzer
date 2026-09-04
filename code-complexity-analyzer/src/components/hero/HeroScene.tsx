@@ -1,45 +1,69 @@
 "use client"
 
 import { useEffect, useRef } from "react"
+import type { MutableRefObject } from "react"
 import * as THREE from "three"
 
-// Geodesic orrery (matches the reference render): detailed wireframe sphere
-// core, tilted orbit rings carrying traveling hex-prism nodes and bead dots,
-// soft ground shadow, warm fog. Vanilla three.js in a Next.js client component.
+interface HeroSceneProps {
+  labelOpacity: MutableRefObject<number>
+}
+
+// Geodesic core + spoke-connected hex file nodes with WebGL sprite labels,
+// and a scanner disc sweeping up/down through the structure (game-style
+// scan). Labels fade via the shared ref as the panel expands.
 // ponytail: single scene file; split only if a second 3D view appears
 
-const RINGS = [
-  { radius: 3.2, tilt: [0.28, 0, 0.08] as const, speed: 0.1, dir: 1 },
-  { radius: 3.9, tilt: [-0.45, 0, 0.4] as const, speed: 0.07, dir: -1 },
-  { radius: 4.5, tilt: [0.65, 0, -0.35] as const, speed: 0.05, dir: 1 },
-]
-
 const NODES = [
-  { ring: 0, color: "#77864a", size: 0.28 },
-  { ring: 0, color: "#c99b2f", size: 0.5 },
-  { ring: 1, color: "#7a3b2e", size: 0.48 },
-  { ring: 1, color: "#77864a", size: 0.44 },
-  { ring: 1, color: "#c99b2f", size: 0.26 },
-  { ring: 2, color: "#c99b2f", size: 0.52 },
-  { ring: 2, color: "#7a3b2e", size: 0.3 },
+  { name: "analyzer.ts", color: "#77864a", size: 0.55, position: [-2.6, 1.1, 0.4] as const },
+  { name: "parser.ts", color: "#b8862f", size: 0.24, position: [-1.7, 2.5, -0.5] as const },
+  { name: "lambda.ts", color: "#7a3b2e", size: 0.5, position: [2.6, 1.7, 0.3] as const },
+  { name: "session.ts", color: "#b8862f", size: 0.28, position: [1.6, 2.6, -0.6] as const },
+  { name: "dashboard.tsx", color: "#77864a", size: 0.42, position: [-2.5, -1.0, -0.3] as const },
+  { name: "trends.ts", color: "#6b7a3f", size: 0.26, position: [-1.4, -2.4, 0.4] as const },
+  { name: "oauth.ts", color: "#7a3b2e", size: 0.4, position: [2.7, -0.9, 0.5] as const },
+  { name: "dynamo.ts", color: "#b8862f", size: 0.24, position: [1.8, -1.7, -0.4] as const },
+  { name: "index.ts", color: "#7a3b2e", size: 0.28, position: [0.3, -2.8, 0.2] as const },
 ]
 
-function makeShadowTexture(): THREE.CanvasTexture {
+function makeLabel(name: string): THREE.Sprite {
+  const canvas = document.createElement("canvas")
+  canvas.width = 384
+  canvas.height = 72
+  const ctx = canvas.getContext("2d")
+  if (ctx) {
+    ctx.font = "400 34px ui-monospace, SFMono-Regular, Menlo, monospace"
+    ctx.fillStyle = "#7a7163"
+    ctx.textAlign = "center"
+    ctx.textBaseline = "middle"
+    ctx.fillText(name, 192, 36)
+  }
+  const texture = new THREE.CanvasTexture(canvas)
+  texture.colorSpace = THREE.SRGBColorSpace
+  const sprite = new THREE.Sprite(
+    new THREE.SpriteMaterial({ map: texture, transparent: true, depthTest: false })
+  )
+  sprite.scale.set(2.0, 0.375, 1)
+  sprite.renderOrder = 10
+  return sprite
+}
+
+function makeDiscTexture(): THREE.CanvasTexture {
   const canvas = document.createElement("canvas")
   canvas.width = 256
   canvas.height = 256
   const ctx = canvas.getContext("2d")
   if (ctx) {
-    const grad = ctx.createRadialGradient(128, 128, 10, 128, 128, 128)
-    grad.addColorStop(0, "rgba(150, 138, 115, 0.32)")
-    grad.addColorStop(1, "rgba(150, 138, 115, 0)")
+    const grad = ctx.createRadialGradient(128, 128, 20, 128, 128, 128)
+    grad.addColorStop(0, "rgba(190, 180, 155, 0.5)")
+    grad.addColorStop(0.75, "rgba(190, 180, 155, 0.26)")
+    grad.addColorStop(1, "rgba(190, 180, 155, 0)")
     ctx.fillStyle = grad
     ctx.fillRect(0, 0, 256, 256)
   }
   return new THREE.CanvasTexture(canvas)
 }
 
-export default function HeroScene() {
+export default function HeroScene({ labelOpacity }: HeroSceneProps) {
   const hostRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -80,54 +104,33 @@ export default function HeroScene() {
 
     // ===== Geodesic wireframe core =====
     const core = new THREE.Mesh(
-      new THREE.IcosahedronGeometry(1.7, 2),
-      new THREE.MeshBasicMaterial({ color: 0xc9c0ae, wireframe: true, transparent: true, opacity: 0.55 })
+      new THREE.IcosahedronGeometry(1.5, 2),
+      new THREE.MeshBasicMaterial({ color: 0xc9c0ae, wireframe: true, transparent: true, opacity: 0.5 })
     )
     orrery.add(core)
 
-    // ===== Tilted orbit rings + hex-prism nodes + beads =====
-    const ringGroups = RINGS.map((ring) => {
-      const g = new THREE.Group()
-      g.rotation.set(ring.tilt[0], ring.tilt[1], ring.tilt[2])
-      const points: THREE.Vector3[] = []
-      for (let i = 0; i <= 96; i++) {
-        const a = (i / 96) * Math.PI * 2
-        points.push(new THREE.Vector3(Math.cos(a) * ring.radius, 0, Math.sin(a) * ring.radius))
-      }
-      g.add(
-        new THREE.LineLoop(
-          new THREE.BufferGeometry().setFromPoints(points),
-          new THREE.LineBasicMaterial({ color: 0xb3a890, transparent: true, opacity: 0.35 })
-        )
+    // ===== Spokes: thin lines from core to each node =====
+    const spokePos: number[] = []
+    for (const node of NODES) {
+      spokePos.push(0, 0, 0, node.position[0], node.position[1], node.position[2])
+    }
+    const spokeGeo = new THREE.BufferGeometry()
+    spokeGeo.setAttribute("position", new THREE.Float32BufferAttribute(spokePos, 3))
+    orrery.add(
+      new THREE.LineSegments(
+        spokeGeo,
+        new THREE.LineBasicMaterial({ color: 0xb0aa9c, transparent: true, opacity: 0.5 })
       )
-      orrery.add(g)
-      return g
-    })
+    )
 
-    const beadGeo = new THREE.SphereGeometry(0.045, 8, 8)
-    const beadMat = new THREE.MeshBasicMaterial({ color: 0xa89d86, transparent: true, opacity: 0.7 })
-
-    RINGS.forEach((ring) => {
-      for (let i = 0; i < 10; i++) {
-        const bead = new THREE.Mesh(beadGeo, beadMat)
-        const a = Math.random() * Math.PI * 2
-        bead.position.set(Math.cos(a) * ring.radius, 0, Math.sin(a) * ring.radius)
-        ringGroups[RINGS.indexOf(ring)].add(bead)
-      }
-    })
-
-    const travelers: Array<{
-      group: THREE.Group
-      mesh: THREE.Mesh
-      ring: number
-      angle: number
-    }> = []
+    // ===== Hex file nodes + labels =====
+    const hexes: THREE.Mesh[] = []
+    const labelSprites: THREE.Sprite[] = []
 
     NODES.forEach((node, i) => {
-      const ring = RINGS[node.ring]
-      const angle = (i / NODES.length) * Math.PI * 2
-
       const group = new THREE.Group()
+      group.position.set(node.position[0], node.position[1], node.position[2])
+
       const mesh = new THREE.Mesh(
         new THREE.CylinderGeometry(node.size, node.size, node.size * 0.85, 6),
         new THREE.MeshStandardMaterial({
@@ -139,42 +142,30 @@ export default function HeroScene() {
           flatShading: true,
         })
       )
-      mesh.rotation.y = Math.random() * Math.PI
+      mesh.rotation.y = i * 0.9
       group.add(mesh)
-      group.position.set(Math.cos(angle) * ring.radius, 0, Math.sin(angle) * ring.radius)
-      ringGroups[node.ring].add(group)
 
-      travelers.push({ group, mesh, ring: node.ring, angle })
+      const label = makeLabel(node.name)
+      label.position.y = node.size * 0.9 + 0.35
+      group.add(label)
+
+      orrery.add(group)
+      hexes.push(mesh)
+      labelSprites.push(label)
     })
 
-    // ===== Ambient particles =====
-    const PARTICLES = 40
-    const pPos = new Float32Array(PARTICLES * 3)
-    for (let i = 0; i < PARTICLES * 3; i++) pPos[i] = (Math.random() - 0.5) * 16
-    const particles = new THREE.Points(
-      new THREE.BufferGeometry().setAttribute("position", new THREE.BufferAttribute(pPos, 3)),
-      new THREE.PointsMaterial({
-        color: 0xc99b2f,
-        size: 0.05,
-        transparent: true,
-        opacity: 0.35,
-        depthWrite: false,
-      })
-    )
-    scene.add(particles)
-
-    // ===== Soft ground shadow =====
-    const shadow = new THREE.Mesh(
-      new THREE.PlaneGeometry(7, 7),
+    // ===== Scanner disc sweeping up and down through the structure =====
+    const disc = new THREE.Mesh(
+      new THREE.PlaneGeometry(7.2, 7.2),
       new THREE.MeshBasicMaterial({
-        map: makeShadowTexture(),
+        map: makeDiscTexture(),
         transparent: true,
         depthWrite: false,
+        opacity: 0.4,
       })
     )
-    shadow.rotation.x = -Math.PI / 2 + 0.55
-    shadow.position.y = -2.5
-    scene.add(shadow)
+    disc.rotation.x = -Math.PI / 2
+    scene.add(disc)
 
     // ===== Warm lighting =====
     scene.add(new THREE.AmbientLight(0xffe4c4, 0.6))
@@ -227,18 +218,23 @@ export default function HeroScene() {
       core.rotation.y += dt * 0.06
       core.rotation.x += dt * 0.02
 
-      for (const tr of travelers) {
-        const ring = RINGS[tr.ring]
-        tr.angle += ring.speed * ring.dir * dt
-        tr.group.position.set(
-          Math.cos(tr.angle) * ring.radius,
-          0,
-          Math.sin(tr.angle) * ring.radius
-        )
-        tr.mesh.rotation.y += dt * 0.4
+      // Gentle pulse — scale only, so spokes stay attached
+      for (let i = 0; i < hexes.length; i++) {
+        hexes[i].scale.setScalar(1 + Math.sin(elapsed * 1.4 + i * 1.9) * 0.05)
       }
 
-      particles.rotation.y = elapsed * 0.02
+      // Scanner sweep: smooth 0→1→0 cycle easing at the extremes,
+      // brightening slightly as it passes through the middle
+      const cycle = (Math.sin(elapsed * 0.7 - Math.PI / 2) + 1) / 2
+      disc.position.y = -2.6 + cycle * 5.2
+      const discMat = disc.material as THREE.MeshBasicMaterial
+      discMat.opacity = 0.28 + Math.sin(cycle * Math.PI) * 0.2
+
+      // Labels fade out as the panel expands
+      const lo = labelOpacity.current
+      for (const s of labelSprites) {
+        ;(s.material as THREE.SpriteMaterial).opacity = lo
+      }
 
       renderer.render(scene, camera)
     }
@@ -249,7 +245,7 @@ export default function HeroScene() {
       ro.disconnect()
       window.removeEventListener("mousemove", onMouse)
       scene.traverse((obj) => {
-        const o = obj as THREE.Mesh | THREE.Points | THREE.Line
+        const o = obj as THREE.Mesh | THREE.Sprite | THREE.Points | THREE.Line
         if (o.geometry) o.geometry.dispose()
         const mat = o.material as THREE.Material | THREE.Material[] | undefined
         if (mat) {
@@ -263,7 +259,7 @@ export default function HeroScene() {
       renderer.dispose()
       if (renderer.domElement.parentNode === host) host.removeChild(renderer.domElement)
     }
-  }, [])
+  }, [labelOpacity])
 
   return <div ref={hostRef} className="h-full w-full" />
 }

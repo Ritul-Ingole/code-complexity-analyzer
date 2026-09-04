@@ -26,6 +26,7 @@ export default function HeroSection({ isAuthenticated, login }: HeroSectionProps
   const panelRef = useRef<HTMLDivElement>(null)
   const spacerRef = useRef<HTMLDivElement>(null)
   const chipRef = useRef<HTMLDivElement>(null)
+  const labelOpacity = useRef(1)
 
   useLayoutEffect(() => {
     const panel = panelRef.current
@@ -58,6 +59,8 @@ export default function HeroSection({ isAuthenticated, login }: HeroSectionProps
       panel.style.boxShadow = `0 24px 60px rgba(168, 92, 66, ${0.12 * (1 - p)})`
       // Chip dies by p=0.5, same cadence as the sample (1 - 2p)
       if (chipRef.current) chipRef.current.style.opacity = String(Math.max(0, 1 - p * 2))
+      // File-name labels fade out during the first half of expansion
+      labelOpacity.current = Math.max(0, 1 - p * 2)
       panel.style.visibility = "visible"
     }
 
@@ -88,7 +91,7 @@ export default function HeroSection({ isAuthenticated, login }: HeroSectionProps
           visibility: "hidden",
         }}
       >
-        <HeroScene />
+        <HeroScene labelOpacity={labelOpacity} />
         <div
           ref={chipRef}
           className="absolute bottom-4 left-4 rounded-lg border border-[#e6e0d4] bg-white/80 px-3 py-1.5 text-[0.78rem] text-[#6f665a] backdrop-blur-sm"

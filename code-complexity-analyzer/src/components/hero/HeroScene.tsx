@@ -91,7 +91,7 @@ export default function HeroScene({ labelOpacity }: HeroSceneProps) {
     try {
       renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true })
     } catch {
-      return // WebGL unavailable — the panel keeps its warm gradient
+      return // WebGL unavailable — the hero keeps the plain page background
     }
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5))
     // CSS size must follow the panel (100%), not fixed px — a fixed px style

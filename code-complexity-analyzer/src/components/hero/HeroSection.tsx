@@ -18,14 +18,13 @@ interface HeroSectionProps {
 // Scroll-driven expansion (ported from sample/js/hero3d.js):
 // the 3D panel is position:fixed; its home slot is measured once, and on
 // scroll its rect lerps (easeInOutCubic) from the home slot to the full
-// viewport. Radius/border/shadow melt away so it becomes a seamless
-// background; later sections scroll over it.
+// viewport. Frameless — the panel has no border/background of its own, the
+// 3D floats over the page; later sections scroll over it.
 const ease = (t: number) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2)
 
 export default function HeroSection({ isAuthenticated, login }: HeroSectionProps) {
   const panelRef = useRef<HTMLDivElement>(null)
   const spacerRef = useRef<HTMLDivElement>(null)
-  const chipRef = useRef<HTMLDivElement>(null)
   const labelOpacity = useRef(1)
 
   useLayoutEffect(() => {
@@ -54,11 +53,6 @@ export default function HeroSection({ isAuthenticated, login }: HeroSectionProps
       panel.style.height = h + "px"
       panel.style.left = x + "px"
       panel.style.top = y + "px"
-      panel.style.borderRadius = 1.4 * (1 - p) + "rem"
-      panel.style.borderWidth = 1 - p + "px"
-      panel.style.boxShadow = `0 24px 60px rgba(168, 92, 66, ${0.12 * (1 - p)})`
-      // Chip dies by p=0.5, same cadence as the sample (1 - 2p)
-      if (chipRef.current) chipRef.current.style.opacity = String(Math.max(0, 1 - p * 2))
       // File-name labels fade out during the first half of expansion
       labelOpacity.current = Math.max(0, 1 - p * 2)
       panel.style.visibility = "visible"
@@ -82,22 +76,13 @@ export default function HeroSection({ isAuthenticated, login }: HeroSectionProps
 
   return (
     <>
-      {/* Fixed 3D panel — hidden until first measure so SSR never paints it unpositioned */}
+      {/* Fixed frameless 3D panel — hidden until first measure so SSR never paints it unpositioned */}
       <div
         ref={panelRef}
-        className="fixed left-0 top-0 z-0 overflow-hidden border border-[#d8d2c4] will-change-[width,height,left,top]"
-        style={{
-          background: "radial-gradient(circle at 30% 20%, #faf8f3, #f4f1ea)",
-          visibility: "hidden",
-        }}
+        className="fixed left-0 top-0 z-0 overflow-hidden will-change-[width,height,left,top]"
+        style={{ visibility: "hidden" }}
       >
         <HeroScene labelOpacity={labelOpacity} />
-        <div
-          ref={chipRef}
-          className="absolute bottom-4 left-4 rounded-lg border border-[#e6e0d4] bg-white/80 px-3 py-1.5 text-[0.78rem] text-[#6f665a] backdrop-blur-sm"
-        >
-          live · code dependency network
-        </div>
       </div>
 
       {/* Hero copy (scrolls away naturally) + spacer holding the panel's home slot */}

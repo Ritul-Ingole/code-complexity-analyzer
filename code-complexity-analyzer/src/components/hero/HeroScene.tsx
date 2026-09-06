@@ -8,6 +8,7 @@ interface HeroSceneProps {
   labelOpacity: MutableRefObject<number>
   bleedZoom: MutableRefObject<number>
   canvasSize: MutableRefObject<{ w: number; h: number }>
+  scrollProgress: MutableRefObject<number>
 }
 
 // Geodesic core + spoke-connected hex file nodes with WebGL sprite labels,
@@ -106,8 +107,29 @@ function makeRingTexture(): THREE.CanvasTexture {
   }
   return new THREE.CanvasTexture(canvas)
 }
+// Feathered circular particle sprite texture
+function makeParticleSprite(): THREE.CanvasTexture {
+  const canvas = document.createElement("canvas")
+  canvas.width = 64
+  canvas.height = 64
+  const ctx = canvas.getContext("2d")
+  if (ctx) {
+    const grad = ctx.createRadialGradient(32, 32, 0, 32, 32, 32)
+    grad.addColorStop(0, "rgba(255, 255, 255, 1)")
+    grad.addColorStop(0.35, "rgba(255, 255, 255, 0.8)")
+    grad.addColorStop(1, "rgba(255, 255, 255, 0)")
+    ctx.fillStyle = grad
+    ctx.fillRect(0, 0, 64, 64)
+  }
+  return new THREE.CanvasTexture(canvas)
+}
 
-export default function HeroScene({ labelOpacity, bleedZoom, canvasSize }: HeroSceneProps) {
+export default function HeroScene({
+  labelOpacity,
+  bleedZoom,
+  canvasSize,
+  scrollProgress,
+}: HeroSceneProps) {
   const hostRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -156,12 +178,11 @@ export default function HeroScene({ labelOpacity, bleedZoom, canvasSize }: HeroS
     }
     const spokeGeo = new THREE.BufferGeometry()
     spokeGeo.setAttribute("position", new THREE.Float32BufferAttribute(spokePos, 3))
-    orrery.add(
-      new THREE.LineSegments(
-        spokeGeo,
-        new THREE.LineBasicMaterial({ color: 0xb0aa9c, transparent: true, opacity: 0.5 })
-      )
+    const spokes = new THREE.LineSegments(
+      spokeGeo,
+      new THREE.LineBasicMaterial({ color: 0xb0aa9c, transparent: true, opacity: 0.5 })
     )
+    orrery.add(spokes)
 
     // ===== Hex file nodes + labels =====
     const hexes: THREE.Mesh[] = []
@@ -215,6 +236,101 @@ export default function HeroScene({ labelOpacity, bleedZoom, canvasSize }: HeroS
     ring.rotation.x = -Math.PI / 2
     scene.add(ring)
 
+    // ===== 5. Dense Solid Sphere (Compression Target) =====
+    const denseSphereGeo = new THREE.SphereGeometry(1.85, 64, 64)
+    const denseSphereMat = new THREE.MeshStandardMaterial({
+      color: new THREE.Color("#c1694f"),
+      emissive: new THREE.Color("#7a3b2e"),
+      emissiveIntensity: 0.3,
+      metalness: 0.45,
+      roughness: 0.32,
+      transparent: true,
+      opacity: 0,
+    })
+    const denseSphere = new THREE.Mesh(denseSphereGeo, denseSphereMat)
+    denseSphere.scale.setScalar(0.001)
+    orrery.add(denseSphere)
+
+    // Inner core for depth
+    const innerCoreMat = new THREE.MeshBasicMaterial({
+      color: 0xd9a441,
+      wireframe: true,
+      transparent: true,
+      opacity: 0,
+    })
+    const innerCore = new THREE.Mesh(new THREE.IcosahedronGeometry(1.3, 2), innerCoreMat)
+    denseSphere.add(innerCore)
+
+    // ===== 6. Particle System (Fluid Burst Field from particles.zip) =====
+    const N = 4500
+    const A = new Float32Array(N * 3) // Target A: dense sphere shell
+    const B = new Float32Array(N * 3) // Target B: radial burst explosion
+    const C = new Float32Array(N * 3) // Target C: undulating ambient fluid field
+
+    const gold = Math.PI * (3 - Math.sqrt(5))
+    const BRAND_COLORS = [
+      new THREE.Color("#c1694f"),
+      new THREE.Color("#2b2620"),
+      new THREE.Color("#77864a"),
+      new THREE.Color("#b8862f"),
+      new THREE.Color("#7a3b2e"),
+      new THREE.Color("#d9a441"),
+    ]
+
+    const particleColors = new Float32Array(N * 3)
+    for (let i = 0; i < N; i++) {
+      const col = BRAND_COLORS[i % BRAND_COLORS.length]
+      particleColors[i * 3] = col.r
+      particleColors[i * 3 + 1] = col.g
+      particleColors[i * 3 + 2] = col.b
+
+      // Target A: Concentrated on the dense sphere surface
+      const tA = i / N
+      const incA = Math.acos(1 - 2 * tA)
+      const azA = gold * i
+      const rA = 1.85 + ((Math.sin(i * 99.1) * 43758.5) % 1) * 0.25
+      A[i * 3] = rA * Math.sin(incA) * Math.cos(azA)
+      A[i * 3 + 1] = rA * Math.cos(incA)
+      A[i * 3 + 2] = rA * Math.sin(incA) * Math.sin(azA)
+
+      // Target B: Radial burst explosion in 3D
+      const rB = 4.5 + Math.random() * 8.0
+      const thetaB = Math.random() * Math.PI * 2
+      const phiB = Math.acos(Math.random() * 2 - 1)
+      B[i * 3] = rB * Math.sin(phiB) * Math.cos(thetaB)
+      B[i * 3 + 1] = rB * Math.cos(phiB) * 0.85
+      B[i * 3 + 2] = rB * Math.sin(phiB) * Math.sin(thetaB)
+
+      // Target C: Fluid undulating field
+      const segC = i / N
+      const turnsC = 5
+      const angC = segC * Math.PI * 2 * turnsC
+      const rC = 3.2 + Math.sin(segC * 12) * 1.8
+      C[i * 3] = (segC - 0.5) * 24 + Math.cos(angC) * 2.0
+      C[i * 3 + 1] = Math.sin(angC) * rC + Math.sin(segC * 8) * 1.5
+      C[i * 3 + 2] = Math.cos(angC * 0.7) * 4.0
+    }
+
+    const pos = new Float32Array(A)
+    const vel = new Float32Array(N * 3)
+
+    const ptsGeo = new THREE.BufferGeometry()
+    ptsGeo.setAttribute("position", new THREE.BufferAttribute(pos, 3))
+    ptsGeo.setAttribute("color", new THREE.BufferAttribute(particleColors, 3))
+
+    const ptsMat = new THREE.PointsMaterial({
+      size: 0.16,
+      map: makeParticleSprite(),
+      transparent: true,
+      opacity: 0,
+      vertexColors: true,
+      blending: THREE.NormalBlending,
+      depthWrite: false,
+      sizeAttenuation: true,
+    })
+    const pts = new THREE.Points(ptsGeo, ptsMat)
+    orrery.add(pts)
+
     // ===== Warm lighting =====
     scene.add(new THREE.AmbientLight(0xffe4c4, 0.6))
     const key = new THREE.DirectionalLight(0xfde68a, 1.2)
@@ -224,33 +340,36 @@ export default function HeroScene({ labelOpacity, bleedZoom, canvasSize }: HeroS
     rim.position.set(-6, -4, 5)
     scene.add(rim)
 
-    // ===== Cursor: parallax targets + pointer for node attraction =====
+    // ===== Cursor: parallax targets + pointer for node attraction & fluid disturbance =====
     let targetX = 0
     let targetY = 0
     const pointerNDC = new THREE.Vector2(9, 9) // offscreen until first move
     let pointerSeen = false
+    let pEnergy = 0
+    let pLastX = 0
+    let pLastY = 0
+
     const onMouse = (e: MouseEvent) => {
       targetY = (e.clientX / window.innerWidth) * 2 - 1
       targetX = -((e.clientY / window.innerHeight) * 2 - 1)
-      // Canvas-local NDC — the panel may be offset from the window
       const rect = renderer.domElement.getBoundingClientRect()
       pointerNDC.x = ((e.clientX - rect.left) / rect.width) * 2 - 1
       pointerNDC.y = -((e.clientY - rect.top) / rect.height) * 2 + 1
+      const ddx = e.clientX - pLastX
+      const ddy = e.clientY - pLastY
+      pLastX = e.clientX
+      pLastY = e.clientY
+      if (pointerSeen) {
+        pEnergy = Math.min(1, pEnergy + Math.sqrt(ddx * ddx + ddy * ddy) * 0.012)
+      }
       pointerSeen = true
     }
     window.addEventListener("mousemove", onMouse, { passive: true })
 
-    // Framed distance at zoom 1 — recomputed each frame when size changes,
-    // the render loop re-derives camera/fog from it divided by the bleed zoom
     let baseDist = 0
-    // Track the last canvas buffer size so we only call renderer.setSize when
-    // the container actually changes — avoids wasted GPU uploads
     let lastW = 0
     let lastH = 0
 
-    // Compute baseDist and update camera for a given width/height. Called
-    // synchronously in the rAF loop (not from ResizeObserver) so the canvas
-    // buffer, aspect, and camera distance all update in the same paint frame.
     const refit = (w: number, h: number) => {
       if (w === 0 || h === 0) return
       if (w !== lastW || h !== lastH) {
@@ -266,8 +385,6 @@ export default function HeroScene({ labelOpacity, bleedZoom, canvasSize }: HeroS
       camera.updateProjectionMatrix()
     }
 
-    // Initial fit from the host element — before the first scroll event
-    // canvasSize ref may be (0,0); use the host's natural size
     refit(host.clientWidth, host.clientHeight)
 
     const clock = new THREE.Clock()
@@ -275,12 +392,6 @@ export default function HeroScene({ labelOpacity, bleedZoom, canvasSize }: HeroS
     let autoRot = 0
     let raf = 0
 
-    // ── Cursor attraction helpers ──
-    // We do NOT intersect a fixed z=0 plane — that would only affect nodes
-    // sitting near that plane while the orrery rotates. Instead we find the
-    // closest point on the camera ray to each node's world position and use
-    // that as the cursor target in orrery-local space. This means every node
-    // on the sphere reacts uniformly regardless of its depth.
     const ray = new THREE.Ray()
     const ndcPt = new THREE.Vector3()
     const nodeWorld = new THREE.Vector3()
@@ -288,55 +399,65 @@ export default function HeroScene({ labelOpacity, bleedZoom, canvasSize }: HeroS
     const closestLocal = new THREE.Vector3()
     const pullDir = new THREE.Vector3()
 
-    // Smoothly interpolated zoom — chases bleedZoom.current each frame
     let smoothZoom = bleedZoom.current
+    let smoothSp = scrollProgress.current
+
+    // Spring physics constants from particles.zip
+    const SPRING = 0.05
+    const DAMP = 0.87
+    const R_CUR = 4.5
+    const R_CUR2 = R_CUR * R_CUR
+
+    let prevLocalCurX = 0
+    let prevLocalCurY = 0
+    let prevLocalCurZ = 0
+    let havePrevCur = false
+
+    const lerp = (a: number, b: number, t: number) => a + (b - a) * t
 
     const animate = () => {
       raf = requestAnimationFrame(animate)
       const dt = Math.min(clock.getDelta(), 0.05)
       elapsed += dt
 
-      // ── Synchronous canvas resize ──
-      // canvasSize is updated by HeroSection's scroll handler; reading it
-      // here (same rAF tick) keeps buffer resize, aspect, and camera all
-      // in the same paint — zero ResizeObserver lag.
+      // Synchronous canvas resize
       const { w, h } = canvasSize.current
       if (w > 0 && h > 0) {
         refit(w, h)
       }
 
-      // Slow autorotate; cursor adds a ±0.14/±0.09 rad tilt, all lerped
+      // Smooth scroll progress interpolation
+      smoothSp += (scrollProgress.current - smoothSp) * 0.08
+      const sp = smoothSp
+
+      // Slow autorotate + cursor tilt
       autoRot += dt * 0.06
       orrery.rotation.y += (targetY * 0.14 + autoRot - orrery.rotation.y) * 0.05
       orrery.rotation.x += (targetX * 0.09 - orrery.rotation.x) * 0.05
 
       core.rotation.y += dt * 0.06
       core.rotation.x += dt * 0.02
+      denseSphere.rotation.y += dt * 0.12
+      denseSphere.rotation.x += dt * 0.04
 
-      // ── Smooth zoom ──
+      // Smooth zoom
       const zoomTarget = bleedZoom.current
       smoothZoom += (zoomTarget - smoothZoom) * 0.12
       if (baseDist > 0) {
         const camDist = baseDist / smoothZoom
         camera.position.z = camDist
         fog.near = camDist * 1.05
-        fog.far = camDist * 2.75
+        fog.far = camDist * 2.85
       }
 
-      // Gentle pulse — scale only, so spokes stay attached
+      // Node pulse
       for (let i = 0; i < hexes.length; i++) {
         hexes[i].scale.setScalar(1 + Math.sin(elapsed * 1.4 + i * 1.9) * 0.05)
       }
 
-      // ── Cursor attraction: ALL nodes pulled toward the pointer ──
-      // Strategy: build a world-space ray from the camera through the NDC
-      // cursor point, then for each node find the *closest point on that ray*
-      // to the node's world position. Convert that closest point to orrery-
-      // local space and use it as the pull target. This is purely geometric —
-      // no plane intersection — so every node reacts regardless of its Z depth.
+      // Cursor ray calculation
       let cursorValid = false
       if (pointerSeen) {
-        // Unproject NDC → world ray (same as Raycaster internally)
         ndcPt.set(pointerNDC.x, pointerNDC.y, 0.5)
         ndcPt.unproject(camera)
         ray.origin.copy(camera.position)
@@ -344,54 +465,64 @@ export default function HeroScene({ labelOpacity, bleedZoom, canvasSize }: HeroS
         cursorValid = true
       }
 
+      // ─────────────────────────────────────────────────────────────
+      // STAGE 0 & 1: Compression of file nodes into the dense sphere
+      // ─────────────────────────────────────────────────────────────
+      const kComp = Math.min(Math.max((sp - 0.15) / 0.25, 0), 1)
+      const orreryNodeScale = 1 - kComp
+      const denseSphereScale = kComp
+
+      // Collapse core and ring
+      core.scale.setScalar(Math.max(0.0001, orreryNodeScale))
+      ring.scale.setScalar(Math.max(0.0001, orreryNodeScale))
+      spokes.scale.setScalar(Math.max(0.0001, orreryNodeScale))
+
+      // Dense sphere scaling & opacity
+      if (kComp > 0.01) {
+        denseSphereMat.opacity = Math.min(kComp * 1.2, 1.0)
+        innerCoreMat.opacity = Math.min(kComp * 0.6, 0.6)
+      } else {
+        denseSphereMat.opacity = 0
+        innerCoreMat.opacity = 0
+      }
+
+      // Node groups attraction & compression
       const posAttr = spokeGeo.attributes.position as THREE.BufferAttribute
       const spokeArr = posAttr.array as Float32Array
+
       for (let i = 0; i < nodeGroups.length; i++) {
         const g = nodeGroups[i]
         const base = basePositions[i]
 
-        // Start at the rest position
-        const px = base.x
-        const py = base.y
-        const pz = base.z
+        // Compressed rest position pulls toward origin
+        const px = base.x * orreryNodeScale
+        const py = base.y * orreryNodeScale
+        const pz = base.z * orreryNodeScale
 
-        let tx = px, ty = py, tz = pz // pull target in local space
+        let tx = px
+        let ty = py
+        let tz = pz
 
-        if (cursorValid) {
-          // Get the node's current world position
-          orrery.localToWorld(nodeWorld.set(px, py, pz))
-
-          // Closest point on the ray to this world node
+        // Node cursor attraction (active only when still expanded)
+        if (cursorValid && orreryNodeScale > 0.3) {
+          orrery.localToWorld(nodeWorld.set(base.x, base.y, base.z))
           ray.closestPointToPoint(nodeWorld, closestOnRay)
 
-          // Screen-space 2-D distance: project both the node and the closest
-          // point onto the camera's view plane so the radius feels consistent
-          // regardless of the node's depth. We compare in NDC to get a
-          // depth-independent "visual" distance.
           const nodeNDC = nodeWorld.clone().project(camera)
           const dist2D = Math.sqrt(
-            (nodeNDC.x - pointerNDC.x) ** 2 +
-            (nodeNDC.y - pointerNDC.y) ** 2
+            (nodeNDC.x - pointerNDC.x) ** 2 + (nodeNDC.y - pointerNDC.y) ** 2
           )
 
-          // ATTRACT_RADIUS here is in NDC units (0..2 range)
           const attractRadiusNDC = 0.45
           if (dist2D < attractRadiusNDC) {
             const falloff = 1 - dist2D / attractRadiusNDC
-            const strength = falloff * falloff * ATTRACT_STRENGTH
+            const strength = falloff * falloff * ATTRACT_STRENGTH * orreryNodeScale
 
-            // Convert the closest-on-ray world point to orrery-local space
             orrery.worldToLocal(closestLocal.copy(closestOnRay))
-
-            // Pull direction: from rest position toward the local cursor point
-            pullDir.set(
-              closestLocal.x - px,
-              closestLocal.y - py,
-              closestLocal.z - pz
-            )
+            pullDir.set(closestLocal.x - base.x, closestLocal.y - base.y, closestLocal.z - base.z)
             const dLen = pullDir.length()
             if (dLen > 1e-4) {
-              pullDir.multiplyScalar(1 / dLen) // normalize
+              pullDir.multiplyScalar(1 / dLen)
               tx = px + pullDir.x * strength
               ty = py + pullDir.y * strength
               tz = pz + pullDir.z * strength
@@ -399,28 +530,188 @@ export default function HeroScene({ labelOpacity, bleedZoom, canvasSize }: HeroS
           }
         }
 
-        // Lerp current position toward the target
         g.position.x += (tx - g.position.x) * 0.08
         g.position.y += (ty - g.position.y) * 0.08
         g.position.z += (tz - g.position.z) * 0.08
+        g.scale.setScalar(Math.max(0.0001, orreryNodeScale))
 
-        // Re-bake spoke tip so lines stay attached
         spokeArr[i * 6 + 3] = g.position.x
         spokeArr[i * 6 + 4] = g.position.y
         spokeArr[i * 6 + 5] = g.position.z
       }
       posAttr.needsUpdate = true
 
-      // Scanner sweep: slower cycle easing at the extremes, brightest as it
-      // passes through the middle of the sphere
+      // ─────────────────────────────────────────────────────────────
+      // STAGE 2 & 3: Dense Sphere Showcase -> Particle Burst
+      // ─────────────────────────────────────────────────────────────
+      const kBurst = Math.min(Math.max((sp - 0.52) / 0.28, 0), 1)
+
+      // Solid sphere size logic
+      if (kBurst > 0) {
+        const sphereDissolve = Math.max(0, 1 - kBurst * 3.2)
+        denseSphere.scale.setScalar(Math.max(0.0001, sphereDissolve))
+        denseSphereMat.opacity = Math.max(0, sphereDissolve)
+      } else {
+        denseSphere.scale.setScalar(Math.max(0.0001, denseSphereScale))
+      }
+
+      // Particle visibility & dynamics
+      pEnergy *= 0.93
+
+      // Project cursor into local space for fluid particle disturbance
+      let localCurX = 0
+      let localCurY = 0
+      let localCurZ = 0
+      let curVelX = 0
+      let curVelY = 0
+      let curVelZ = 0
+      let curActive = false
+
+      if (cursorValid) {
+        const centerPlane = new THREE.Plane(new THREE.Vector3(0, 0, 1), 0)
+        const hit = new THREE.Vector3()
+        if (ray.intersectPlane(centerPlane, hit)) {
+          const lHit = hit.clone()
+          orrery.worldToLocal(lHit)
+          localCurX = lHit.x
+          localCurY = lHit.y
+          localCurZ = lHit.z
+          curActive = true
+
+          if (havePrevCur) {
+            curVelX = Math.max(-0.7, Math.min(0.7, localCurX - prevLocalCurX))
+            curVelY = Math.max(-0.7, Math.min(0.7, localCurY - prevLocalCurY))
+            curVelZ = Math.max(-0.7, Math.min(0.7, localCurZ - prevLocalCurZ))
+          }
+          prevLocalCurX = localCurX
+          prevLocalCurY = localCurY
+          prevLocalCurZ = localCurZ
+          havePrevCur = true
+        } else {
+          havePrevCur = false
+        }
+      } else {
+        havePrevCur = false
+      }
+
+      // Fade particles in as we approach the burst threshold
+      if (sp > 0.42) {
+        if (kBurst > 0) {
+          ptsMat.opacity = 0.92
+        } else {
+          ptsMat.opacity = Math.min(((sp - 0.42) / 0.1) * 0.85, 0.85)
+        }
+      } else {
+        ptsMat.opacity = 0
+      }
+
+      // Only simulate particle physics when visible
+      if (ptsMat.opacity > 0.01) {
+        const wob = elapsed * 0.75
+        const posArr = ptsGeo.attributes.position.array as Float32Array
+
+        for (let i = 0; i < N; i++) {
+          const idx = i * 3
+          let hx: number, hy: number, hz: number
+
+          if (kBurst <= 0) {
+            // Clustered on dense sphere
+            hx = A[idx]
+            hy = A[idx + 1]
+            hz = A[idx + 2]
+          } else if (kBurst < 0.45) {
+            // Exploding outward from sphere (A) to burst shell (B)
+            const k = kBurst / 0.45
+            hx = lerp(A[idx], B[idx], k)
+            hy = lerp(A[idx + 1], B[idx + 1], k)
+            hz = lerp(A[idx + 2], B[idx + 2], k)
+          } else {
+            // Evolving from burst cloud (B) to living undulating fluid field (C)
+            const k = (kBurst - 0.45) / 0.55
+            hx = lerp(B[idx], C[idx], k)
+            hy = lerp(B[idx + 1], C[idx + 1], k)
+            hz = lerp(B[idx + 2], C[idx + 2], k)
+          }
+
+          // Harmonic living wobble
+          hx += Math.sin(wob + i) * 0.06
+          hy += Math.cos(wob * 1.1 + i) * 0.06
+
+          let px = posArr[idx]
+          let py = posArr[idx + 1]
+          let pz = posArr[idx + 2]
+
+          let vx = vel[idx]
+          let vy = vel[idx + 1]
+          let vz = vel[idx + 2]
+
+          // 1) Spring back toward home target
+          vx += (hx - px) * SPRING
+          vy += (hy - py) * SPRING
+          vz += (hz - pz) * SPRING
+
+          // 2) Fluid cursor dynamics: radial lift + tangential swirl + wake
+          if (curActive && kBurst > 0.15) {
+            const dx = px - localCurX
+            const dy = py - localCurY
+            const dz = pz - localCurZ
+            const d2 = dx * dx + dy * dy + dz * dz
+
+            if (d2 < R_CUR2) {
+              const dist = Math.sqrt(d2) + 1e-4
+              const w = 1 - dist / R_CUR
+              const inv = 1 / dist
+              const en = 0.5 + pEnergy
+
+              // Radial lift
+              const fr = w * 0.12 * en
+              vx += dx * inv * fr
+              vy += dy * inv * fr
+              vz += dz * inv * fr
+
+              // Tangential swirl
+              const tl = Math.sqrt(dz * dz + dx * dx) + 1e-4
+              const ft = w * 0.22 * en
+              vx += (-dz / tl) * ft
+              vz += (dx / tl) * ft
+
+              // Cursor drag / wake
+              const fd = w * 0.95
+              vx += curVelX * fd
+              vy += curVelY * fd
+              vz += curVelZ * fd
+            }
+          }
+
+          // 3) Velocity damping & integration
+          vx *= DAMP
+          vy *= DAMP
+          vz *= DAMP
+
+          px += vx
+          py += vy
+          pz += vz
+
+          vel[idx] = vx
+          vel[idx + 1] = vy
+          vel[idx + 2] = vz
+
+          posArr[idx] = px
+          posArr[idx + 1] = py
+          posArr[idx + 2] = pz
+        }
+        ptsGeo.attributes.position.needsUpdate = true
+      }
+
+      // Scanner sweep
       const cycle = (Math.sin(elapsed * 0.5 - Math.PI / 2) + 1) / 2
       ring.position.y = -SWEEP + cycle * SWEEP * 2
       const ringMat = ring.material as THREE.MeshBasicMaterial
-      // Ring fades out with the file-name labels during expansion
-      ringMat.opacity = (0.7 + Math.sin(cycle * Math.PI) * 0.3) * labelOpacity.current
+      ringMat.opacity =
+        (0.7 + Math.sin(cycle * Math.PI) * 0.3) * labelOpacity.current * orreryNodeScale
 
-      // Labels fade out as the panel expands
-      const lo = labelOpacity.current
+      // Labels fade
+      const lo = labelOpacity.current * orreryNodeScale
       for (const s of labelSprites) {
         ;(s.material as THREE.SpriteMaterial).opacity = lo
       }
@@ -447,7 +738,7 @@ export default function HeroScene({ labelOpacity, bleedZoom, canvasSize }: HeroS
       renderer.dispose()
       if (renderer.domElement.parentNode === host) host.removeChild(renderer.domElement)
     }
-  }, [labelOpacity, bleedZoom, canvasSize])
+  }, [labelOpacity, bleedZoom, canvasSize, scrollProgress])
 
   return <div ref={hostRef} className="h-full w-full" />
 }

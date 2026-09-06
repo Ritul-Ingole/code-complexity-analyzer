@@ -34,6 +34,8 @@ export default function HeroSection({ isAuthenticated, login }: HeroSectionProps
   // Synchronous canvas size — pushed every scroll frame so the 3D scene
   // can resize its buffer in the same rAF, avoiding ResizeObserver lag
   const canvasSize = useRef<{ w: number; h: number }>({ w: 0, h: 0 })
+  // Total scroll progress (0 to 1) across the page journey
+  const scrollProgress = useRef(0)
 
   useLayoutEffect(() => {
     const panel = panelRef.current
@@ -71,6 +73,12 @@ export default function HeroSection({ isAuthenticated, login }: HeroSectionProps
       // Push dimensions synchronously so HeroScene can resize in the same
       // rAF tick — avoids the 1-2 frame lag from ResizeObserver
       canvasSize.current = { w: Math.round(w), h: Math.round(h) }
+      // Total scroll progress spanning the entire page story
+      const docHeight = Math.max(
+        document.documentElement.scrollHeight - window.innerHeight,
+        window.innerHeight
+      )
+      scrollProgress.current = Math.min(Math.max(window.scrollY / docHeight, 0), 1)
       // File-name labels fade out during the first half of expansion
       labelOpacity.current = Math.max(0, 1 - p * 2)
       bleedZoom.current = 1 + p * (BLEED_ZOOM - 1)
@@ -101,7 +109,12 @@ export default function HeroSection({ isAuthenticated, login }: HeroSectionProps
         className="fixed left-0 top-0 z-0 overflow-hidden will-change-[width,height,left,top]"
         style={{ visibility: "hidden" }}
       >
-        <HeroScene labelOpacity={labelOpacity} bleedZoom={bleedZoom} canvasSize={canvasSize} />
+        <HeroScene
+          labelOpacity={labelOpacity}
+          bleedZoom={bleedZoom}
+          canvasSize={canvasSize}
+          scrollProgress={scrollProgress}
+        />
       </div>
 
       {/* Hero copy (scrolls away naturally) + spacer holding the panel's home slot */}

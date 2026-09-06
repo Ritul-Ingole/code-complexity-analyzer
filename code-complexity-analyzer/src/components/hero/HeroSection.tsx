@@ -36,14 +36,14 @@ export default function HeroSection({ isAuthenticated, login }: HeroSectionProps
     let home = { x: 0, y: 0, w: 0, h: 0 }
     const measure = () => {
       const r = spacer.getBoundingClientRect()
-      // Inflate the frameless panel around the spacer's center, clamped to
-      // the viewport — bigger canvas (fuller scene) without shifting layout
-      const w = Math.min(r.width * 1.35, window.innerWidth)
-      const h = Math.min(r.height * 1.35, window.innerHeight)
-      const x = Math.max(0, Math.min(r.left + r.width / 2 - w / 2, window.innerWidth - w))
-      const cy = r.top + window.scrollY + r.height / 2
-      const y = Math.max(window.scrollY, Math.min(cy - h / 2, window.scrollY + window.innerHeight - h))
-      home = { x, y, w, h }
+      // Panel: right column edge → viewport edge (uses the empty side
+      // margin), just under the nav → just above the fold. Fixed and
+      // frameless, so the grid layout is untouched. On scroll it lerps to
+      // full-bleed (update()).
+      const x = r.left
+      const w = Math.max(window.innerWidth - x - 16, 320)
+      const h = Math.max(window.innerHeight - 96, 360)
+      home = { x, y: window.scrollY + 80, w, h }
     }
 
     const update = () => {

@@ -15,6 +15,12 @@ interface HeroSceneProps {
 
 const NODE_RADIUS = 3.6
 
+// Scanner disc geometry — used by the ring mesh, the sweep and the camera
+// fit; the fit must frame the disc's widest reach at the sweep extremes
+const DISC_INNER = 4.25 // clears the widest node (3.6 + 0.55)
+const DISC_OUTER = 4.8
+const SWEEP = 3.0
+
 const NODES = [
   { name: "analyzer.ts", color: "#77864a", size: 0.55 },
   { name: "parser.ts", color: "#b8862f", size: 0.24 },
@@ -168,10 +174,10 @@ export default function HeroScene({ labelOpacity }: HeroSceneProps) {
     })
 
     // ===== Scanner ring sweeping up and down through the structure =====
-    // Hole (4.3) clears the node sphere (3.6 radius + largest node), so the
+    // The hole clears the node sphere (3.6 radius + largest node), so the
     // ring encircles it and the scan reads as passing over the files
     const ring = new THREE.Mesh(
-      new THREE.RingGeometry(4.3, 5.6, 96),
+      new THREE.RingGeometry(DISC_INNER, DISC_OUTER, 96),
       new THREE.MeshBasicMaterial({
         map: makeRingTexture(),
         transparent: true,
@@ -201,10 +207,10 @@ export default function HeroScene({ labelOpacity }: HeroSceneProps) {
     }
     window.addEventListener("mousemove", onMouse, { passive: true })
 
-    // Frame the whole scene: the scanner ring is the extreme content (outer
-    // radius 5.6, sweeping to y ±4.4 — keep in sync with the ring/sweep values
-    // above). Distance covers both the ring's near edge leaving the vertical
-    // frustum at the sweep extremes and its width against the panel aspect.
+    // Frame the whole scene: the scanner disc is the extreme content (outer
+    // radius DISC_OUTER, sweeping to y ±SWEEP). Distance covers both the
+    // disc's near edge leaving the vertical frustum at the sweep extremes
+    // and its width against the panel aspect.
     const fit = () => {
       const w = host.clientWidth
       const h = host.clientHeight
@@ -213,7 +219,8 @@ export default function HeroScene({ labelOpacity }: HeroSceneProps) {
       camera.aspect = w / h
       const tV = Math.tan((camera.fov * Math.PI) / 360)
       const tH = tV * camera.aspect
-      const dist = Math.max(5.6 + 4.4 / tV, 5.6 * Math.sqrt(1 + 1 / (tH * tH))) * 1.06
+      const dist =
+        Math.max(DISC_OUTER + SWEEP / tV, DISC_OUTER * Math.sqrt(1 + 1 / (tH * tH))) * 1.05
       camera.position.z = dist
       fog.near = dist * 1.05
       fog.far = dist * 2.75
@@ -253,7 +260,7 @@ export default function HeroScene({ labelOpacity }: HeroSceneProps) {
       // Scanner sweep: slower cycle easing at the extremes, brightest as it
       // passes through the middle of the sphere
       const cycle = (Math.sin(elapsed * 0.5 - Math.PI / 2) + 1) / 2
-      ring.position.y = -4.4 + cycle * 8.8
+      ring.position.y = -SWEEP + cycle * SWEEP * 2
       const ringMat = ring.material as THREE.MeshBasicMaterial
       ringMat.opacity = 0.7 + Math.sin(cycle * Math.PI) * 0.3
 

@@ -36,12 +36,12 @@ export default function HeroSection({ isAuthenticated, login }: HeroSectionProps
     let home = { x: 0, y: 0, w: 0, h: 0 }
     const measure = () => {
       const r = spacer.getBoundingClientRect()
-      // Panel: right column edge → viewport edge (uses the empty side
-      // margin), just under the nav → just above the fold. Fixed and
+      // Panel: exactly the right grid column (page margins stay symmetric) —
+      // just under the nav → just above the fold. Fixed and
       // frameless, so the grid layout is untouched. On scroll it lerps to
       // full-bleed (update()).
       const x = r.left
-      const w = Math.max(window.innerWidth - x - 16, 320)
+      const w = Math.max(r.width, 150)
       const h = Math.max(window.innerHeight - 96, 360)
       home = { x, y: window.scrollY + 80, w, h }
     }
@@ -93,8 +93,8 @@ export default function HeroSection({ isAuthenticated, login }: HeroSectionProps
       </div>
 
       {/* Hero copy (scrolls away naturally) + spacer holding the panel's home slot */}
-      <section className="relative z-10 mx-auto grid min-h-[calc(100vh-72px)] max-w-[1200px] grid-cols-1 items-center gap-10 px-6 py-16 md:grid-cols-[1.05fr_0.95fr] md:gap-12 md:px-16 lg:px-24">
-        <div className="max-w-xl">
+      <section className="relative z-10 grid min-h-[calc(100vh-72px)] max-w-none grid-cols-1 items-center gap-10 px-6 py-16 md:grid-cols-[1.05fr_0.95fr] md:gap-12 md:px-12">
+        <div className="max-w-xl md:justify-self-center">
           <p className="mb-6 font-mono text-xs tracking-wide text-[#a85c42]">
             01 — STATIC ANALYSIS, NO SETUP
           </p>

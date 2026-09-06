@@ -23,6 +23,10 @@ const DISC_INNER = 4.25 // clears the widest node (3.6 + 0.55)
 const DISC_OUTER = 4.8
 const SWEEP = 3.0
 
+// Cursor attraction — nearby nodes get pulled toward the pointer
+const ATTRACT_RADIUS = 2.6
+const ATTRACT_STRENGTH = 1.2
+
 const NODES = [
   { name: "analyzer.ts", color: "#77864a", size: 0.55 },
   { name: "parser.ts", color: "#b8862f", size: 0.24 },
@@ -33,6 +37,9 @@ const NODES = [
   { name: "oauth.ts", color: "#7a3b2e", size: 0.4 },
   { name: "dynamo.ts", color: "#b8862f", size: 0.24 },
   { name: "index.ts", color: "#7a3b2e", size: 0.28 },
+  { name: "types.ts", color: "#77864a", size: 0.3 },
+  { name: "hooks.ts", color: "#b8862f", size: 0.32 },
+  { name: "utils.ts", color: "#7a3b2e", size: 0.26 },
 ]
 
 // Even distribution over the full sphere (all directions), Fibonacci-style
@@ -146,11 +153,14 @@ export default function HeroScene({ labelOpacity, bleedZoom, canvasSize }: HeroS
     // ===== Hex file nodes + labels =====
     const hexes: THREE.Mesh[] = []
     const labelSprites: THREE.Sprite[] = []
+    const nodeGroups: THREE.Group[] = []
+    const basePositions: THREE.Vector3[] = []
 
     NODES.forEach((node, i) => {
       const [x, y, z] = nodePosition(i, NODES.length)
       const group = new THREE.Group()
       group.position.set(x, y, z)
+      basePositions.push(new THREE.Vector3(x, y, z))
 
       const mesh = new THREE.Mesh(
         new THREE.CylinderGeometry(node.size, node.size, node.size * 0.85, 6),
@@ -171,6 +181,7 @@ export default function HeroScene({ labelOpacity, bleedZoom, canvasSize }: HeroS
       group.add(label)
 
       orrery.add(group)
+      nodeGroups.push(group)
       hexes.push(mesh)
       labelSprites.push(label)
     })
@@ -200,12 +211,19 @@ export default function HeroScene({ labelOpacity, bleedZoom, canvasSize }: HeroS
     rim.position.set(-6, -4, 5)
     scene.add(rim)
 
-    // ===== Cursor parallax targets (lerped in the loop) =====
+    // ===== Cursor: parallax targets + pointer for node attraction =====
     let targetX = 0
     let targetY = 0
+    const pointerNDC = new THREE.Vector2(9, 9) // offscreen until first move
+    let pointerSeen = false
     const onMouse = (e: MouseEvent) => {
       targetY = (e.clientX / window.innerWidth) * 2 - 1
       targetX = -((e.clientY / window.innerHeight) * 2 - 1)
+      // Canvas-local NDC — the panel may be offset from the window
+      const rect = renderer.domElement.getBoundingClientRect()
+      pointerNDC.x = ((e.clientX - rect.left) / rect.width) * 2 - 1
+      pointerNDC.y = -((e.clientY - rect.top) / rect.height) * 2 + 1
+      pointerSeen = true
     }
     window.addEventListener("mousemove", onMouse, { passive: true })
 
@@ -243,6 +261,14 @@ export default function HeroScene({ labelOpacity, bleedZoom, canvasSize }: HeroS
     let elapsed = 0
     let autoRot = 0
     let raf = 0
+
+    // ── Cursor attraction helpers ──
+    const raycaster = new THREE.Raycaster()
+    const pullPlane = new THREE.Plane(new THREE.Vector3(0, 0, 1), 0)
+    const cursorWorld = new THREE.Vector3()
+    const cursorLocal = new THREE.Vector3()
+    const pullTarget = new THREE.Vector3()
+    const pullDir = new THREE.Vector3()
 
     // Smoothly interpolated zoom — chases bleedZoom.current each frame
     let smoothZoom = bleedZoom.current
@@ -288,12 +314,49 @@ export default function HeroScene({ labelOpacity, bleedZoom, canvasSize }: HeroS
         hexes[i].scale.setScalar(1 + Math.sin(elapsed * 1.4 + i * 1.9) * 0.05)
       }
 
+      // ── Cursor attraction: nearby nodes pulled toward the pointer ──
+      // Pointer → world point on the z=0 plane → orb-local space, then each
+      // node lerps toward (base + pull) with a squared falloff; spokes are
+      // re-baked from the live positions every frame so they stay attached.
+      let cursorValid = false
+      if (pointerSeen) {
+        raycaster.setFromCamera(pointerNDC, camera)
+        if (raycaster.ray.intersectPlane(pullPlane, cursorWorld)) {
+          cursorLocal.copy(cursorWorld)
+          orrery.worldToLocal(cursorLocal)
+          cursorValid = true
+        }
+      }
+      const posAttr = spokeGeo.attributes.position as THREE.BufferAttribute
+      const spokeArr = posAttr.array as Float32Array
+      for (let i = 0; i < nodeGroups.length; i++) {
+        const g = nodeGroups[i]
+        pullTarget.copy(basePositions[i])
+        if (cursorValid) {
+          pullDir.subVectors(cursorLocal, basePositions[i])
+          const d = pullDir.length()
+          if (d < ATTRACT_RADIUS && d > 1e-4) {
+            const falloff = 1 - d / ATTRACT_RADIUS
+            pullTarget.addScaledVector(
+              pullDir.normalize(),
+              falloff * falloff * ATTRACT_STRENGTH
+            )
+          }
+        }
+        g.position.lerp(pullTarget, 0.08)
+        spokeArr[i * 6 + 3] = g.position.x
+        spokeArr[i * 6 + 4] = g.position.y
+        spokeArr[i * 6 + 5] = g.position.z
+      }
+      posAttr.needsUpdate = true
+
       // Scanner sweep: slower cycle easing at the extremes, brightest as it
       // passes through the middle of the sphere
       const cycle = (Math.sin(elapsed * 0.5 - Math.PI / 2) + 1) / 2
       ring.position.y = -SWEEP + cycle * SWEEP * 2
       const ringMat = ring.material as THREE.MeshBasicMaterial
-      ringMat.opacity = 0.7 + Math.sin(cycle * Math.PI) * 0.3
+      // Ring fades out with the file-name labels during expansion
+      ringMat.opacity = (0.7 + Math.sin(cycle * Math.PI) * 0.3) * labelOpacity.current
 
       // Labels fade out as the panel expands
       const lo = labelOpacity.current

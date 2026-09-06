@@ -31,6 +31,9 @@ export default function HeroSection({ isAuthenticated, login }: HeroSectionProps
   const spacerRef = useRef<HTMLDivElement>(null)
   const labelOpacity = useRef(1)
   const bleedZoom = useRef(1)
+  // Synchronous canvas size — pushed every scroll frame so the 3D scene
+  // can resize its buffer in the same rAF, avoiding ResizeObserver lag
+  const canvasSize = useRef<{ w: number; h: number }>({ w: 0, h: 0 })
 
   useLayoutEffect(() => {
     const panel = panelRef.current
@@ -65,6 +68,9 @@ export default function HeroSection({ isAuthenticated, login }: HeroSectionProps
       panel.style.height = h + "px"
       panel.style.left = x + "px"
       panel.style.top = y + "px"
+      // Push dimensions synchronously so HeroScene can resize in the same
+      // rAF tick — avoids the 1-2 frame lag from ResizeObserver
+      canvasSize.current = { w: Math.round(w), h: Math.round(h) }
       // File-name labels fade out during the first half of expansion
       labelOpacity.current = Math.max(0, 1 - p * 2)
       bleedZoom.current = 1 + p * (BLEED_ZOOM - 1)
@@ -95,7 +101,7 @@ export default function HeroSection({ isAuthenticated, login }: HeroSectionProps
         className="fixed left-0 top-0 z-0 overflow-hidden will-change-[width,height,left,top]"
         style={{ visibility: "hidden" }}
       >
-        <HeroScene labelOpacity={labelOpacity} bleedZoom={bleedZoom} />
+        <HeroScene labelOpacity={labelOpacity} bleedZoom={bleedZoom} canvasSize={canvasSize} />
       </div>
 
       {/* Hero copy (scrolls away naturally) + spacer holding the panel's home slot */}

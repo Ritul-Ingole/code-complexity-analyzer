@@ -7,6 +7,7 @@ import * as THREE from "three"
 interface HeroSceneProps {
   labelOpacity: MutableRefObject<number>
   bleedZoom: MutableRefObject<number>
+  canvasSize: MutableRefObject<{ w: number; h: number }>
 }
 
 // Geodesic core + spoke-connected hex file nodes with WebGL sprite labels,
@@ -86,7 +87,7 @@ function makeRingTexture(): THREE.CanvasTexture {
   return new THREE.CanvasTexture(canvas)
 }
 
-export default function HeroScene({ labelOpacity, bleedZoom }: HeroSceneProps) {
+export default function HeroScene({ labelOpacity, bleedZoom, canvasSize }: HeroSceneProps) {
   const hostRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -208,48 +209,57 @@ export default function HeroScene({ labelOpacity, bleedZoom }: HeroSceneProps) {
     }
     window.addEventListener("mousemove", onMouse, { passive: true })
 
-    // Framed distance at zoom 1 — fit() computes it, the render loop
-    // re-derives camera/fog from it divided by the bleed zoom
+    // Framed distance at zoom 1 — recomputed each frame when size changes,
+    // the render loop re-derives camera/fog from it divided by the bleed zoom
     let baseDist = 0
+    // Track the last canvas buffer size so we only call renderer.setSize when
+    // the container actually changes — avoids wasted GPU uploads
+    let lastW = 0
+    let lastH = 0
 
-    // Frame the whole scene: the scanner disc is the extreme content (outer
-    // radius DISC_OUTER, sweeping to y ±SWEEP). Distance covers both the
-    // disc's near edge leaving the vertical frustum at the sweep extremes
-    // and its width against the panel aspect.
-    const fit = () => {
-      const w = host.clientWidth
-      const h = host.clientHeight
+    // Compute baseDist and update camera for a given width/height. Called
+    // synchronously in the rAF loop (not from ResizeObserver) so the canvas
+    // buffer, aspect, and camera distance all update in the same paint frame.
+    const refit = (w: number, h: number) => {
       if (w === 0 || h === 0) return
-      renderer.setSize(w, h, false)
+      if (w !== lastW || h !== lastH) {
+        renderer.setSize(w, h, false)
+        lastW = w
+        lastH = h
+      }
       camera.aspect = w / h
       const tV = Math.tan((camera.fov * Math.PI) / 360)
       const tH = tV * camera.aspect
-      const dist =
+      baseDist =
         Math.max(DISC_OUTER + SWEEP / tV, DISC_OUTER * Math.sqrt(1 + 1 / (tH * tH))) * 1.05
-      baseDist = dist
-      camera.position.z = dist
-      fog.near = dist * 1.05
-      fog.far = dist * 2.75
       camera.updateProjectionMatrix()
-      // Resizing the buffer clears the canvas, and ResizeObserver fires after
-      // this frame's rAF render — without an immediate re-render the browser
-      // paints a blank canvas on every scroll frame (disappears-while-scrolling)
-      renderer.render(scene, camera)
     }
-    const ro = new ResizeObserver(fit)
-    ro.observe(host)
-    fit()
+
+    // Initial fit from the host element — before the first scroll event
+    // canvasSize ref may be (0,0); use the host's natural size
+    refit(host.clientWidth, host.clientHeight)
 
     const clock = new THREE.Clock()
     let elapsed = 0
     let autoRot = 0
-    let zoomCur = 1
     let raf = 0
+
+    // Smoothly interpolated zoom — chases bleedZoom.current each frame
+    let smoothZoom = bleedZoom.current
 
     const animate = () => {
       raf = requestAnimationFrame(animate)
       const dt = Math.min(clock.getDelta(), 0.05)
       elapsed += dt
+
+      // ── Synchronous canvas resize ──
+      // canvasSize is updated by HeroSection's scroll handler; reading it
+      // here (same rAF tick) keeps buffer resize, aspect, and camera all
+      // in the same paint — zero ResizeObserver lag.
+      const { w, h } = canvasSize.current
+      if (w > 0 && h > 0) {
+        refit(w, h)
+      }
 
       // Slow autorotate; cursor adds a ±0.14/±0.09 rad tilt, all lerped
       autoRot += dt * 0.06
@@ -259,11 +269,15 @@ export default function HeroScene({ labelOpacity, bleedZoom }: HeroSceneProps) {
       core.rotation.y += dt * 0.06
       core.rotation.x += dt * 0.02
 
-      // Zoom in as the panel bleeds to full-bleed — scroll-driven ref,
-      // lerped so fast scroll jumps stay smooth
-      zoomCur += (bleedZoom.current - zoomCur) * 0.08
+      // ── Smooth zoom ──
+      // Lerp toward the scroll-driven target so the zoom ramps
+      // continuously even while the user is actively scrolling.
+      // The lerp factor (0.12) keeps it buttery at 60 fps (~7-8 frames to
+      // settle) without noticeable delay.
+      const zoomTarget = bleedZoom.current
+      smoothZoom += (zoomTarget - smoothZoom) * 0.12
       if (baseDist > 0) {
-        const camDist = baseDist / zoomCur
+        const camDist = baseDist / smoothZoom
         camera.position.z = camDist
         fog.near = camDist * 1.05
         fog.far = camDist * 2.75
@@ -293,7 +307,6 @@ export default function HeroScene({ labelOpacity, bleedZoom }: HeroSceneProps) {
 
     return () => {
       cancelAnimationFrame(raf)
-      ro.disconnect()
       window.removeEventListener("mousemove", onMouse)
       scene.traverse((obj) => {
         const o = obj as THREE.Mesh | THREE.Sprite | THREE.Points | THREE.Line
@@ -310,7 +323,7 @@ export default function HeroScene({ labelOpacity, bleedZoom }: HeroSceneProps) {
       renderer.dispose()
       if (renderer.domElement.parentNode === host) host.removeChild(renderer.domElement)
     }
-  }, [labelOpacity, bleedZoom])
+  }, [labelOpacity, bleedZoom, canvasSize])
 
   return <div ref={hostRef} className="h-full w-full" />
 }

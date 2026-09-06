@@ -22,10 +22,15 @@ interface HeroSectionProps {
 // 3D floats over the page; later sections scroll over it.
 const ease = (t: number) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2)
 
+// 3D content zoom at full bleed — the scene scales up as the panel
+// expands into the background, cropping past the viewport edges
+const BLEED_ZOOM = 1.4
+
 export default function HeroSection({ isAuthenticated, login }: HeroSectionProps) {
   const panelRef = useRef<HTMLDivElement>(null)
   const spacerRef = useRef<HTMLDivElement>(null)
   const labelOpacity = useRef(1)
+  const bleedZoom = useRef(1)
 
   useLayoutEffect(() => {
     const panel = panelRef.current
@@ -62,6 +67,7 @@ export default function HeroSection({ isAuthenticated, login }: HeroSectionProps
       panel.style.top = y + "px"
       // File-name labels fade out during the first half of expansion
       labelOpacity.current = Math.max(0, 1 - p * 2)
+      bleedZoom.current = 1 + p * (BLEED_ZOOM - 1)
       panel.style.visibility = "visible"
     }
 
@@ -89,7 +95,7 @@ export default function HeroSection({ isAuthenticated, login }: HeroSectionProps
         className="fixed left-0 top-0 z-0 overflow-hidden will-change-[width,height,left,top]"
         style={{ visibility: "hidden" }}
       >
-        <HeroScene labelOpacity={labelOpacity} />
+        <HeroScene labelOpacity={labelOpacity} bleedZoom={bleedZoom} />
       </div>
 
       {/* Hero copy (scrolls away naturally) + spacer holding the panel's home slot */}

@@ -6,6 +6,7 @@ import * as THREE from "three"
 
 interface HeroSceneProps {
   labelOpacity: MutableRefObject<number>
+  bleedZoom: MutableRefObject<number>
 }
 
 // Geodesic core + spoke-connected hex file nodes with WebGL sprite labels,
@@ -85,7 +86,7 @@ function makeRingTexture(): THREE.CanvasTexture {
   return new THREE.CanvasTexture(canvas)
 }
 
-export default function HeroScene({ labelOpacity }: HeroSceneProps) {
+export default function HeroScene({ labelOpacity, bleedZoom }: HeroSceneProps) {
   const hostRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -207,6 +208,10 @@ export default function HeroScene({ labelOpacity }: HeroSceneProps) {
     }
     window.addEventListener("mousemove", onMouse, { passive: true })
 
+    // Framed distance at zoom 1 — fit() computes it, the render loop
+    // re-derives camera/fog from it divided by the bleed zoom
+    let baseDist = 0
+
     // Frame the whole scene: the scanner disc is the extreme content (outer
     // radius DISC_OUTER, sweeping to y ±SWEEP). Distance covers both the
     // disc's near edge leaving the vertical frustum at the sweep extremes
@@ -221,6 +226,7 @@ export default function HeroScene({ labelOpacity }: HeroSceneProps) {
       const tH = tV * camera.aspect
       const dist =
         Math.max(DISC_OUTER + SWEEP / tV, DISC_OUTER * Math.sqrt(1 + 1 / (tH * tH))) * 1.05
+      baseDist = dist
       camera.position.z = dist
       fog.near = dist * 1.05
       fog.far = dist * 2.75
@@ -237,6 +243,7 @@ export default function HeroScene({ labelOpacity }: HeroSceneProps) {
     const clock = new THREE.Clock()
     let elapsed = 0
     let autoRot = 0
+    let zoomCur = 1
     let raf = 0
 
     const animate = () => {
@@ -251,6 +258,16 @@ export default function HeroScene({ labelOpacity }: HeroSceneProps) {
 
       core.rotation.y += dt * 0.06
       core.rotation.x += dt * 0.02
+
+      // Zoom in as the panel bleeds to full-bleed — scroll-driven ref,
+      // lerped so fast scroll jumps stay smooth
+      zoomCur += (bleedZoom.current - zoomCur) * 0.08
+      if (baseDist > 0) {
+        const camDist = baseDist / zoomCur
+        camera.position.z = camDist
+        fog.near = camDist * 1.05
+        fog.far = camDist * 2.75
+      }
 
       // Gentle pulse — scale only, so spokes stay attached
       for (let i = 0; i < hexes.length; i++) {
@@ -293,7 +310,7 @@ export default function HeroScene({ labelOpacity }: HeroSceneProps) {
       renderer.dispose()
       if (renderer.domElement.parentNode === host) host.removeChild(renderer.domElement)
     }
-  }, [labelOpacity])
+  }, [labelOpacity, bleedZoom])
 
   return <div ref={hostRef} className="h-full w-full" />
 }

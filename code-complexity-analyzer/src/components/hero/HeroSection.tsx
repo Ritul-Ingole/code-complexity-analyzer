@@ -36,7 +36,14 @@ export default function HeroSection({ isAuthenticated, login }: HeroSectionProps
     let home = { x: 0, y: 0, w: 0, h: 0 }
     const measure = () => {
       const r = spacer.getBoundingClientRect()
-      home = { x: r.left, y: r.top + window.scrollY, w: r.width, h: r.height }
+      // Inflate the frameless panel around the spacer's center, clamped to
+      // the viewport — bigger canvas (fuller scene) without shifting layout
+      const w = Math.min(r.width * 1.35, window.innerWidth)
+      const h = Math.min(r.height * 1.35, window.innerHeight)
+      const x = Math.max(0, Math.min(r.left + r.width / 2 - w / 2, window.innerWidth - w))
+      const cy = r.top + window.scrollY + r.height / 2
+      const y = Math.max(window.scrollY, Math.min(cy - h / 2, window.scrollY + window.innerHeight - h))
+      home = { x, y, w, h }
     }
 
     const update = () => {

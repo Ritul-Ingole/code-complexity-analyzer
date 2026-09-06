@@ -105,15 +105,10 @@ export default function HeroScene({ labelOpacity }: HeroSceneProps) {
     host.appendChild(renderer.domElement)
 
     const scene = new THREE.Scene()
-    scene.fog = new THREE.Fog(0xf4f1ea, 10, 26)
+    const fog = new THREE.Fog(0xf4f1ea, 10, 26)
+    scene.fog = fog
 
-    const camera = new THREE.PerspectiveCamera(
-      50,
-      host.clientWidth > 0 && host.clientHeight > 0 ? host.clientWidth / host.clientHeight : 1,
-      0.1,
-      100
-    )
-    camera.position.set(0, 0, 9.5)
+    const camera = new THREE.PerspectiveCamera(50, 1, 0.1, 100)
 
     const orrery = new THREE.Group()
     scene.add(orrery)
@@ -206,20 +201,31 @@ export default function HeroScene({ labelOpacity }: HeroSceneProps) {
     }
     window.addEventListener("mousemove", onMouse, { passive: true })
 
-    const resize = () => {
+    // Frame the whole scene: the scanner ring is the extreme content (outer
+    // radius 5.6, sweeping to y ±4.4 — keep in sync with the ring/sweep values
+    // above). Distance covers both the ring's near edge leaving the vertical
+    // frustum at the sweep extremes and its width against the panel aspect.
+    const fit = () => {
       const w = host.clientWidth
       const h = host.clientHeight
       if (w === 0 || h === 0) return
       renderer.setSize(w, h, false)
       camera.aspect = w / h
+      const tV = Math.tan((camera.fov * Math.PI) / 360)
+      const tH = tV * camera.aspect
+      const dist = Math.max(5.6 + 4.4 / tV, 5.6 * Math.sqrt(1 + 1 / (tH * tH))) * 1.06
+      camera.position.z = dist
+      fog.near = dist * 1.05
+      fog.far = dist * 2.75
       camera.updateProjectionMatrix()
       // Resizing the buffer clears the canvas, and ResizeObserver fires after
       // this frame's rAF render — without an immediate re-render the browser
       // paints a blank canvas on every scroll frame (disappears-while-scrolling)
       renderer.render(scene, camera)
     }
-    const ro = new ResizeObserver(resize)
+    const ro = new ResizeObserver(fit)
     ro.observe(host)
+    fit()
 
     const clock = new THREE.Clock()
     let elapsed = 0

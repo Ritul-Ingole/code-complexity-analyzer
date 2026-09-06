@@ -23,23 +23,36 @@ const DISC_INNER = 4.25 // clears the widest node (3.6 + 0.55)
 const DISC_OUTER = 4.8
 const SWEEP = 3.0
 
-// Cursor attraction — nearby nodes get pulled toward the pointer
-const ATTRACT_RADIUS = 2.6
+// Cursor attraction — pull strength when cursor is over a node
 const ATTRACT_STRENGTH = 1.2
 
 const NODES = [
-  { name: "analyzer.ts", color: "#77864a", size: 0.55 },
-  { name: "parser.ts", color: "#b8862f", size: 0.24 },
-  { name: "lambda.ts", color: "#7a3b2e", size: 0.5 },
-  { name: "session.ts", color: "#b8862f", size: 0.28 },
+  { name: "analyzer.ts",   color: "#77864a", size: 0.55 },
+  { name: "parser.ts",     color: "#b8862f", size: 0.24 },
+  { name: "lambda.ts",     color: "#7a3b2e", size: 0.50 },
+  { name: "session.ts",    color: "#b8862f", size: 0.28 },
   { name: "dashboard.tsx", color: "#77864a", size: 0.42 },
-  { name: "trends.ts", color: "#6b7a3f", size: 0.26 },
-  { name: "oauth.ts", color: "#7a3b2e", size: 0.4 },
-  { name: "dynamo.ts", color: "#b8862f", size: 0.24 },
-  { name: "index.ts", color: "#7a3b2e", size: 0.28 },
-  { name: "types.ts", color: "#77864a", size: 0.3 },
-  { name: "hooks.ts", color: "#b8862f", size: 0.32 },
-  { name: "utils.ts", color: "#7a3b2e", size: 0.26 },
+  { name: "trends.ts",     color: "#6b7a3f", size: 0.26 },
+  { name: "oauth.ts",      color: "#7a3b2e", size: 0.40 },
+  { name: "dynamo.ts",     color: "#b8862f", size: 0.24 },
+  { name: "index.ts",      color: "#7a3b2e", size: 0.28 },
+  { name: "types.ts",      color: "#77864a", size: 0.30 },
+  { name: "hooks.ts",      color: "#b8862f", size: 0.32 },
+  { name: "utils.ts",      color: "#7a3b2e", size: 0.26 },
+  { name: "router.ts",     color: "#77864a", size: 0.36 },
+  { name: "metrics.ts",    color: "#b8862f", size: 0.29 },
+  { name: "auth.ts",       color: "#7a3b2e", size: 0.44 },
+  { name: "cache.ts",      color: "#6b7a3f", size: 0.22 },
+  { name: "config.ts",     color: "#77864a", size: 0.34 },
+  { name: "logger.ts",     color: "#b8862f", size: 0.20 },
+  { name: "queue.ts",      color: "#7a3b2e", size: 0.38 },
+  { name: "schema.ts",     color: "#77864a", size: 0.31 },
+  { name: "events.ts",     color: "#6b7a3f", size: 0.25 },
+  { name: "worker.ts",     color: "#b8862f", size: 0.45 },
+  { name: "middleware.ts", color: "#7a3b2e", size: 0.33 },
+  { name: "store.ts",      color: "#77864a", size: 0.27 },
+  { name: "api.ts",        color: "#b8862f", size: 0.48 },
+  { name: "models.ts",     color: "#6b7a3f", size: 0.23 },
 ]
 
 // Even distribution over the full sphere (all directions), Fibonacci-style
@@ -263,11 +276,16 @@ export default function HeroScene({ labelOpacity, bleedZoom, canvasSize }: HeroS
     let raf = 0
 
     // ── Cursor attraction helpers ──
-    const raycaster = new THREE.Raycaster()
-    const pullPlane = new THREE.Plane(new THREE.Vector3(0, 0, 1), 0)
-    const cursorWorld = new THREE.Vector3()
-    const cursorLocal = new THREE.Vector3()
-    const pullTarget = new THREE.Vector3()
+    // We do NOT intersect a fixed z=0 plane — that would only affect nodes
+    // sitting near that plane while the orrery rotates. Instead we find the
+    // closest point on the camera ray to each node's world position and use
+    // that as the cursor target in orrery-local space. This means every node
+    // on the sphere reacts uniformly regardless of its depth.
+    const ray = new THREE.Ray()
+    const ndcPt = new THREE.Vector3()
+    const nodeWorld = new THREE.Vector3()
+    const closestOnRay = new THREE.Vector3()
+    const closestLocal = new THREE.Vector3()
     const pullDir = new THREE.Vector3()
 
     // Smoothly interpolated zoom — chases bleedZoom.current each frame
@@ -296,10 +314,6 @@ export default function HeroScene({ labelOpacity, bleedZoom, canvasSize }: HeroS
       core.rotation.x += dt * 0.02
 
       // ── Smooth zoom ──
-      // Lerp toward the scroll-driven target so the zoom ramps
-      // continuously even while the user is actively scrolling.
-      // The lerp factor (0.12) keeps it buttery at 60 fps (~7-8 frames to
-      // settle) without noticeable delay.
       const zoomTarget = bleedZoom.current
       smoothZoom += (zoomTarget - smoothZoom) * 0.12
       if (baseDist > 0) {
@@ -314,36 +328,83 @@ export default function HeroScene({ labelOpacity, bleedZoom, canvasSize }: HeroS
         hexes[i].scale.setScalar(1 + Math.sin(elapsed * 1.4 + i * 1.9) * 0.05)
       }
 
-      // ── Cursor attraction: nearby nodes pulled toward the pointer ──
-      // Pointer → world point on the z=0 plane → orb-local space, then each
-      // node lerps toward (base + pull) with a squared falloff; spokes are
-      // re-baked from the live positions every frame so they stay attached.
+      // ── Cursor attraction: ALL nodes pulled toward the pointer ──
+      // Strategy: build a world-space ray from the camera through the NDC
+      // cursor point, then for each node find the *closest point on that ray*
+      // to the node's world position. Convert that closest point to orrery-
+      // local space and use it as the pull target. This is purely geometric —
+      // no plane intersection — so every node reacts regardless of its Z depth.
       let cursorValid = false
       if (pointerSeen) {
-        raycaster.setFromCamera(pointerNDC, camera)
-        if (raycaster.ray.intersectPlane(pullPlane, cursorWorld)) {
-          cursorLocal.copy(cursorWorld)
-          orrery.worldToLocal(cursorLocal)
-          cursorValid = true
-        }
+        // Unproject NDC → world ray (same as Raycaster internally)
+        ndcPt.set(pointerNDC.x, pointerNDC.y, 0.5)
+        ndcPt.unproject(camera)
+        ray.origin.copy(camera.position)
+        ray.direction.subVectors(ndcPt, camera.position).normalize()
+        cursorValid = true
       }
+
       const posAttr = spokeGeo.attributes.position as THREE.BufferAttribute
       const spokeArr = posAttr.array as Float32Array
       for (let i = 0; i < nodeGroups.length; i++) {
         const g = nodeGroups[i]
-        pullTarget.copy(basePositions[i])
+        const base = basePositions[i]
+
+        // Start at the rest position
+        const px = base.x
+        const py = base.y
+        const pz = base.z
+
+        let tx = px, ty = py, tz = pz // pull target in local space
+
         if (cursorValid) {
-          pullDir.subVectors(cursorLocal, basePositions[i])
-          const d = pullDir.length()
-          if (d < ATTRACT_RADIUS && d > 1e-4) {
-            const falloff = 1 - d / ATTRACT_RADIUS
-            pullTarget.addScaledVector(
-              pullDir.normalize(),
-              falloff * falloff * ATTRACT_STRENGTH
+          // Get the node's current world position
+          orrery.localToWorld(nodeWorld.set(px, py, pz))
+
+          // Closest point on the ray to this world node
+          ray.closestPointToPoint(nodeWorld, closestOnRay)
+
+          // Screen-space 2-D distance: project both the node and the closest
+          // point onto the camera's view plane so the radius feels consistent
+          // regardless of the node's depth. We compare in NDC to get a
+          // depth-independent "visual" distance.
+          const nodeNDC = nodeWorld.clone().project(camera)
+          const dist2D = Math.sqrt(
+            (nodeNDC.x - pointerNDC.x) ** 2 +
+            (nodeNDC.y - pointerNDC.y) ** 2
+          )
+
+          // ATTRACT_RADIUS here is in NDC units (0..2 range)
+          const attractRadiusNDC = 0.45
+          if (dist2D < attractRadiusNDC) {
+            const falloff = 1 - dist2D / attractRadiusNDC
+            const strength = falloff * falloff * ATTRACT_STRENGTH
+
+            // Convert the closest-on-ray world point to orrery-local space
+            orrery.worldToLocal(closestLocal.copy(closestOnRay))
+
+            // Pull direction: from rest position toward the local cursor point
+            pullDir.set(
+              closestLocal.x - px,
+              closestLocal.y - py,
+              closestLocal.z - pz
             )
+            const dLen = pullDir.length()
+            if (dLen > 1e-4) {
+              pullDir.multiplyScalar(1 / dLen) // normalize
+              tx = px + pullDir.x * strength
+              ty = py + pullDir.y * strength
+              tz = pz + pullDir.z * strength
+            }
           }
         }
-        g.position.lerp(pullTarget, 0.08)
+
+        // Lerp current position toward the target
+        g.position.x += (tx - g.position.x) * 0.08
+        g.position.y += (ty - g.position.y) * 0.08
+        g.position.z += (tz - g.position.z) * 0.08
+
+        // Re-bake spoke tip so lines stay attached
         spokeArr[i * 6 + 3] = g.position.x
         spokeArr[i * 6 + 4] = g.position.y
         spokeArr[i * 6 + 5] = g.position.z

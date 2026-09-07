@@ -1,5 +1,6 @@
 import { getSession } from "@/lib/session"
 import HeroSection from "@/components/hero/HeroSection"
+import { ProductPreview, TrendsTeaser, TrustFaq } from "@/components/hero/LandingSections"
 import Link from "next/link"
 import { Link2, Gauge, TrendingUp, ArrowRight, Lock } from "lucide-react"
 
@@ -164,6 +165,9 @@ export default async function Home() {
       <Navbar isAuthenticated={!!session} login={session?.login} />
       <HeroSection isAuthenticated={!!session} login={session?.login} />
       <HowItWorks isAuthenticated={!!session} />
+      <ProductPreview />
+      <TrendsTeaser isAuthenticated={!!session} />
+      <TrustFaq isAuthenticated={!!session} />
     </div>
   )
 }

@@ -35,6 +35,9 @@ const EDGE_REST_LENGTH = 5
 const REPULSION = 320
 // CAMERA: initial zoom — distance multiplier relative to graph size. Smaller = starts more zoomed-in.
 const CAMERA_DISTANCE = 1.35
+// LABEL: on-screen height of filename labels, as a fraction of camera distance.
+// Bigger = larger labels. They stay this size at every zoom level.
+const LABEL_SCREEN_SIZE = 0.075
 // ─────────────────────────────────────────────────────────────────────────
 
 
@@ -122,7 +125,10 @@ function makeLabelSprite(text: string): THREE.Sprite {
   const texture = new THREE.CanvasTexture(canvas)
   texture.colorSpace = THREE.SRGBColorSpace
   const sprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: texture, transparent: true, depthTest: false }))
-  sprite.scale.set(16, 3, 1)
+  // Scale is recalculated every frame from the camera distance, so the label
+  // keeps a constant on-screen size. 5.33 is the label canvas aspect (512/96).
+  sprite.userData.aspect = canvas.width / canvas.height
+  sprite.scale.set(LABEL_SCREEN_SIZE * 5.33, LABEL_SCREEN_SIZE, 1)
   sprite.renderOrder = 20
   return sprite
 }
@@ -378,7 +384,14 @@ export default function FileGraph({ graph }: { graph?: GraphData }) {
     let raf = 0
     const animate = () => {
       raf = requestAnimationFrame(animate)
-      // Static scene: the camera only moves when the user drags, zooms or pans.
+      // Keep the filename label a constant on-screen size regardless of zoom:
+      // sprite size scales with its distance from the camera.
+      if (labelSprite) {
+        const dist = camera.position.distanceTo(labelSprite.position)
+        const h = dist * LABEL_SCREEN_SIZE
+        labelSprite.scale.set(h * (labelSprite.userData.aspect as number), h, 1)
+      }
+      // Static scene otherwise: the camera only moves when the user drags, zooms or pans.
       renderer.render(scene, camera)
     }
     animate()

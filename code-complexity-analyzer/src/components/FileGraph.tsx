@@ -1,252 +1,449 @@
 "use client"
+
 import { useEffect, useMemo, useRef, useState } from "react"
+import * as THREE from "three"
 
-export interface GraphNode {
-  path: string;
-  loc: number;
-  functions: number;
-  complexity: number;
-}
-
+export interface GraphNode { path: string; loc: number; functions: number; complexity: number }
 export interface GraphData {
-  version: 1;
-  engine: string;
-  nodes: GraphNode[];
-  edges: Array<{
-    source: string;
-    target: string;
-    kind: 'call' | 'import';
-    count: number;
-    symbols: string[]
-  }>;
-  coverage: {
-    fetched: number;
-    parsed: number;
-    failed: string[];
-    unresolvedModules: number;
-    totalEdges: number;
-    truncated: boolean;
-  }
+  version: 1
+  engine: string
+  nodes: GraphNode[]
+  edges: Array<{ source: string; target: string; kind: "call" | "import"; count: number; symbols: string[] }>
+  coverage: { fetched: number; parsed: number; failed: string[]; unresolvedModules: number; totalEdges: number; truncated: boolean }
 }
 
-export const riskLevel = (score: number) => score > 40 ? 'high' : score > 25 ? 'medium' : 'low'
-export const riskColor = (score: number) => score > 40 ? '#b4493d' : score > 25 ? '#947011' : '#4d7142'
+// Report surfaces (cream theme) keep these muted tones.
+export const riskLevel = (score: number) => (score > 40 ? "high" : score > 25 ? "medium" : "low")
+export const riskColor = (score: number) => (score > 40 ? "#b4493d" : score > 25 ? "#947011" : "#4d7142")
+// Dark 3D stage uses brighter, luminous variants so nodes read against space.
+const riskGlow = (score: number) => (score > 40 ? "#ff6b5e" : score > 25 ? "#f2c14e" : "#7dd78a")
 
-type P = { x: number; y: number }
+interface V3 { x: number; y: number; z: number }
 
-function layout(graph?: GraphData) {
-  const nodes = graph?.nodes || [];
-  const p = nodes.map((_, i) => ({
-    x: Math.cos(i * 2.39996) * Math.sqrt((i + 1) / Math.max(nodes.length, 1)) * 230,
-    y: Math.sin(i * 2.39996) * Math.sqrt((i + 1) / Math.max(nodes.length, 1)) * 190
-  }));
-  const ids = new Map(nodes.map((n, i) => [n.path, i]));
+// ─── GRAPH TUNING — adjust these to change the look ─────────────────────
+// NODE SIZE: base radius of every node sphere (world units). Bigger = larger nodes.
+const NODE_BASE_SIZE = 10.4
+// NODE SIZE: extra radius added per point of complexity (capped at complexity 80).
+const NODE_COMPLEXITY_SCALE = 50  // complexity 80 adds 80/24 ≈ 3.3 to the base size
+// SPACING: how far apart folder clusters sit from each other. Smaller = tighter.
+const CLUSTER_SPREAD = 34
+// SPACING: radius of the initial sphere nodes start on within each cluster.
+const SHELL_RADIUS = 120
+// SPACING: ideal length of a connection line during layout. Smaller = nodes pull closer.
+const EDGE_REST_LENGTH = 5
+// SPACING: repulsion strength pushing unconnected nodes apart. Smaller = denser graph.
+const REPULSION = 320
+// CAMERA: initial zoom — distance multiplier relative to graph size. Smaller = starts more zoomed-in.
+const CAMERA_DISTANCE = 1.35
+// ─────────────────────────────────────────────────────────────────────────
 
-  for (let step = 0; step < 85; step++) {
-    const d = p.map(v => ({ x: -v.x * .004, y: -v.y * .004 }));
-    
-    for (let i = 0; i < p.length; i++) {
-      for (let j = i + 1; j < p.length; j++) {
-        const x = p[i].x - p[j].x,
-              y = p[i].y - p[j].y,
-              f = Math.min(.8, 460 / Math.max(30, x * x + y * y));
-        d[i].x += x * f;
-        d[i].y += y * f;
-        d[j].x -= x * f;
-        d[j].y -= y * f;
-      }
+
+const hash = (text: string, seed: number) => {
+  let h = 2166136261 ^ seed
+  for (let i = 0; i < text.length; i++) h = (h ^ text.charCodeAt(i)) * 16777619
+  return ((h >>> 0) % 100000) / 100000
+}
+
+// Deterministic 3D force layout: seeded shell + folder-cluster offsets,
+// spring attraction on edges, repulsion between nodes, gentle gravity.
+// Runs to rest once per dataset — no perpetual physics loop.
+function layout3D(nodes: GraphNode[], edges: GraphData["edges"]): Map<string, V3> {
+  const n = nodes.length
+  const gold = Math.PI * (3 - Math.sqrt(5))
+  const folderOffsets = new Map<string, V3>()
+  const pos: V3[] = nodes.map((node, i) => {
+    const folder = node.path.split("/").slice(0, -1).join("/") || "."
+    if (!folderOffsets.has(folder)) {
+      folderOffsets.set(folder, {
+        x: (hash(folder, 11) - 0.5) * CLUSTER_SPREAD * 2,
+        y: (hash(folder, 23) - 0.5) * CLUSTER_SPREAD * 2,
+        z: (hash(folder, 37) - 0.5) * CLUSTER_SPREAD * 2,
+      })
     }
-    
-    for (const e of graph?.edges || []) {
-      const i = ids.get(e.source),
-            j = ids.get(e.target);
-      if (i === undefined || j === undefined) continue;
-      
-      const x = p[j].x - p[i].x,
-            y = p[j].y - p[i].y,
-            l = Math.hypot(x, y) || 1,
-            f = (l - 85) * .018 / l;
-      d[i].x += x * f;
-      d[i].y += y * f;
-      d[j].x -= x * f;
-      d[j].y -= y * f;
+    const off = folderOffsets.get(folder)!
+    const y0 = 1 - ((i + 0.5) / Math.max(n, 1)) * 2
+    const r0 = Math.sqrt(Math.max(0, 1 - y0 * y0))
+    const th = gold * i
+    return {
+      x: off.x + Math.cos(th) * r0 * SHELL_RADIUS,
+      y: off.y + y0 * SHELL_RADIUS,
+      z: off.z + Math.sin(th) * r0 * SHELL_RADIUS,
     }
-    
-    p.forEach((v, i) => {
-      v.x += Math.max(-9, Math.min(9, d[i].x)) * (1 - step / 100);
-      v.y += Math.max(-9, Math.min(9, d[i].y)) * (1 - step / 100);
-    });
+  })
+  const ids = new Map(nodes.map((node, i) => [node.path, i]))
+  for (let step = 0; step < 120; step++) {
+    const cool = 1 - step / 130
+    const d: V3[] = pos.map((p) => ({ x: -p.x * 0.006, y: -p.y * 0.006, z: -p.z * 0.006 }))
+    for (let i = 0; i < n; i++) for (let j = i + 1; j < n; j++) {
+      const dx = pos[i].x - pos[j].x, dy = pos[i].y - pos[j].y, dz = pos[i].z - pos[j].z
+      const d2 = Math.max(16, dx * dx + dy * dy + dz * dz)
+      const f = Math.min(1.4, REPULSION / d2)
+      d[i].x += dx * f; d[i].y += dy * f; d[i].z += dz * f
+      d[j].x -= dx * f; d[j].y -= dy * f; d[j].z -= dz * f
+    }
+    for (const e of edges) {
+      const i = ids.get(e.source), j = ids.get(e.target)
+      if (i === undefined || j === undefined) continue
+      const dx = pos[j].x - pos[i].x, dy = pos[j].y - pos[i].y, dz = pos[j].z - pos[i].z
+      const len = Math.sqrt(dx * dx + dy * dy + dz * dz) || 1
+      const f = ((len - EDGE_REST_LENGTH) * 0.02) / len
+      d[i].x += dx * f; d[i].y += dy * f; d[i].z += dz * f
+      d[j].x -= dx * f; d[j].y -= dy * f; d[j].z -= dz * f
+    }
+    pos.forEach((p, i) => {
+      p.x += Math.max(-4, Math.min(4, d[i].x)) * cool
+      p.y += Math.max(-4, Math.min(4, d[i].y)) * cool
+      p.z += Math.max(-4, Math.min(4, d[i].z)) * cool
+    })
   }
-  return new Map(nodes.map((n, i) => [n.path, p[i]]));
+  return new Map(nodes.map((node, i) => [node.path, pos[i]]))
+}
+
+function makeLabelSprite(text: string): THREE.Sprite {
+  const canvas = document.createElement("canvas")
+  canvas.width = 512
+  canvas.height = 96
+  const ctx = canvas.getContext("2d")
+  if (ctx) {
+    ctx.font = "500 40px ui-monospace, SFMono-Regular, Menlo, monospace"
+    const w = Math.min(ctx.measureText(text).width + 48, 500)
+    ctx.fillStyle = "rgba(24, 20, 15, 0.88)"
+    ctx.beginPath()
+    ctx.roundRect((512 - w) / 2, 12, w, 72, 14)
+    ctx.fill()
+    ctx.strokeStyle = "rgba(242, 193, 78, 0.5)"
+    ctx.lineWidth = 2
+    ctx.stroke()
+    ctx.fillStyle = "#f4efe4"
+    ctx.textAlign = "center"
+    ctx.textBaseline = "middle"
+    ctx.fillText(text, 256, 48, 460)
+  }
+  const texture = new THREE.CanvasTexture(canvas)
+  texture.colorSpace = THREE.SRGBColorSpace
+  const sprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: texture, transparent: true, depthTest: false }))
+  sprite.scale.set(16, 3, 1)
+  sprite.renderOrder = 20
+  return sprite
 }
 
 export default function FileGraph({ graph }: { graph?: GraphData }) {
-  const [query, setQuery] = useState('');
-  const [risk, setRisk] = useState('all');
-  const [selected, setSelected] = useState<string | null>(null);
-  const [hover, setHover] = useState<string | null>(null);
-  const [imports, setImports] = useState(false);
-  const [returns, setReturns] = useState(false);
-  const [camera, setCamera] = useState({ x: 0, y: 0, zoom: 1 });
-  const [size, setSize] = useState({ w: 800, h: 460 });
+  const [query, setQuery] = useState("")
+  const [risk, setRisk] = useState<"all" | "low" | "medium" | "high">("all")
+  const [selected, setSelected] = useState<string | null>(null)
+  const [imports, setImports] = useState(true)
+  const [returns, setReturns] = useState(true)
+  const hostRef = useRef<HTMLDivElement>(null)
+  const stateRef = useRef<{ hover: string | null; select: (path: string | null) => void }>({ hover: null, select: () => {} })
+  stateRef.current.select = setSelected
 
-  const canvas = useRef<HTMLCanvasElement>(null);
-  const drag = useRef<{ x: number; y: number; moved: boolean } | null>(null);
-
-  const positions = useMemo(() => layout(graph), [graph]);
-  const nodes = graph?.nodes || [];
-  const edges = graph?.edges || [];
-
-  const shown = nodes.filter(n => 
-    n.path.toLowerCase().includes(query.toLowerCase()) && 
-    (risk === 'all' || riskLevel(n.complexity) === risk)
-  );
-  
-  const visible = new Set(shown.map(n => n.path));
-  const active = hover || selected;
-  const chosen = nodes.find(n => n.path === selected);
-
-  const extent = Math.max(260, ...[...positions.values()].flatMap(p => [Math.abs(p.x) + 50, Math.abs(p.y) + 50]));
-  const scale = Math.min(size.w / (extent * 2), size.h / (extent * 2)) * .82;
-
-  const screen = (p: P) => ({ 
-    x: size.w / 2 + p.x * scale * camera.zoom + camera.x, 
-    y: size.h / 2 + p.y * scale * camera.zoom + camera.y 
-  });
-
-  useEffect(() => { 
-    setSelected(null); 
-    setCamera({ x: 0, y: 0, zoom: 1 }); 
-  }, [graph]);
+  const nodes = useMemo(() => graph?.nodes || [], [graph])
+  const edges = useMemo(() => graph?.edges || [], [graph])
+  const positions = useMemo(() => layout3D(nodes, edges), [nodes, edges])
+  const shown = useMemo(
+    () => nodes.filter((n) => n.path.toLowerCase().includes(query.toLowerCase()) && (risk === "all" || riskLevel(n.complexity) === risk)),
+    [nodes, query, risk]
+  )
+  const shownSet = useMemo(() => new Set(shown.map((n) => n.path)), [shown])
+  const chosen = nodes.find((n) => n.path === selected)
+  const connections = edges.filter((e) => e.source === selected || e.target === selected)
 
   useEffect(() => {
-    if (!canvas.current) return;
-    const ro = new ResizeObserver(es => 
-      setSize({ w: es[0].contentRect.width, h: es[0].contentRect.height })
-    );
-    ro.observe(canvas.current);
-    return () => ro.disconnect();
-  }, [graph]);
+    setSelected(null)
+  }, [graph])
 
   useEffect(() => {
-    const c = canvas.current;
-    const ctx = c?.getContext('2d');
-    if (!c || !ctx) return;
+    const host = hostRef.current
+    if (!host || !nodes.length) return
 
-    const dpr = Math.min(window.devicePixelRatio || 1, 2);
-    c.width = size.w * dpr;
-    c.height = size.h * dpr;
-    ctx.scale(dpr, dpr);
+    let renderer: THREE.WebGLRenderer
+    try {
+      renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true })
+    } catch {
+      return
+    }
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.75))
+    renderer.domElement.style.display = "block"
+    renderer.domElement.style.width = "100%"
+    renderer.domElement.style.height = "100%"
+    host.appendChild(renderer.domElement)
 
-    const project = (path: string) => screen(positions.get(path) || { x: 0, y: 0 });
-    const neighbors = new Set([active]);
-    
-    if (active) {
-      edges.forEach(e => {
-        if (e.source === active) neighbors.add(e.target);
-        if (e.target === active) neighbors.add(e.source);
-      });
+    const scene = new THREE.Scene()
+    scene.background = new THREE.Color(0x14110d)
+    //scene.fog = new THREE.FogExp2(0x14110d, 0.0045)
+    const camera = new THREE.PerspectiveCamera(55, 1, 0.1, 2000)
+
+    //const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches
+
+    // ===== Nodes: glowing spheres with soft halo =====
+    const sphereGeo = new THREE.SphereGeometry(1, 20, 16)
+    const meshes = new Map<string, THREE.Mesh>()
+    const halos = new Map<string, THREE.Sprite>()
+    const haloCanvas = document.createElement("canvas")
+    haloCanvas.width = 64; haloCanvas.height = 64
+    const hctx = haloCanvas.getContext("2d")
+    if (hctx) {
+      const g = hctx.createRadialGradient(32, 32, 2, 32, 32, 32)
+      g.addColorStop(0, "rgba(255,255,255,0.85)")
+      g.addColorStop(0.4, "rgba(255,255,255,0.18)")
+      g.addColorStop(1, "rgba(255,255,255,0)")
+      hctx.fillStyle = g
+      hctx.fillRect(0, 0, 64, 64)
+    }
+    const haloTex = new THREE.CanvasTexture(haloCanvas)
+    for (const node of nodes) {
+      const p = positions.get(node.path)!
+      const radius = NODE_BASE_SIZE + Math.min(node.complexity, 80) / NODE_COMPLEXITY_SCALE
+      const mesh = new THREE.Mesh(sphereGeo, new THREE.MeshBasicMaterial({ color: riskGlow(node.complexity) }))
+      mesh.position.set(p.x, p.y, p.z)
+      mesh.scale.setScalar(radius)
+      mesh.userData.path = node.path
+      scene.add(mesh)
+      meshes.set(node.path, mesh)
+      const halo = new THREE.Sprite(new THREE.SpriteMaterial({ map: haloTex, color: riskGlow(node.complexity), transparent: true, opacity: 0.32, depthWrite: false }))
+      halo.position.set(p.x, p.y, p.z)
+      halo.scale.setScalar(radius * 3.4)
+      scene.add(halo)
+      halos.set(node.path, halo)
     }
 
-    const arrow = (a: P, b: P, color: string, dashed: boolean, offset = 0) => {
-      const dx = b.x - a.x, 
-            dy = b.y - a.y, 
-            l = Math.hypot(dx, dy);
-      if (l < 24) return;
-      
-      const x = dx / l, 
-            y = dy / l, 
-            ax = a.x + x * 12 - y * offset, 
-            ay = a.y + y * 12 + x * offset, 
-            bx = b.x - x * 13 - y * offset, 
-            by = b.y - y * 13 + x * offset;
-            
-      ctx.strokeStyle = color;
-      ctx.fillStyle = color;
-      ctx.lineWidth = 1.2;
-      ctx.setLineDash(dashed ? [4, 5] : []);
-      ctx.beginPath();
-      ctx.moveTo(ax, ay);
-      ctx.lineTo(bx, by);
-      ctx.stroke();
-      
-      ctx.setLineDash([]);
-      ctx.beginPath();
-      ctx.moveTo(bx, by);
-      ctx.lineTo(bx - x * 7 - y * 3, by - y * 7 + x * 3);
-      ctx.lineTo(bx - x * 7 + y * 3, by - y * 7 - x * 3);
-      ctx.fill();
-    };
-
-    edges.forEach(e => {
-      if (!visible.has(e.source) || !visible.has(e.target) || (!imports && e.kind === 'import')) return;
-      ctx.globalAlpha = !active || e.source === active || e.target === active ? .65 : .1;
-      arrow(project(e.source), project(e.target), e.kind === 'call' ? '#a85c42' : '#8c8373', e.kind === 'import');
-      if (returns && e.kind === 'call') {
-        arrow(project(e.target), project(e.source), '#7a8172', true, 7);
+    // ===== Edges: warm solid calls, faint dashed-feel imports =====
+    const edgeGroup = new THREE.Group()
+    scene.add(edgeGroup)
+    const toggleState = { imports: true, returns: true }
+    const buildEdges = () => {
+      edgeGroup.clear()
+      const callPts: number[] = []
+      const importPts: number[] = []
+      const returnPts: number[] = []
+      for (const e of edges) {
+        const a = positions.get(e.source), b = positions.get(e.target)
+        if (!a || !b) continue
+        const target = e.kind === "call" ? callPts : importPts
+        target.push(a.x, a.y, a.z, b.x, b.y, b.z)
+        if (e.kind === "call") returnPts.push(b.x, b.y, b.z, a.x, a.y, a.z)
       }
-    });
-
-    shown.forEach(n => {
-      const p = project(n.path);
-      const focused = n.path === active;
-      ctx.globalAlpha = !active || neighbors.has(n.path) ? 1 : .2;
-      
-      if (focused) {
-        ctx.beginPath();
-        ctx.arc(p.x, p.y, 17, 0, Math.PI * 2);
-        ctx.fillStyle = '#e8ddc8';
-        ctx.fill();
+      const make = (pts: number[], color: number, opacity: number) => {
+        if (!pts.length) return
+        const geo = new THREE.BufferGeometry()
+        geo.setAttribute("position", new THREE.Float32BufferAttribute(pts, 3))
+        edgeGroup.add(new THREE.LineSegments(geo, new THREE.LineBasicMaterial({ color, transparent: true, opacity })))
       }
-      
-      ctx.beginPath();
-      ctx.arc(p.x, p.y, focused ? 9 : 7, 0, Math.PI * 2);
-      ctx.fillStyle = riskColor(n.complexity);
-      ctx.fill();
-      ctx.strokeStyle = '#faf8f3';
-      ctx.lineWidth = 2;
-      ctx.stroke();
-    });
-
-    // Hover/selection labels avoid dense default label collisions; list remains fully accessible.
-    if (active && visible.has(active)) {
-      const p = project(active);
-      const label = active.split('/').pop() || active;
-      
-      ctx.globalAlpha = 1;
-      ctx.font = '600 14px ui-monospace,monospace';
-      
-      const width = ctx.measureText(label).width;
-      const x = Math.max(8, Math.min(size.w - width - 8, p.x - width / 2));
-      const y = Math.max(20, Math.min(size.h - 8, p.y - 20));
-      
-      ctx.fillStyle = '#faf8f3';
-      ctx.fillRect(x - 4, y - 16, width + 8, 22);
-      ctx.fillStyle = '#51483d';
-      ctx.fillText(label, x, y);
+      make(callPts, 0xe0855f, 0.7)
+      if (toggleState.imports) make(importPts, 0x9a917f, 0.4)
+      if (toggleState.returns) make(returnPts, 0x8f9678, 0.32)
     }
-    // Event-driven drawing; no perpetual physics loop.
-  });
+    buildEdges()
 
-  const hit = (x: number, y: number) => {
-    let id: string | null = null;
-    let distance = 20;
-    for (const n of shown) {
-      const p = screen(positions.get(n.path)!);
-      const d = Math.hypot(x - p.x, y - p.y);
-      if (d < distance) {
-        distance = d;
-        id = n.path;
+    // // ===== Ambient star dust for depth =====
+    // const dustN = 900
+    // const dust = new Float32Array(dustN * 3)
+    // for (let i = 0; i < dustN; i++) {
+    //   const th = gold2(i), rr = 90 + hash(String(i), 5) * 220
+    //   const y = 1 - ((i + 0.5) / dustN) * 2, rr2 = Math.sqrt(Math.max(0, 1 - y * y))
+    //   dust[i * 3] = Math.cos(th) * rr2 * rr
+    //   dust[i * 3 + 1] = y * rr
+    //   dust[i * 3 + 2] = Math.sin(th) * rr2 * rr
+    // }
+    // function gold2(i: number) { return i * 2.39996 }
+    // const dustGeo = new THREE.BufferGeometry()
+    // dustGeo.setAttribute("position", new THREE.BufferAttribute(dust, 3))
+    // const dustPts = new THREE.Points(dustGeo, new THREE.PointsMaterial({ color: 0xcabfa8, size: 0.8, transparent: true, opacity: 0.35, sizeAttenuation: true }))
+    // scene.add(dustPts)
+
+    // ===== Hover label =====
+    let labelSprite: THREE.Sprite | null = null
+    let labelFor: string | null = null
+    const setLabel = (path: string | null) => {
+      if (labelFor === path) return
+      labelFor = path
+      if (labelSprite) {
+        scene.remove(labelSprite)
+        const mat = labelSprite.material as THREE.SpriteMaterial
+        mat.map?.dispose(); mat.dispose()
+        labelSprite = null
+      }
+      if (path) {
+        const mesh = meshes.get(path)
+        if (mesh) {
+          labelSprite = makeLabelSprite(path.split("/").pop() || path)
+          labelSprite.position.copy(mesh.position).add(new THREE.Vector3(0, 3.4, 0))
+          scene.add(labelSprite)
+        }
       }
     }
-    return id;
-  };
 
-  const focus = (path: string) => {
-    setSelected(path);
-    const p = positions.get(path);
-    if (p) setCamera({ x: -p.x * scale, y: -p.y * scale, zoom: 1 });
-  };
+    // ===== Camera orbit controls (drag orbit, wheel/pinch zoom, shift/right-drag pan) =====
+    const radius = Math.max(50, ...nodes.map((n) => { const p = positions.get(n.path)!; return Math.hypot(p.x, p.y, p.z) * CAMERA_DISTANCE }))
+    const cam = { theta: 0.7, phi: 1.05, r: radius, tx: 0, ty: 0, tz: 0 }
+    const applyCam = () => {
+      camera.position.set(
+        cam.tx + cam.r * Math.sin(cam.phi) * Math.cos(cam.theta),
+        cam.ty + cam.r * Math.cos(cam.phi),
+        cam.tz + cam.r * Math.sin(cam.phi) * Math.sin(cam.theta)
+      )
+      camera.lookAt(cam.tx, cam.ty, cam.tz)
+    }
+    applyCam()
+
+    const el = renderer.domElement
+    el.style.cursor = "grab"
+    const pointers = new Map<number, { x: number; y: number }>()
+    let lastPinch = 0
+    let moved = false
+    const raycaster = new THREE.Raycaster()
+    raycaster.params.Points = { threshold: 0 }
+
+    const pick = (clientX: number, clientY: number) => {
+      const rect = el.getBoundingClientRect()
+      const ndc = new THREE.Vector2(((clientX - rect.left) / rect.width) * 2 - 1, -((clientY - rect.top) / rect.height) * 2 + 1)
+      raycaster.setFromCamera(ndc, camera)
+      const hits = raycaster.intersectObjects([...meshes.values()].filter((m) => m.visible))
+      return hits.length ? (hits[0].object.userData.path as string) : null
+    }
+
+    const onDown = (e: PointerEvent) => {
+      el.setPointerCapture(e.pointerId)
+      pointers.set(e.pointerId, { x: e.clientX, y: e.clientY })
+      moved = false
+      el.style.cursor = "grabbing"
+    }
+    const onMove = (e: PointerEvent) => {
+      const prev = pointers.get(e.pointerId)
+      if (!prev) {
+        const hit = pick(e.clientX, e.clientY)
+        stateRef.current.hover = hit
+        setLabel(hit)
+        el.style.cursor = hit ? "pointer" : "grab"
+        return
+      }
+      const dx = e.clientX - prev.x, dy = e.clientY - prev.y
+      if (Math.abs(dx) + Math.abs(dy) > 2) moved = true
+      prev.x = e.clientX; prev.y = e.clientY
+      if (pointers.size === 2) {
+        const [a, b] = [...pointers.values()]
+        const dist = Math.hypot(a.x - b.x, a.y - b.y)
+        if (lastPinch > 0) cam.r = Math.max(radius * 0.15, Math.min(radius * 4, cam.r * (lastPinch / dist)))
+        lastPinch = dist
+        applyCam()
+        return
+      }
+      if (e.shiftKey || e.button === 2) {
+        const panScale = cam.r * 0.0011
+        const right = new THREE.Vector3().setFromMatrixColumn(camera.matrix, 0)
+        const up = new THREE.Vector3().setFromMatrixColumn(camera.matrix, 1)
+        cam.tx -= right.x * dx * panScale; cam.ty -= right.y * dx * panScale; cam.tz -= right.z * dx * panScale
+        cam.tx += up.x * dy * panScale; cam.ty += up.y * dy * panScale; cam.tz += up.z * dy * panScale
+      } else {
+        cam.theta -= dx * 0.0055
+        cam.phi = Math.max(0.12, Math.min(Math.PI - 0.12, cam.phi - dy * 0.0055))
+      }
+      applyCam()
+    }
+    const onUp = (e: PointerEvent) => {
+      pointers.delete(e.pointerId)
+      lastPinch = 0
+      el.style.cursor = "grab"
+      if (!moved && pointers.size === 0) {
+        const hit = pick(e.clientX, e.clientY)
+        stateRef.current.select(hit)
+        setLabel(hit)
+      }
+      if (el.hasPointerCapture(e.pointerId)) el.releasePointerCapture(e.pointerId)
+    }
+    const onWheel = (e: WheelEvent) => {
+      e.preventDefault()
+      cam.r = Math.max(radius * 0.15, Math.min(radius * 4, cam.r * (1 + e.deltaY * 0.0012)))
+      applyCam()
+    }
+    const onLeave = () => { stateRef.current.hover = null; setLabel(null) }
+    el.addEventListener("pointerdown", onDown)
+    el.addEventListener("pointermove", onMove)
+    el.addEventListener("pointerup", onUp)
+    el.addEventListener("pointercancel", onUp)
+    el.addEventListener("wheel", onWheel, { passive: false })
+    el.addEventListener("pointerleave", onLeave)
+    el.addEventListener("contextmenu", (e) => e.preventDefault())
+
+    const ro = new ResizeObserver((entries) => {
+      const { width, height } = entries[0].contentRect
+      if (width && height) {
+        renderer.setSize(width, height, false)
+        camera.aspect = width / height
+        camera.updateProjectionMatrix()
+      }
+    })
+    ro.observe(host)
+
+    let raf = 0
+    const animate = () => {
+      raf = requestAnimationFrame(animate)
+      // Static scene: the camera only moves when the user drags, zooms or pans.
+      renderer.render(scene, camera)
+    }
+    animate()
+
+    // Imperative bridge: parent state (filters/selection) applied imperatively per render below.
+    ;(host as HTMLDivElement & { __apply?: (s: { shown: Set<string>; selected: string | null; buildEdges: boolean; imports: boolean; returns: boolean }) => void }).__apply = ({ shown, selected: sel, buildEdges: rebuild, imports: imp, returns: ret }) => {
+      toggleState.imports = imp
+      toggleState.returns = ret
+      const focus = stateRef.current.hover || sel
+      const neighbors = new Set<string>()
+      if (focus) edges.forEach((e) => {
+        if (e.source === focus) neighbors.add(e.target)
+        if (e.target === focus) neighbors.add(e.source)
+      })
+      meshes.forEach((mesh, path) => {
+        const inFilter = shown.has(path)
+        mesh.visible = inFilter
+        halos.get(path)!.visible = inFilter
+        if (!inFilter) return
+        const dimmed = !!focus && path !== focus && !neighbors.has(path)
+        ;(mesh.material as THREE.MeshBasicMaterial).color.set(dimmed ? "#4a443b" : riskGlow(nodes.find((n) => n.path === path)!.complexity))
+        const base = NODE_BASE_SIZE + Math.min(nodes.find((n) => n.path === path)!.complexity, 80) / NODE_COMPLEXITY_SCALE
+        mesh.scale.setScalar(path === focus ? base * 1.6 : base)
+      })
+      if (rebuild) buildEdges()
+      edgeGroup.children.forEach((line) => { (line as THREE.LineSegments).visible = true })
+      setLabel(focus || sel)
+    }
+
+    return () => {
+      cancelAnimationFrame(raf)
+      ro.disconnect()
+      el.removeEventListener("pointerdown", onDown)
+      el.removeEventListener("pointermove", onMove)
+      el.removeEventListener("pointerup", onUp)
+      el.removeEventListener("pointercancel", onUp)
+      el.removeEventListener("wheel", onWheel)
+      el.removeEventListener("pointerleave", onLeave)
+      scene.traverse((obj) => {
+        const o = obj as THREE.Mesh | THREE.Sprite | THREE.Points | THREE.Line
+        if (o.geometry && o.geometry !== sphereGeo) o.geometry.dispose()
+        const mat = (o as THREE.Mesh).material as THREE.Material | THREE.Material[] | undefined
+        if (mat) for (const m of Array.isArray(mat) ? mat : [mat]) {
+          const withMap = m as THREE.Material & { map?: THREE.Texture }
+          if (withMap.map && withMap.map !== haloTex) withMap.map.dispose()
+          m.dispose()
+        }
+      })
+      sphereGeo.dispose()
+      haloTex.dispose()
+      renderer.dispose()
+      if (renderer.domElement.parentNode === host) host.removeChild(renderer.domElement)
+    }
+  }, [graph, nodes, edges, positions])
+
+  // Apply filters / selection / toggles to the live scene without rebuilding it.
+  const toggleRef = useRef({ imports, returns })
+  useEffect(() => {
+    const host = hostRef.current as (HTMLDivElement & { __apply?: (s: { shown: Set<string>; selected: string | null; buildEdges: boolean; imports: boolean; returns: boolean }) => void }) | null
+    const rebuild = toggleRef.current.imports !== imports || toggleRef.current.returns !== returns
+    toggleRef.current = { imports, returns }
+    host?.__apply?.({ shown: shownSet, selected, buildEdges: rebuild, imports, returns })
+  }, [shownSet, selected, imports, returns])
+
+  const focusNode = (path: string) => setSelected(path)
 
   if (!graph) return (
     <section className="paper-card graph-empty">
@@ -254,168 +451,78 @@ export default function FileGraph({ graph }: { graph?: GraphData }) {
       <h3>A fresh analysis unlocks the graph.</h3>
       <p>This report predates file connections, or its graph exceeded the storage limit. Run the repository again to build a new map.</p>
     </section>
-  );
-
+  )
   if (!nodes.length) return (
     <section className="paper-card graph-empty">
       <h3>No source files to map</h3>
       <p>No supported JavaScript or TypeScript files were analyzed.</p>
     </section>
-  );
+  )
 
   return (
-    <section className="paper-card file-graph" aria-label="File connection graph">
+    <section className="paper-card file-graph" aria-label="3D file connection graph">
       <header className="graph-header">
         <div>
           <p className="eyebrow">02 — FOLLOW THE CONNECTIONS</p>
           <h3>Your repository, connected.</h3>
-          <p>Find the hotspots. See what depends on them.</p>
+          <p>Drag to orbit, scroll to zoom, shift-drag to pan. Click a node to inspect it.</p>
         </div>
-        <span>{nodes.length} files · {edges.filter(e => e.kind === 'call').length} call links</span>
+        <span>{nodes.length} files · {edges.filter((e) => e.kind === "call").length} call links</span>
       </header>
 
       <div className="graph-toolbar">
-        <label className="graph-search">
-          <span className="sr-only">Search graph files</span>
-          <input 
-            type="search" 
-            placeholder="Find a file…" 
-            value={query} 
-            onChange={e => setQuery(e.target.value)}
-          />
+        <label className="graph-search"><span className="sr-only">Search graph files</span>
+          <input type="search" placeholder="Find a file…" value={query} onChange={(e) => setQuery(e.target.value)} />
         </label>
-        <label>
-          <span className="sr-only">Complexity level</span>
-          <select value={risk} onChange={e => setRisk(e.target.value)}>
+        <label><span className="sr-only">Complexity level</span>
+          <select value={risk} onChange={(e) => setRisk(e.target.value as typeof risk)}>
             <option value="all">All complexity levels</option>
             <option value="low">Low · ≤25</option>
             <option value="medium">Medium · 26–40</option>
             <option value="high">High · &gt;40</option>
           </select>
         </label>
-        <label className="graph-toggle">
-          <input 
-            type="checkbox" 
-            checked={imports} 
-            onChange={e => setImports(e.target.checked)}
-          /> 
-          Imports
-        </label>
-        <label className="graph-toggle">
-          <input 
-            type="checkbox" 
-            checked={returns} 
-            onChange={e => setReturns(e.target.checked)}
-          /> 
-          Return paths*
-        </label>
+        <label className="graph-toggle"><input type="checkbox" checked={imports} onChange={(e) => setImports(e.target.checked)} /> Imports</label>
+        <label className="graph-toggle"><input type="checkbox" checked={returns} onChange={(e) => setReturns(e.target.checked)} /> Return paths*</label>
       </div>
 
       <div className="graph-body">
         <div className="graph-visual">
-          <div className="graph-stage">
-            <canvas 
-              ref={canvas} 
-              role="img" 
-              aria-label="Directed file graph. Drag to pan, use zoom controls, or explore using the adjacent file list."
-              onPointerDown={e => {
-                drag.current = { x: e.clientX, y: e.clientY, moved: false };
-                e.currentTarget.setPointerCapture(e.pointerId);
-              }}
-              onPointerMove={e => {
-                const rect = e.currentTarget.getBoundingClientRect();
-                if (drag.current) {
-                  const dx = e.clientX - drag.current.x, 
-                        dy = e.clientY - drag.current.y;
-                  if (Math.abs(dx) + Math.abs(dy) > 2) drag.current.moved = true;
-                  drag.current.x = e.clientX;
-                  drag.current.y = e.clientY;
-                  setCamera(c => ({ ...c, x: c.x + dx, y: c.y + dy }));
-                } else {
-                  setHover(hit(e.clientX - rect.left, e.clientY - rect.top));
-                }
-              }}
-              onPointerUp={e => {
-                const rect = e.currentTarget.getBoundingClientRect();
-                if (!drag.current?.moved) setSelected(hit(e.clientX - rect.left, e.clientY - rect.top));
-                drag.current = null;
-                if (e.currentTarget.hasPointerCapture(e.pointerId)) e.currentTarget.releasePointerCapture(e.pointerId);
-              }} 
-              onPointerCancel={() => { drag.current = null; }} 
-              onPointerLeave={() => setHover(null)}
-            />
-            {!shown.length && <p className="graph-message">No files match these filters.</p>}
-          </div>
-
-          <div className="graph-controls">
-            <button 
-              type="button" 
-              aria-label="Zoom out" 
-              onClick={() => setCamera(c => ({ ...c, zoom: Math.max(.4, c.zoom / 1.3) }))}
-            >−</button>
-            <button 
-              type="button" 
-              aria-label="Zoom in" 
-              onClick={() => setCamera(c => ({ ...c, zoom: Math.min(5, c.zoom * 1.3) }))}
-            >+</button>
-            <button 
-              type="button" 
-              onClick={() => { setCamera({ x: 0, y: 0, zoom: 1 }); setSelected(null); }}
-            >Reset view</button>
-          </div>
-          <div className="graph-legend">
-            {[
-              [10, 'Low ≤25'],
-              [30, 'Medium 26–40'],
-              [50, 'High >40']
-            ].map(([score, label]) => (
-              <span key={label as string}>
-                <i style={{ background: riskColor(Number(score)) }} />
-                {label}
-              </span>
+          <div ref={hostRef} className="graph-stage-3d" role="img" aria-label="Interactive 3D file graph. Use the adjacent file list for keyboard exploration." />
+          {!shown.length && <p className="graph-message graph-message-dark">No files match these filters.</p>}
+          <div className="graph-legend graph-legend-dark">
+            {[[10, "Low ≤25"], [30, "Medium 26–40"], [50, "High >40"]].map(([score, label]) => (
+              <span key={label as string}><i style={{ background: riskGlow(Number(score)) }} />{label}</span>
             ))}
           </div>
         </div>
-
         <aside className="graph-inspector" aria-label="Graph file explorer">
           {chosen ? (
             <>
-              <button className="text-action" type="button" onClick={() => setSelected(null)}>
-                ← All files
-              </button>
+              <button className="text-action" type="button" onClick={() => setSelected(null)}>← All files</button>
               <h4>{chosen.path}</h4>
-              <p style={{ color: riskColor(chosen.complexity) }}>
-                {riskLevel(chosen.complexity)} · {chosen.complexity}
-              </p>
+              <p style={{ color: riskColor(chosen.complexity) }}>{riskLevel(chosen.complexity)} · {chosen.complexity}</p>
               <p>{chosen.loc} lines · {chosen.functions} functions</p>
-              
               <div className="graph-file-list">
-                {edges.filter(e => e.source === selected || e.target === selected).map((e, i) => (
-                  <button 
-                    type="button" 
-                    key={i} 
-                    onClick={() => focus(e.source === selected ? e.target : e.source)}
-                  >
-                    <span>{e.source === selected ? '→' : '←'} {e.kind} · {e.count} sites</span>
+                {connections.length ? connections.map((e, i) => (
+                  <button type="button" key={i} onClick={() => focusNode(e.source === selected ? e.target : e.source)}>
+                    <span>{e.source === selected ? "→" : "←"} {e.kind} · {e.count} site{e.count !== 1 ? "s" : ""}</span>
                     <strong>{e.source === selected ? e.target : e.source}</strong>
-                    <span>{e.symbols.join(', ')}</span>
+                    {e.symbols.length > 0 && <span>{e.symbols.join(", ")}</span>}
                   </button>
-                ))}
+                )) : <p>No resolved cross-file connections.</p>}
               </div>
             </>
           ) : (
             <>
               <p className="eyebrow">FILE EXPLORER</p>
               <h4>{shown.length} files in view</h4>
-              <p>Select a node or file to inspect connections.</p>
-              
+              <p>Select a node or file to inspect its connections.</p>
               <div className="graph-file-list">
-                {shown.map(n => (
-                  <button type="button" key={n.path} onClick={() => focus(n.path)}>
+                {shown.map((n) => (
+                  <button type="button" key={n.path} onClick={() => focusNode(n.path)}>
                     <strong>{n.path}</strong>
-                    <span style={{ color: riskColor(n.complexity) }}>
-                      {riskLevel(n.complexity)} · {n.complexity}
-                    </span>
+                    <span style={{ color: riskColor(n.complexity) }}>{riskLevel(n.complexity)} · {n.complexity}</span>
                   </button>
                 ))}
               </div>
@@ -425,10 +532,8 @@ export default function FileGraph({ graph }: { graph?: GraphData }) {
       </div>
 
       <footer className="graph-footnote">
-        <p>Solid arrows: statically resolved imported calls, caller → imported module. Dashed: imports. *Return paths are illustrative reverse directions, not runtime traces.</p>
-        <p>
-          Coverage: {graph.coverage.parsed}/{graph.coverage.fetched} fetched files parsed; {graph.coverage.failed.length} fetch/parse failures; {graph.coverage.unresolvedModules} external/unresolved references. Relative JS/TS imports and root tsconfig/jsconfig paths are resolved. Inherited/monorepo aliases, dynamic dispatch and final re-export implementations are not traced.{graph.coverage.truncated && ` Storage cap: ${edges.length}/${graph.coverage.totalEdges} links shown.`}
-        </p>
+        <p>Warm lines: statically resolved imported calls, caller → imported module. Faint lines: imports. *Return paths are illustrative reverse directions, not runtime traces.</p>
+        <p>Coverage: {graph.coverage.parsed}/{graph.coverage.fetched} fetched files parsed; {graph.coverage.failed.length} fetch/parse failures; {graph.coverage.unresolvedModules} external/unresolved references. Relative JS/TS imports and root tsconfig/jsconfig paths are resolved. Inherited/monorepo aliases, dynamic dispatch and final re-export implementations are not traced.{graph.coverage.truncated && ` Storage cap: ${edges.length}/${graph.coverage.totalEdges} links shown.`}</p>
       </footer>
     </section>
   )

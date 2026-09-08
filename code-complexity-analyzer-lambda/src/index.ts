@@ -1,3 +1,4 @@
+import { buildFileGraph, readResolverConfig } from "./fileGraph"
 import { parse } from "@babel/parser"
 import { Node } from "@babel/types"
 import { DynamoDBClient } from "@aws-sdk/client-dynamodb"
@@ -41,7 +42,7 @@ export const handler = async (event: any) => {
       }
     }
 
-    const match = repoUrl.match(/github\.com\/([^/]+)\/([^/]+?)(\.git)?$/)
+    const match = String(repoUrl||"").trim().replace(/\/$/, "").match(/github\.com\/([^/]+)\/([^/]+?)(\.git)?$/)
     if (!match) {
       return { statusCode: 400, body: JSON.stringify({ error: "Invalid GitHub URL" }) }
     }
@@ -106,6 +107,11 @@ export const handler = async (event: any) => {
 
     fileMetrics.sort((a, b) => b.complexity - a.complexity)
 
+    const configPath=["tsconfig.json","jsconfig.json"].find(name=>tree.some(f=>f.path===name&&f.size<65536))
+    let configContent:string|null=null
+    if(configPath){try{configContent=await fetchFileContent(owner,repo,headSha,configPath)}catch{/* optional */}}
+    const candidateGraph=buildFileGraph(fetched,fileMetrics,readResolverConfig(configContent))
+    const fileGraph=Buffer.byteLength(JSON.stringify(candidateGraph),"utf8")<=240000?candidateGraph:undefined
     const results = {
       timestamp: new Date().toISOString(),
       repoUrl,
@@ -118,6 +124,7 @@ export const handler = async (event: any) => {
         fileCount: fileMetrics.length,
       },
       topComplexFiles: fileMetrics.slice(0, 10),
+      ...(fileGraph?{fileGraph}:{}),
     }
 
     console.log(`Analysis complete: ${fileMetrics.length} files analyzed`)
@@ -155,6 +162,7 @@ export const handler = async (event: any) => {
               totalCommits,
               metrics: results.metrics,
               topComplexFiles: results.topComplexFiles,
+              ...(fileGraph?{fileGraph}:{}),
               ttl: Math.floor(Date.now() / 1000) + 30 * 24 * 60 * 60,
             },
           })

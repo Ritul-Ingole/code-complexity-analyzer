@@ -23,6 +23,8 @@ export async function POST(req: NextRequest) {
       )
     }
 
+    const fileGraph=analysisData.fileGraph
+    if(fileGraph&&(fileGraph.version!==1||!Array.isArray(fileGraph.nodes)||fileGraph.nodes.length>500||!Array.isArray(fileGraph.edges)||!fileGraph.coverage||!Array.isArray(fileGraph.coverage.failed)||Buffer.byteLength(JSON.stringify(fileGraph),"utf8")>240000||!fileGraph.nodes.every((n:any)=>typeof n.path==="string"&&[n.loc,n.functions,n.complexity].every(Number.isFinite))||!fileGraph.edges.every((e:any)=>["call","import"].includes(e.kind)&&typeof e.source==="string"&&typeof e.target==="string"&&Number.isFinite(e.count)&&Array.isArray(e.symbols)&&e.symbols.every((x:any)=>typeof x==="string"))))return NextResponse.json({error:"Invalid or oversized file graph"},{status:400})
     // Generate analysisId
     const analysisId = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
 
@@ -39,6 +41,7 @@ export async function POST(req: NextRequest) {
           totalCommits: analysisData.totalCommits,
           metrics: analysisData.metrics,
           topComplexFiles: analysisData.topComplexFiles,
+          ...(fileGraph?{fileGraph}:{}),
           ttl: Math.floor(Date.now() / 1000) + 30 * 24 * 60 * 60,
         },
       })
@@ -48,6 +51,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({
       success: true,
+      userID: String(session.userId),
       analysisId,
       message: "Analysis saved to your history",
     })

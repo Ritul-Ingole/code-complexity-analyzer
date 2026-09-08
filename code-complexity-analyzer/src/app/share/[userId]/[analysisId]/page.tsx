@@ -65,10 +65,10 @@ export default function SharePage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 py-12 px-4 flex items-center justify-center">
+      <div className="app-shell min-h-screen bg-[#f4f1ea] py-12 px-4 flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading analysis...</p>
+          <p className="text-[#6f665a]">Loading analysis...</p>
         </div>
       </div>
     )
@@ -76,15 +76,15 @@ export default function SharePage() {
 
   if (error || !analysis) {
     return (
-      <div className="min-h-screen bg-gray-50 py-12 px-4 flex items-center justify-center">
+      <div className="app-shell min-h-screen bg-[#f4f1ea] py-12 px-4 flex items-center justify-center">
         <div className="text-center">
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">Analysis Not Found</h2>
-          <p className="text-gray-600 mb-6">
+          <h2 className="text-2xl font-bold text-[#2b2620] mb-2">Analysis Not Found</h2>
+          <p className="text-[#6f665a] mb-6">
             {error || "The analysis you're looking for doesn't exist or has expired."}
           </p>
           <a
             href="/"
-            className="inline-block px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+            className="inline-block px-6 py-2 bg-[#d9a441] text-[#2b2620] rounded-lg hover:bg-[#cc9738] transition-colors"
           >
             Go Home
           </a>
@@ -94,11 +94,11 @@ export default function SharePage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 py-12 px-4">
+    <div className="app-shell min-h-screen bg-[#f4f1ea] py-12 px-4">
       <div className="max-w-5xl mx-auto">
         {/* Shared link indicator */}
-        <div className="mb-8 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-          <p className="text-sm text-blue-900">
+        <div className="mb-8 p-4 bg-[#f2ead9] border border-[#dfcba2] rounded-lg">
+          <p className="text-sm text-[#51483d]">
             <span className="font-semibold">Shared Analysis</span> — This is a public read-only view
           </p>
         </div>

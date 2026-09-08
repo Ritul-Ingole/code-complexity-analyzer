@@ -236,33 +236,21 @@ export default function HeroScene({
     ring.rotation.x = -Math.PI / 2
     scene.add(ring)
 
-    // ===== 5. Dense Solid Sphere (Compression Target) =====
-    const denseSphereGeo = new THREE.SphereGeometry(1.85, 64, 64)
-    const denseSphereMat = new THREE.MeshStandardMaterial({
-      color: new THREE.Color("#c1694f"),
-      emissive: new THREE.Color("#7a3b2e"),
-      emissiveIntensity: 0.3,
-      metalness: 0.45,
-      roughness: 0.32,
-      transparent: true,
-      opacity: 0,
+    // Fresnel membrane, never an opaque replacement for the file nodes.
+    const shellMat = new THREE.ShaderMaterial({
+      uniforms: { uOpacity: { value: 0 }, uPressure: { value: 0 } },
+      vertexShader: `varying vec3 vNormal; varying vec3 vView;
+        void main(){vec4 mv=modelViewMatrix*vec4(position,1.0);vNormal=normalize(normalMatrix*normal);vView=normalize(-mv.xyz);gl_Position=projectionMatrix*mv;}`,
+      fragmentShader: `uniform float uOpacity;uniform float uPressure;varying vec3 vNormal;varying vec3 vView;
+        void main(){float rim=pow(1.0-abs(dot(normalize(vNormal),normalize(vView))),3.2);vec3 pearl=mix(vec3(0.82,0.79,0.71),vec3(1.0,0.98,0.91),rim);gl_FragColor=vec4(pearl,(0.025+rim*(0.55+uPressure*0.25))*uOpacity);}`,
+      transparent:true,depthWrite:false,side:THREE.FrontSide,
     })
-    const denseSphere = new THREE.Mesh(denseSphereGeo, denseSphereMat)
-    denseSphere.scale.setScalar(0.001)
-    orrery.add(denseSphere)
-
-    // Inner core for depth
-    const innerCoreMat = new THREE.MeshBasicMaterial({
-      color: 0xd9a441,
-      wireframe: true,
-      transparent: true,
-      opacity: 0,
-    })
-    const innerCore = new THREE.Mesh(new THREE.IcosahedronGeometry(1.3, 2), innerCoreMat)
-    denseSphere.add(innerCore)
+    const shell = new THREE.Mesh(new THREE.SphereGeometry(1.62,48,32),shellMat)
+    shell.renderOrder=3
+    orrery.add(shell)
 
     // ===== 6. Particle System (Fluid Burst Field from particles.zip) =====
-    const N = 4500
+    const N = window.innerWidth < 768 ? 6000 : 14000
     const A = new Float32Array(N * 3) // Target A: dense sphere shell
     const B = new Float32Array(N * 3) // Target B: radial burst explosion
     const C = new Float32Array(N * 3) // Target C: undulating ambient fluid field
@@ -284,22 +272,19 @@ export default function HeroScene({
       particleColors[i * 3 + 1] = col.g
       particleColors[i * 3 + 2] = col.b
 
-      // Target A: Concentrated on the dense sphere surface
-      const tA = i / N
-      const incA = Math.acos(1 - 2 * tA)
-      const azA = gold * i
-      const rA = 1.85 + ((Math.sin(i * 99.1) * 43758.5) % 1) * 0.25
-      A[i * 3] = rA * Math.sin(incA) * Math.cos(azA)
-      A[i * 3 + 1] = rA * Math.cos(incA)
-      A[i * 3 + 2] = rA * Math.sin(incA) * Math.sin(azA)
-
-      // Target B: Radial burst explosion in 3D
-      const rB = 4.5 + Math.random() * 8.0
-      const thetaB = Math.random() * Math.PI * 2
-      const phiB = Math.acos(Math.random() * 2 - 1)
-      B[i * 3] = rB * Math.sin(phiB) * Math.cos(thetaB)
-      B[i * 3 + 1] = rB * Math.cos(phiB) * 0.85
-      B[i * 3 + 2] = rB * Math.sin(phiB) * Math.sin(thetaB)
+      const parent=i%NODES.length
+      const center=basePositions[parent].clone().multiplyScalar(0.29)
+      const hash=(n:number)=>{const v=Math.sin(n*127.1+311.7)*43758.5453;return v-Math.floor(v)}
+      const incA=Math.acos(1-2*hash(i+1)),azA=gold*i
+      const radius=NODES[parent].size*0.86*Math.cbrt(hash(i+72))
+      A[i*3]=center.x+radius*Math.sin(incA)*Math.cos(azA)
+      A[i*3+1]=center.y+radius*Math.cos(incA)
+      A[i*3+2]=center.z+radius*Math.sin(incA)*Math.sin(azA)
+      const color=new THREE.Color(NODES[parent].color)
+      particleColors[i*3]=color.r;particleColors[i*3+1]=color.g;particleColors[i*3+2]=color.b
+      const direction=new THREE.Vector3(A[i*3],A[i*3+1],A[i*3+2]).normalize()
+      const rB=4.5+hash(i+193)*8
+      B[i*3]=direction.x*rB;B[i*3+1]=direction.y*rB*0.85;B[i*3+2]=direction.z*rB
 
       // Target C: Fluid undulating field
       const segC = i / N
@@ -319,7 +304,7 @@ export default function HeroScene({
     ptsGeo.setAttribute("color", new THREE.BufferAttribute(particleColors, 3))
 
     const ptsMat = new THREE.PointsMaterial({
-      size: 0.16,
+      size: 0.065,
       map: makeParticleSprite(),
       transparent: true,
       opacity: 0,
@@ -329,6 +314,7 @@ export default function HeroScene({
       sizeAttenuation: true,
     })
     const pts = new THREE.Points(ptsGeo, ptsMat)
+    pts.frustumCulled=false
     orrery.add(pts)
 
     // ===== Warm lighting =====
@@ -437,8 +423,6 @@ export default function HeroScene({
 
       core.rotation.y += dt * 0.06
       core.rotation.x += dt * 0.02
-      denseSphere.rotation.y += dt * 0.12
-      denseSphere.rotation.x += dt * 0.04
 
       // Smooth zoom
       const zoomTarget = bleedZoom.current
@@ -466,25 +450,22 @@ export default function HeroScene({
       }
 
       // ─────────────────────────────────────────────────────────────
-      // STAGE 0 & 1: Compression of file nodes into the dense sphere
-      // ─────────────────────────────────────────────────────────────
-      const kComp = Math.min(Math.max((sp - 0.15) / 0.25, 0), 1)
-      const orreryNodeScale = 1 - kComp
-      const denseSphereScale = kComp
-
-      // Collapse core and ring
-      core.scale.setScalar(Math.max(0.0001, orreryNodeScale))
-      ring.scale.setScalar(Math.max(0.0001, orreryNodeScale))
-      spokes.scale.setScalar(Math.max(0.0001, orreryNodeScale))
-
-      // Dense sphere scaling & opacity
-      if (kComp > 0.01) {
-        denseSphereMat.opacity = Math.min(kComp * 1.2, 1.0)
-        innerCoreMat.opacity = Math.min(kComp * 0.6, 0.6)
-      } else {
-        denseSphereMat.opacity = 0
-        innerCoreMat.opacity = 0
-      }
+      // Compress, strain, release. Keep the original .52 → .80 burst/spiral timing.
+      const smoothstep=(a:number,b:number,v:number)=>{const t=Math.max(0,Math.min(1,(v-a)/(b-a)));return t*t*(3-2*t)}
+      const kComp=smoothstep(0.15,0.40,sp)
+      const pressure=smoothstep(0.34,0.52,sp)
+      const kBurst=Math.min(Math.max((sp-0.52)/0.28,0),1)
+      const fragment=smoothstep(0,0.12,kBurst)
+      const orreryNodeScale=1-kComp
+      const packingRadius=lerp(1,0.29,kComp)
+      core.scale.setScalar(lerp(1,1.08,kComp))
+      ;(core.material as THREE.MeshBasicMaterial).opacity=0.5*(1-kComp)
+      ring.scale.setScalar(Math.max(0.0001,orreryNodeScale))
+      ;(spokes.material as THREE.LineBasicMaterial).opacity=0.5*(1-kComp)
+      shell.visible=kComp>0&&fragment<1
+      shellMat.uniforms.uOpacity.value=kComp*(1-fragment)
+      shellMat.uniforms.uPressure.value=pressure
+      shell.scale.setScalar(1+Math.sin(elapsed*31)*pressure*0.012+fragment*0.18)
 
       // Node groups attraction & compression
       const posAttr = spokeGeo.attributes.position as THREE.BufferAttribute
@@ -495,9 +476,10 @@ export default function HeroScene({
         const base = basePositions[i]
 
         // Compressed rest position pulls toward origin
-        const px = base.x * orreryNodeScale
-        const py = base.y * orreryNodeScale
-        const pz = base.z * orreryNodeScale
+        const jitter=pressure*(1-fragment)*0.065
+        const px=base.x*packingRadius+Math.sin(elapsed*37+i*2.7)*jitter
+        const py=base.y*packingRadius+Math.cos(elapsed*43+i*1.3)*jitter
+        const pz=base.z*packingRadius+Math.sin(elapsed*41+i*3.1)*jitter
 
         let tx = px
         let ty = py
@@ -530,10 +512,16 @@ export default function HeroScene({
           }
         }
 
-        g.position.x += (tx - g.position.x) * 0.08
-        g.position.y += (ty - g.position.y) * 0.08
-        g.position.z += (tz - g.position.z) * 0.08
-        g.scale.setScalar(Math.max(0.0001, orreryNodeScale))
+        const follow=pressure>0.1?0.65:0.12
+        g.position.x+=(tx-g.position.x)*follow
+        g.position.y+=(ty-g.position.y)*follow
+        g.position.z+=(tz-g.position.z)*follow
+        g.scale.setScalar(lerp(1,0.86,kComp))
+        g.visible=fragment<1
+        const material=hexes[i].material as THREE.MeshStandardMaterial
+        material.transparent=true;material.opacity=1-fragment
+        hexes[i].rotation.x=Math.sin(elapsed*29+i)*pressure*0.09
+        hexes[i].rotation.z=Math.cos(elapsed*33+i)*pressure*0.08
 
         spokeArr[i * 6 + 3] = g.position.x
         spokeArr[i * 6 + 4] = g.position.y
@@ -542,19 +530,7 @@ export default function HeroScene({
       posAttr.needsUpdate = true
 
       // ─────────────────────────────────────────────────────────────
-      // STAGE 2 & 3: Dense Sphere Showcase -> Particle Burst
-      // ─────────────────────────────────────────────────────────────
-      const kBurst = Math.min(Math.max((sp - 0.52) / 0.28, 0), 1)
-
-      // Solid sphere size logic
-      if (kBurst > 0) {
-        const sphereDissolve = Math.max(0, 1 - kBurst * 3.2)
-        denseSphere.scale.setScalar(Math.max(0.0001, sphereDissolve))
-        denseSphereMat.opacity = Math.max(0, sphereDissolve)
-      } else {
-        denseSphere.scale.setScalar(Math.max(0.0001, denseSphereScale))
-      }
-
+      // Crossfade fragments at their parent origins; B → C fluid physics remain unchanged.
       // Particle visibility & dynamics
       pEnergy *= 0.93
 
@@ -594,16 +570,8 @@ export default function HeroScene({
         havePrevCur = false
       }
 
-      // Fade particles in as we approach the burst threshold
-      if (sp > 0.42) {
-        if (kBurst > 0) {
-          ptsMat.opacity = 0.92
-        } else {
-          ptsMat.opacity = Math.min(((sp - 0.42) / 0.1) * 0.85, 0.85)
-        }
-      } else {
-        ptsMat.opacity = 0
-      }
+      ptsMat.opacity=kBurst>0?Math.min(kBurst/0.035,1)*0.92:0
+      if(kBurst<=0){pos.set(A);vel.fill(0);ptsGeo.attributes.position.needsUpdate=true}
 
       // Only simulate particle physics when visible
       if (ptsMat.opacity > 0.01) {
@@ -621,7 +589,7 @@ export default function HeroScene({
             hz = A[idx + 2]
           } else if (kBurst < 0.45) {
             // Exploding outward from sphere (A) to burst shell (B)
-            const k = kBurst / 0.45
+            const k = 1 - Math.pow(1 - kBurst / 0.45, 3)
             hx = lerp(A[idx], B[idx], k)
             hy = lerp(A[idx + 1], B[idx + 1], k)
             hz = lerp(A[idx + 2], B[idx + 2], k)

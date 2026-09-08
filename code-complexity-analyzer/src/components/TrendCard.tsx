@@ -34,15 +34,15 @@ function DeltaDisplay({
   // Complexity: lower is better (green = decrease, red = increase)
   // LOC: lower is better (green = decrease, red = increase)
   // Functions: neutral (gray)
-  let bgColor = "bg-gray-50"
-  let textColor = "text-gray-900"
-  let badgeColor = "bg-gray-100"
-  let badgeText = "text-gray-700"
+  let bgColor = "bg-[#f4f1ea]"
+  let textColor = "text-[#2b2620]"
+  let badgeColor = "bg-[#eee9de]"
+  let badgeText = "text-[#51483d]"
 
   if (label === "Functions") {
     // Functions: always gray
-    badgeColor = "bg-gray-100"
-    badgeText = "text-gray-700"
+    badgeColor = "bg-[#eee9de]"
+    badgeText = "text-[#51483d]"
   } else if (isComplexity) {
     // Complexity: green if decrease, red if increase
     if (delta < 0) {
@@ -65,12 +65,12 @@ function DeltaDisplay({
 
   return (
     <div className="flex flex-col gap-1">
-      <p className="text-sm text-gray-600">{label}</p>
+      <p className="text-sm text-[#6f665a]">{label}</p>
       <div className="flex items-center gap-2">
-        <p className="text-lg font-bold text-gray-900">
+        <p className="text-lg font-bold text-[#2b2620]">
           {current.toLocaleString()}
         </p>
-        <span className="text-gray-400">→</span>
+        <span className="text-[#766c5e]">→</span>
         <div className={`flex items-center gap-1 px-2 py-1 rounded ${badgeColor}`}>
           {!isNeutral && (isPositive ? <TrendingUp size={14} /> : <TrendingDown size={14} />)}
           <span className={`text-sm font-semibold ${badgeText}`}>
@@ -88,12 +88,12 @@ export default function TrendCard({
   previousDate,
 }: TrendCardProps) {
   return (
-    <div className="bg-white rounded-lg shadow p-6 border-l-4 border-blue-500">
+    <div className="bg-[#faf8f3] rounded-2xl border border-[#e6e0d4] shadow-sm p-6 border-l-4 border-blue-500">
       <div className="mb-4">
-        <h3 className="text-lg font-semibold text-gray-900">
+        <h3 className="text-lg font-semibold text-[#2b2620]">
           📈 Trend vs. Previous Analysis
         </h3>
-        <p className="text-sm text-gray-500">
+        <p className="text-sm text-[#6f665a]">
           {new Date(previousDate).toLocaleDateString("en-US", {
             year: "numeric",
             month: "short",

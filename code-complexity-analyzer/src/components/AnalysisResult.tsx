@@ -1,6 +1,8 @@
 "use client"
 
 import { useEffect, useState } from "react"
+import FileGraph, { riskColor } from "./FileGraph"
+import type { GraphData } from "./FileGraph"
 import { X } from "lucide-react"
 import dynamic from "next/dynamic"
 import TrendCard from "./TrendCard"
@@ -17,7 +19,7 @@ const ResponsiveContainerComponent = dynamic(
   { ssr: false }
 )
 
-import { Bar, XAxis, YAxis, CartesianGrid, Tooltip } from "recharts"
+import { Bar, Cell, XAxis, YAxis, CartesianGrid, Tooltip } from "recharts"
 
 interface Metric {
   totalLoc: number
@@ -34,6 +36,7 @@ interface ComplexFile {
 }
 
 interface Analysis {
+  fileGraph?: GraphData
   timestamp: string
   repoUrl: string
   headSha: string
@@ -106,19 +109,19 @@ export default function AnalysisResults({
   const chartHeight = Math.max(300, chartData.length * 45)
 
   return (
-    <div className="space-y-8">
+    <div className="analysis-report space-y-8">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap gap-4 items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold text-gray-900">{repoUrl.split("/").pop()}</h2>
-          <p className="text-sm text-gray-500">
+          <h2 className="text-2xl font-bold text-[#2b2620]">{repoUrl.split("/").pop()}</h2>
+          <p className="text-sm text-[#6f665a]">
             {totalCommits} commits • Analyzed {new Date(data.timestamp).toLocaleDateString()}
           </p>
         </div>
         {!isShared && !isPreview && (
           <button
             onClick={onBack}
-            className="px-4 py-2 text-sm border border-green-500 rounded-lg hover:bg-green-50 text-gray-900 transition-colors duration-200 border-2 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
+            className="px-4 py-2 text-sm border border-green-500 rounded-lg hover:bg-green-50 text-[#2b2620] transition-colors duration-200 border-2 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
           >
             Analyze Another
           </button>
@@ -128,13 +131,13 @@ export default function AnalysisResults({
       {/* Preview banner */}
       {isPreview && (
         <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
-          <div className="flex items-center justify-between gap-4">
+          <div className="flex flex-wrap items-center justify-between gap-4">
             <p className="text-sm text-amber-900">
               <span className="font-semibold">Preview analysis:</span> Sign in to save this result to your history and unlock trends & comparisons.
             </p>
             <a
               href="/api/auth/login"
-              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm font-medium whitespace-nowrap transition-colors"
+              className="px-4 py-2 bg-[#d9a441] text-[#2b2620] rounded-lg hover:bg-[#cc9738] text-sm font-medium whitespace-nowrap transition-colors"
             >
               Sign in with GitHub
             </a>
@@ -159,9 +162,10 @@ export default function AnalysisResults({
         />
       )}
 
+      <FileGraph graph={data.fileGraph} />
       {/* Bar Chart */}
-      <div className="bg-white rounded-lg shadow p-6">
-        <h3 className="text-lg font-semibold mb-4 text-gray-900">Top 10 Most Complex Files</h3>
+      <div className="bg-[#faf8f3] rounded-2xl border border-[#e6e0d4] shadow-sm p-6">
+        <h3 className="text-lg font-semibold mb-4 text-[#2b2620]">Top 10 Most Complex Files</h3>
         <ResponsiveContainerComponent width="100%" height={chartHeight}>
           <BarChartComponent
             data={chartData}
@@ -177,32 +181,32 @@ export default function AnalysisResults({
               tick={{ fontSize: 12 }}
             />
             <Tooltip />
-            <Bar dataKey="complexity" fill="#3b82f6" name="Complexity Score" radius={[0, 4, 4, 0]} />
+            <Bar dataKey="complexity" fill="#c1694f" name="Complexity Score" radius={[0,4,4,0]}>{chartData.map(file=><Cell key={file.path} fill={riskColor(file.complexity)}/>)}</Bar>
           </BarChartComponent>
         </ResponsiveContainerComponent>
       </div>
 
       {/* File Table - Desktop */}
-      <div className="hidden sm:block bg-white rounded-lg shadow overflow-hidden">
-        <div className="px-6 py-4 border-b border-gray-200">
-          <h3 className="text-lg font-semibold text-gray-900">File Details</h3>
+      <div className="hidden sm:block bg-[#faf8f3] rounded-2xl border border-[#e6e0d4] shadow-sm overflow-hidden">
+        <div className="px-6 py-4 border-b border-[#e6e0d4]">
+          <h3 className="text-lg font-semibold text-[#2b2620]">File Details</h3>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
-            <thead className="bg-gray-50 border-b border-gray-200">
+            <thead className="bg-[#f4f1ea] border-b border-[#e6e0d4]">
               <tr>
-                <th className="px-6 py-3 text-left font-semibold text-gray-700">File</th>
-                <th className="px-6 py-3 text-right font-semibold text-gray-700">LOC</th>
-                <th className="px-6 py-3 text-right font-semibold text-gray-700">Functions</th>
-                <th className="px-6 py-3 text-right font-semibold text-gray-700">Complexity</th>
+                <th className="px-6 py-3 text-left font-semibold text-[#51483d]">File</th>
+                <th className="px-6 py-3 text-right font-semibold text-[#51483d]">LOC</th>
+                <th className="px-6 py-3 text-right font-semibold text-[#51483d]">Functions</th>
+                <th className="px-6 py-3 text-right font-semibold text-[#51483d]">Complexity</th>
               </tr>
             </thead>
             <tbody>
               {topComplexFiles.map((file, idx) => (
-                <tr key={idx} className="border-b border-gray-200 hover:bg-gray-50">
-                  <td className="px-6 py-4 text-gray-900">{file.path.split("/").pop()}</td>
-                  <td className="px-6 py-4 text-right text-gray-600">{file.loc}</td>
-                  <td className="px-6 py-4 text-right text-gray-600">{file.functions}</td>
+                <tr key={idx} className="border-b border-[#e6e0d4] hover:bg-[#f4f1ea]">
+                  <td className="px-6 py-4 text-[#2b2620]">{file.path}</td>
+                  <td className="px-6 py-4 text-right text-[#6f665a]">{file.loc}</td>
+                  <td className="px-6 py-4 text-right text-[#6f665a]">{file.functions}</td>
                   <td className="px-6 py-4 text-right">
                     <span className={`px-3 py-1 rounded-full text-white text-xs font-semibold ${getComplexityColor(file.complexity)}`}>
                       {file.complexity}
@@ -216,18 +220,18 @@ export default function AnalysisResults({
       </div>
 
       {/* File List - Mobile */}
-      <div className="sm:hidden bg-white rounded-lg shadow overflow-hidden">
-        <div className="px-4 py-4 border-b border-gray-200">
-          <h3 className="text-lg font-semibold text-gray-900">File Details</h3>
+      <div className="sm:hidden bg-[#faf8f3] rounded-2xl border border-[#e6e0d4] shadow-sm overflow-hidden">
+        <div className="px-4 py-4 border-b border-[#e6e0d4]">
+          <h3 className="text-lg font-semibold text-[#2b2620]">File Details</h3>
         </div>
         <div>
           {topComplexFiles.map((file, idx) => (
             <button
               key={idx}
               onClick={() => setSelectedFile(file)}
-              className="w-full flex items-center justify-between px-4 py-4 border-b border-gray-200 last:border-b-0 hover:bg-gray-50 active:bg-gray-100 text-left"
+              className="w-full flex items-center justify-between px-4 py-4 border-b border-[#e6e0d4] last:border-b-0 hover:bg-[#f4f1ea] active:bg-[#eee9de] text-left"
             >
-              <span className="text-gray-900 truncate pr-3">
+              <span className="text-[#2b2620] truncate pr-3">
                 {file.path.split("/").pop()}
               </span>
               <span
@@ -248,16 +252,16 @@ export default function AnalysisResults({
         >
           <div className="absolute inset-0 bg-black/40" />
           <div
-            className="absolute bottom-0 left-0 right-0 bg-white rounded-t-2xl p-6 pb-8 animate-slide-up"
+            className="absolute bottom-0 left-0 right-0 bg-[#faf8f3] rounded-t-2xl p-6 pb-8 animate-slide-up"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-start justify-between mb-4">
-              <p className="text-sm font-mono text-gray-700 break-all pr-4">
+              <p className="text-sm font-mono text-[#51483d] break-all pr-4">
                 {selectedFile.path}
               </p>
               <button
                 onClick={() => setSelectedFile(null)}
-                className="flex-shrink-0 p-1 text-gray-400 hover:text-gray-600"
+                className="flex-shrink-0 p-1 text-[#766c5e] hover:text-[#6f665a]"
                 aria-label="Close"
               >
                 <X size={22} />
@@ -266,15 +270,15 @@ export default function AnalysisResults({
 
             <div className="grid grid-cols-3 gap-4 mt-2">
               <div>
-                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">LOC</p>
-                <p className="text-xl font-bold text-gray-900 mt-1">{selectedFile.loc}</p>
+                <p className="text-xs font-semibold text-[#6f665a] uppercase tracking-wide">LOC</p>
+                <p className="text-xl font-bold text-[#2b2620] mt-1">{selectedFile.loc}</p>
               </div>
               <div>
-                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Functions</p>
-                <p className="text-xl font-bold text-gray-900 mt-1">{selectedFile.functions}</p>
+                <p className="text-xs font-semibold text-[#6f665a] uppercase tracking-wide">Functions</p>
+                <p className="text-xl font-bold text-[#2b2620] mt-1">{selectedFile.functions}</p>
               </div>
               <div>
-                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Complexity</p>
+                <p className="text-xs font-semibold text-[#6f665a] uppercase tracking-wide">Complexity</p>
                 <span
                   className={`inline-block mt-1 px-3 py-1 rounded-full text-white text-sm font-semibold ${getComplexityColor(selectedFile.complexity)}`}
                 >
@@ -306,7 +310,7 @@ export default function AnalysisResults({
         <div className="flex justify-center pt-4">
           <button
             onClick={() => setShowShareModal(true)}
-            className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
+            className="px-6 py-2 bg-[#d9a441] text-[#2b2620] rounded-lg hover:bg-[#cc9738] transition-colors font-medium"
           >
             Share Analysis
           </button>
@@ -318,9 +322,9 @@ export default function AnalysisResults({
 
 function MetricCard({ label, value }: { label: string; value: string | number }) {
   return (
-    <div className="bg-white rounded-lg shadow p-4">
-      <p className="text-sm text-gray-600 mb-1">{label}</p>
-      <p className="text-2xl font-bold text-gray-900">{value}</p>
+    <div className="bg-[#faf8f3] rounded-2xl border border-[#e6e0d4] shadow-sm p-4">
+      <p className="text-sm text-[#6f665a] mb-1">{label}</p>
+      <p className="text-2xl font-bold text-[#2b2620]">{value}</p>
     </div>
   )
 }

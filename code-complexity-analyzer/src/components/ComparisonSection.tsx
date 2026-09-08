@@ -63,43 +63,43 @@ function AnalysisColumn({
 
   return (
     <div className="space-y-4">
-      <h4 className="text-base font-semibold text-gray-900">
+      <h4 className="text-base font-semibold text-[#2b2620]">
         {title}
         {subtitle && (
-          <span className="text-gray-500 font-normal text-sm"> ({subtitle})</span>
+          <span className="text-[#6f665a] font-normal text-sm"> ({subtitle})</span>
         )}
       </h4>
 
       <div className="grid grid-cols-2 gap-3 text-sm">
         <div>
-          <p className="text-gray-600">LOC</p>
-          <p className="text-lg font-bold text-gray-900">
+          <p className="text-[#6f665a]">LOC</p>
+          <p className="text-lg font-bold text-[#2b2620]">
             {analysis.metrics.totalLoc.toLocaleString()}
           </p>
         </div>
         <div>
-          <p className="text-gray-600">Functions</p>
-          <p className="text-lg font-bold text-gray-900">
+          <p className="text-[#6f665a]">Functions</p>
+          <p className="text-lg font-bold text-[#2b2620]">
             {analysis.metrics.totalFunctions}
           </p>
         </div>
         <div>
-          <p className="text-gray-600">Avg Complexity</p>
-          <p className="text-lg font-bold text-gray-900">
+          <p className="text-[#6f665a]">Avg Complexity</p>
+          <p className="text-lg font-bold text-[#2b2620]">
             {analysis.metrics.averageComplexity.toFixed(1)}
           </p>
         </div>
         <div>
-          <p className="text-gray-600">Files</p>
-          <p className="text-lg font-bold text-gray-900">
+          <p className="text-[#6f665a]">Files</p>
+          <p className="text-lg font-bold text-[#2b2620]">
             {analysis.metrics.fileCount}
           </p>
         </div>
       </div>
 
       {/* Chart */}
-      <div className="bg-gray-50 rounded-lg p-4">
-        <p className="text-sm font-semibold text-gray-700 mb-3">
+      <div className="bg-[#f4f1ea] rounded-lg p-4">
+        <p className="text-sm font-semibold text-[#51483d] mb-3">
           Top Complex Files
         </p>
         <ResponsiveContainerComponent width="100%" height={chartHeight}>
@@ -119,7 +119,7 @@ function AnalysisColumn({
             <Tooltip />
             <Bar
               dataKey="complexity"
-              fill="#3b82f6"
+              fill="#c1694f"
               name="Complexity Score"
               radius={[0, 4, 4, 0]}
             />
@@ -130,30 +130,30 @@ function AnalysisColumn({
       {/* File details table */}
       <div className="hidden sm:block overflow-x-auto">
         <table className="w-full text-sm">
-          <thead className="bg-gray-100 border-b border-gray-200">
+          <thead className="bg-[#eee9de] border-b border-[#e6e0d4]">
             <tr>
-              <th className="px-4 py-2 text-left font-semibold text-gray-700">
+              <th className="px-4 py-2 text-left font-semibold text-[#51483d]">
                 File
               </th>
-              <th className="px-4 py-2 text-right font-semibold text-gray-700">
+              <th className="px-4 py-2 text-right font-semibold text-[#51483d]">
                 LOC
               </th>
-              <th className="px-4 py-2 text-right font-semibold text-gray-700">
+              <th className="px-4 py-2 text-right font-semibold text-[#51483d]">
                 Functions
               </th>
-              <th className="px-4 py-2 text-right font-semibold text-gray-700">
+              <th className="px-4 py-2 text-right font-semibold text-[#51483d]">
                 Complexity
               </th>
             </tr>
           </thead>
           <tbody>
             {analysis.topComplexFiles.map((file, idx) => (
-              <tr key={idx} className="border-b border-gray-200 hover:bg-gray-50">
-                <td className="px-4 py-2 text-gray-900">
+              <tr key={idx} className="border-b border-[#e6e0d4] hover:bg-[#f4f1ea]">
+                <td className="px-4 py-2 text-[#2b2620]">
                   {file.path.split("/").pop()}
                 </td>
-                <td className="px-4 py-2 text-right text-gray-600">{file.loc}</td>
-                <td className="px-4 py-2 text-right text-gray-600">
+                <td className="px-4 py-2 text-right text-[#6f665a]">{file.loc}</td>
+                <td className="px-4 py-2 text-right text-[#6f665a]">
                   {file.functions}
                 </td>
                 <td className="px-4 py-2 text-right">
@@ -194,37 +194,37 @@ export default function ComparisonSection({
   )
 
   return (
-    <div className="bg-white rounded-lg shadow overflow-hidden">
+    <div className="bg-[#faf8f3] rounded-2xl border border-[#e6e0d4] shadow-sm overflow-hidden">
       {/* Header - clickable to toggle */}
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="w-full flex items-center justify-between px-6 py-4 hover:bg-gray-50 transition-colors"
+        className="w-full flex items-center justify-between px-6 py-4 hover:bg-[#f4f1ea] transition-colors"
       >
         <div className="flex-1 text-left">
-          <h3 className="text-lg font-semibold text-gray-900">Detailed Comparison</h3>
-          <p className="text-sm text-gray-500">
+          <h3 className="text-lg font-semibold text-[#2b2620]">Detailed Comparison</h3>
+          <p className="text-sm text-[#6f665a]">
             {isOpen ? "Click to collapse" : "Click to expand"}
           </p>
         </div>
         {isOpen ? (
-          <ChevronUp size={24} className="text-gray-600" />
+          <ChevronUp size={24} className="text-[#6f665a]" />
         ) : (
-          <ChevronDown size={24} className="text-gray-600" />
+          <ChevronDown size={24} className="text-[#6f665a]" />
         )}
       </button>
 
       {/* Collapsible content */}
       {isOpen && (
-        <div className="border-t border-gray-200 px-6 py-6 space-y-8">
+        <div className="border-t border-[#e6e0d4] px-6 py-6 space-y-8">
           {/* Dropdown to select which analysis to compare */}
           <div className="flex flex-col gap-2">
-            <label className="text-sm font-semibold text-gray-900">
+            <label className="text-sm font-semibold text-[#2b2620]">
               Compare Current to:
             </label>
             <select
               value={selectedAnalysisIndex}
               onChange={(e) => setSelectedAnalysisIndex(Number(e.target.value))}
-              className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 max-w-md"
+              className="px-4 py-2 border border-[#d8d2c4] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#a85c42] max-w-md"
             >
               {priorAnalyses.map((analysis, idx) => (
                 <option key={idx} value={idx}>
@@ -252,7 +252,7 @@ export default function ComparisonSection({
             </div>
 
             {/* Divider - only shown on mobile between stacked sections */}
-            <div className="border-t border-gray-200 lg:hidden" />
+            <div className="border-t border-[#e6e0d4] lg:hidden" />
 
             <div className="lg:pl-6">
               <AnalysisColumn

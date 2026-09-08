@@ -1,15 +1,16 @@
+import { Suspense } from "react"
 import { getSession } from "@/lib/session"
 import AnalyzeForm from "@/components/AnalyzeForm"
-
-export default async function AnalyzePage() {
-  const session = await getSession()
-
-  return (
-    <div className="min-h-screen bg-gray-50 py-12 px-4">
-      <div className="max-w-screen mx-auto bg-white rounded-lg shadow p-8">
-        <h1 className="text-2xl font-bold mb-6 text-gray-800">Analyze Repository</h1>
-        <AnalyzeForm isAuthenticated={!!session} />
-      </div>
-    </div>
-  )
-}
+import AppShell from "@/components/AppShell"
+export default async function AnalyzePage(){
+  const session=await getSession();
+  return <AppShell active="analyze" authenticated={!!session}>
+            <header className="workspace-heading">
+            <p className="eyebrow">THE ANALYSIS WORKSPACE</p>
+            <h1>Know where to <span>look first.</span></h1>
+            <p>From a repository full of code to a clear picture of its hotspots.</p>
+            </header>
+            <Suspense fallback={<p>Loading workspace…</p>}>
+            <AnalyzeForm isAuthenticated={!!session}/>
+            </Suspense>
+        </AppShell>}

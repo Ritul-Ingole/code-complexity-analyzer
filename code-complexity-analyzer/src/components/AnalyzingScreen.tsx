@@ -35,19 +35,19 @@ export default function AnalyzingScreen({ ready }: AnalyzingScreenProps) {
   }, [ready])
 
   return (
-    <div className="bg-white rounded-lg shadow p-8 text-center">
+    <div className="bg-[#faf8f3] rounded-2xl border border-[#e6e0d4] shadow-sm p-8 text-center">
       {!ready ? (
         <>
           <div className="flex justify-center mb-6">
-            <div className="w-10 h-10 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin" />
+            <div className="w-10 h-10 border-4 border-[#dfcba2] border-t-[#a85c42] rounded-full animate-spin" />
           </div>
-          <p className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-4">
+          <p className="text-sm font-semibold text-[#6f665a] uppercase tracking-wide mb-4">
             Analyzing Repository
           </p>
           <div className="min-h-[72px] flex items-center justify-center px-4">
             <p
               key={factIndex}
-              className="text-gray-700 leading-relaxed animate-fade-in"
+              className="text-[#51483d] leading-relaxed animate-fade-in"
             >
               {FACTS[factIndex]}
             </p>
@@ -58,10 +58,10 @@ export default function AnalyzingScreen({ ready }: AnalyzingScreenProps) {
           <div className="flex justify-center mb-4">
             <CheckCircle2 className="text-green-500" size={40} />
           </div>
-          <p className="text-lg font-semibold text-gray-900">
+          <p className="text-lg font-semibold text-[#2b2620]">
             Analysis ready
           </p>
-          <p className="text-sm text-gray-500 mt-1">
+          <p className="text-sm text-[#6f665a] mt-1">
             Pulling up your results...
           </p>
         </div>

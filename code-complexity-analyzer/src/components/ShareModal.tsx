@@ -34,13 +34,13 @@ export default function ShareModal({
 
   return (
     <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4">
-      <div className="bg-white rounded-lg shadow-xl max-w-md w-full">
+      <div className="bg-[#faf8f3] rounded-2xl border border-[#e6e0d4] shadow-xl max-w-md w-full">
         {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-gray-200">
-          <h2 className="text-lg font-semibold text-gray-900">Share Analysis</h2>
+        <div className="flex items-center justify-between p-6 border-b border-[#e6e0d4]">
+          <h2 className="text-lg font-semibold text-[#2b2620]">Share Analysis</h2>
           <button
             onClick={onClose}
-            className="p-1 text-gray-400 hover:text-gray-600 transition-colors"
+            className="p-1 text-[#766c5e] hover:text-[#6f665a] transition-colors"
             aria-label="Close"
           >
             <X size={20} />
@@ -49,13 +49,13 @@ export default function ShareModal({
 
         {/* Content */}
         <div className="p-6 space-y-4">
-          <p className="text-sm text-gray-600">
+          <p className="text-sm text-[#6f665a]">
             Share this link with others to let them view this analysis:
           </p>
 
           {/* URL Display */}
-          <div className="bg-gray-50 rounded-lg p-4 border border-gray-200 break-all">
-            <p className="text-xs font-mono text-gray-700">{shareUrl}</p>
+          <div className="bg-[#f4f1ea] rounded-lg p-4 border border-[#e6e0d4] break-all">
+            <p className="text-xs font-mono text-[#51483d]">{shareUrl}</p>
           </div>
 
           {/* Copy Button */}
@@ -64,7 +64,7 @@ export default function ShareModal({
             className={`w-full flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors ${
               copied
                 ? "bg-green-100 text-green-700"
-                : "bg-blue-600 text-white hover:bg-blue-700"
+                : "bg-[#d9a441] text-[#2b2620] hover:bg-[#cc9738]"
             }`}
           >
             {copied ? (
@@ -81,18 +81,18 @@ export default function ShareModal({
           </button>
 
           {/* Info */}
-          <div className="bg-blue-50 rounded-lg p-3 border border-blue-200">
-            <p className="text-xs text-blue-900">
+          <div className="bg-[#f2ead9] rounded-lg p-3 border border-[#dfcba2]">
+            <p className="text-xs text-[#51483d]">
               <span className="font-semibold">Note:</span> This link is public and anyone with the URL can view this analysis.
             </p>
           </div>
         </div>
 
         {/* Footer */}
-        <div className="px-6 py-4 border-t border-gray-200 flex justify-end">
+        <div className="px-6 py-4 border-t border-[#e6e0d4] flex justify-end">
           <button
             onClick={onClose}
-            className="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg transition-colors font-medium"
+            className="px-4 py-2 text-[#51483d] hover:bg-[#eee9de] rounded-lg transition-colors font-medium"
           >
             Done
           </button>

@@ -516,7 +516,25 @@
 }
 
 .graph-visual {
+  position: relative;
   min-width: 0;
+}
+
+.graph-stage-3d {
+  position: relative;
+  min-width: 0;
+  height: 440px;
+  margin: 16px 20px 0;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  overflow: hidden;
+  background: radial-gradient(circle, #dcd5c8 .7px, transparent .8px);
+  background-size: 22px 22px;
+  touch-action: none;
+}
+
+.graph-stage-3d canvas {
+  touch-action: none;
 }
 
 .graph-stage {
@@ -833,6 +851,10 @@
   }
   .graph-stage canvas {
     height: 350px;
+  }
+  .graph-stage-3d {
+    height: 350px;
+    margin: 12px 12px 0;
   }
   .graph-inspector {
     border-left: 0;

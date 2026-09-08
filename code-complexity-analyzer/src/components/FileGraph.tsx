@@ -2,6 +2,9 @@
 
 import { useEffect, useMemo, useRef, useState } from "react"
 import * as THREE from "three"
+import { LineSegments2 } from "three/examples/jsm/lines/LineSegments2.js"
+import { LineSegmentsGeometry } from "three/examples/jsm/lines/LineSegmentsGeometry.js"
+import { LineMaterial } from "three/examples/jsm/lines/LineMaterial.js"
 
 export interface GraphNode { path: string; loc: number; functions: number; complexity: number }
 export interface GraphData {
@@ -12,17 +15,15 @@ export interface GraphData {
   coverage: { fetched: number; parsed: number; failed: string[]; unresolvedModules: number; totalEdges: number; truncated: boolean }
 }
 
-// Report surfaces (cream theme) keep these muted tones.
+// Cream theme keeps these muted tones across the report and the 3D stage.
 export const riskLevel = (score: number) => (score > 40 ? "high" : score > 25 ? "medium" : "low")
 export const riskColor = (score: number) => (score > 40 ? "#b4493d" : score > 25 ? "#947011" : "#4d7142")
-// Dark 3D stage uses brighter, luminous variants so nodes read against space.
-const riskGlow = (score: number) => (score > 40 ? "#ff6b5e" : score > 25 ? "#f2c14e" : "#7dd78a")
 
 interface V3 { x: number; y: number; z: number }
 
 // ─── GRAPH TUNING — adjust these to change the look ─────────────────────
 // NODE SIZE: base radius of every node sphere (world units). Bigger = larger nodes.
-const NODE_BASE_SIZE = 10.4
+const NODE_BASE_SIZE = 20.4
 // NODE SIZE: extra radius added per point of complexity (capped at complexity 80).
 const NODE_COMPLEXITY_SCALE = 50  // complexity 80 adds 80/24 ≈ 3.3 to the base size
 // SPACING: how far apart folder clusters sit from each other. Smaller = tighter.
@@ -33,8 +34,6 @@ const SHELL_RADIUS = 120
 const EDGE_REST_LENGTH = 5
 // SPACING: repulsion strength pushing unconnected nodes apart. Smaller = denser graph.
 const REPULSION = 320
-// CAMERA: initial zoom — distance multiplier relative to graph size. Smaller = starts more zoomed-in.
-const CAMERA_DISTANCE = 1.35
 // LABEL: on-screen height of filename labels, as a fraction of camera distance.
 // Bigger = larger labels. They stay this size at every zoom level.
 const LABEL_SCREEN_SIZE = 0.075
@@ -110,14 +109,14 @@ function makeLabelSprite(text: string): THREE.Sprite {
   if (ctx) {
     ctx.font = "500 40px ui-monospace, SFMono-Regular, Menlo, monospace"
     const w = Math.min(ctx.measureText(text).width + 48, 500)
-    ctx.fillStyle = "rgba(24, 20, 15, 0.88)"
+    ctx.fillStyle = "rgba(250, 248, 243, 0.94)"
     ctx.beginPath()
     ctx.roundRect((512 - w) / 2, 12, w, 72, 14)
     ctx.fill()
-    ctx.strokeStyle = "rgba(242, 193, 78, 0.5)"
+    ctx.strokeStyle = "rgba(43, 38, 32, 0.16)"
     ctx.lineWidth = 2
     ctx.stroke()
-    ctx.fillStyle = "#f4efe4"
+    ctx.fillStyle = "#2b2620"
     ctx.textAlign = "center"
     ctx.textBaseline = "middle"
     ctx.fillText(text, 256, 48, 460)
@@ -175,7 +174,7 @@ export default function FileGraph({ graph }: { graph?: GraphData }) {
     host.appendChild(renderer.domElement)
 
     const scene = new THREE.Scene()
-    scene.background = new THREE.Color(0x14110d)
+    // Transparent clear: the dot-grid paper canvas (.graph-stage-3d) shows through.
     //scene.fog = new THREE.FogExp2(0x14110d, 0.0045)
     const camera = new THREE.PerspectiveCamera(55, 1, 0.1, 2000)
 
@@ -200,46 +199,81 @@ export default function FileGraph({ graph }: { graph?: GraphData }) {
     for (const node of nodes) {
       const p = positions.get(node.path)!
       const radius = NODE_BASE_SIZE + Math.min(node.complexity, 80) / NODE_COMPLEXITY_SCALE
-      const mesh = new THREE.Mesh(sphereGeo, new THREE.MeshBasicMaterial({ color: riskGlow(node.complexity) }))
+      const mesh = new THREE.Mesh(sphereGeo, new THREE.MeshBasicMaterial({ color: riskColor(node.complexity) }))
       mesh.position.set(p.x, p.y, p.z)
       mesh.scale.setScalar(radius)
       mesh.userData.path = node.path
       scene.add(mesh)
       meshes.set(node.path, mesh)
-      const halo = new THREE.Sprite(new THREE.SpriteMaterial({ map: haloTex, color: riskGlow(node.complexity), transparent: true, opacity: 0.32, depthWrite: false }))
+      const halo = new THREE.Sprite(new THREE.SpriteMaterial({ map: haloTex, color: riskColor(node.complexity), transparent: true, opacity: 0.32, depthWrite: false }))
       halo.position.set(p.x, p.y, p.z)
       halo.scale.setScalar(radius * 3.4)
       scene.add(halo)
       halos.set(node.path, halo)
     }
 
-    // ===== Edges: warm solid calls, faint dashed-feel imports =====
+    // ===== Edges: fat rounded arcs — calls solid, imports faint, returns fainter =====
     const edgeGroup = new THREE.Group()
     scene.add(edgeGroup)
     const toggleState = { imports: true, returns: true }
-    const buildEdges = () => {
+    const fatMat = (opacity: number) =>
+      new LineMaterial({ vertexColors: true, linewidth: 2, transparent: true, opacity, depthWrite: false })
+    const edgeMats = { call: fatMat(0.75), import: fatMat(0.45), ret: fatMat(0.38) }
+    const edgeColors = {
+      call: new THREE.Color(0xc06a48).convertSRGBToLinear(),
+      import: new THREE.Color(0x8a8172).convertSRGBToLinear(),
+      ret: new THREE.Color(0x7f8670).convertSRGBToLinear(),
+    }
+    const SEGMENTS_PER_EDGE = 8
+    const buildEdges = (visible: Set<string>) => {
+      edgeGroup.children.forEach((c) => (c as LineSegments2).geometry.dispose())
       edgeGroup.clear()
-      const callPts: number[] = []
-      const importPts: number[] = []
-      const returnPts: number[] = []
+      const pts = { call: [] as number[], import: [] as number[], ret: [] as number[] }
+      const cols = { call: [] as number[], import: [] as number[], ret: [] as number[] }
       for (const e of edges) {
+        // An edge exists only while both of its endpoints pass the filters.
+        if (!visible.has(e.source) || !visible.has(e.target)) continue
         const a = positions.get(e.source), b = positions.get(e.target)
         if (!a || !b) continue
-        const target = e.kind === "call" ? callPts : importPts
-        target.push(a.x, a.y, a.z, b.x, b.y, b.z)
-        if (e.kind === "call") returnPts.push(b.x, b.y, b.z, a.x, a.y, a.z)
+        const kind = e.kind === "call" ? "call" : "import"
+        // Gentle deterministic arc so connections read as soft strands, not sticks.
+        const dir = new THREE.Vector3(b.x - a.x, b.y - a.y, b.z - a.z)
+        const len = dir.length() || 1
+        const perp = new THREE.Vector3().crossVectors(dir, new THREE.Vector3(0, 1, 0))
+        if (perp.lengthSq() < 1e-6) perp.set(1, 0, 0)
+        perp.normalize().multiplyScalar((hash(e.source + ">" + e.target, 71) - 0.5) * len * 0.24)
+        const mid = new THREE.Vector3((a.x + b.x) / 2, (a.y + b.y) / 2, (a.z + b.z) / 2).add(perp)
+        const col = edgeColors[kind as keyof typeof edgeColors]
+        const sinks: Array<{ p: number[]; c: number[] }> =
+          kind === "call"
+            ? [{ p: pts.call, c: cols.call }, { p: pts.ret, c: cols.ret }]
+            : [{ p: pts.import, c: cols.import }]
+        for (const sink of sinks) {
+          let px = a.x, py = a.y, pz = a.z
+          for (let s = 1; s <= SEGMENTS_PER_EDGE; s++) {
+            const t = s / SEGMENTS_PER_EDGE
+            const it = 1 - t
+            const x = it * it * a.x + 2 * it * t * mid.x + t * t * b.x
+            const y = it * it * a.y + 2 * it * t * mid.y + t * t * b.y
+            const z = it * it * a.z + 2 * it * t * mid.z + t * t * b.z
+            sink.p.push(px, py, pz, x, y, z)
+            for (let v = 0; v < 2; v++) sink.c.push(col.r, col.g, col.b)
+            px = x; py = y; pz = z
+          }
+        }
       }
-      const make = (pts: number[], color: number, opacity: number) => {
-        if (!pts.length) return
-        const geo = new THREE.BufferGeometry()
-        geo.setAttribute("position", new THREE.Float32BufferAttribute(pts, 3))
-        edgeGroup.add(new THREE.LineSegments(geo, new THREE.LineBasicMaterial({ color, transparent: true, opacity })))
+      const attach = (p: number[], c: number[], mat: LineMaterial) => {
+        if (!p.length) return
+        const geo = new LineSegmentsGeometry()
+        geo.setPositions(p)
+        geo.setColors(c)
+        edgeGroup.add(new LineSegments2(geo, mat))
       }
-      make(callPts, 0xe0855f, 0.7)
-      if (toggleState.imports) make(importPts, 0x9a917f, 0.4)
-      if (toggleState.returns) make(returnPts, 0x8f9678, 0.32)
+      attach(pts.call, cols.call, edgeMats.call)
+      if (toggleState.imports) attach(pts.import, cols.import, edgeMats.import)
+      if (toggleState.returns) attach(pts.ret, cols.ret, edgeMats.ret)
     }
-    buildEdges()
+    buildEdges(new Set(nodes.map((n) => n.path)))
 
     // // ===== Ambient star dust for depth =====
     // const dustN = 900
@@ -280,8 +314,17 @@ export default function FileGraph({ graph }: { graph?: GraphData }) {
     }
 
     // ===== Camera orbit controls (drag orbit, wheel/pinch zoom, shift/right-drag pan) =====
-    const radius = Math.max(50, ...nodes.map((n) => { const p = positions.get(n.path)!; return Math.hypot(p.x, p.y, p.z) * CAMERA_DISTANCE }))
-    const cam = { theta: 0.7, phi: 1.05, r: radius, tx: 0, ty: 0, tz: 0 }
+    // Bounding sphere of the graph: the camera opens framed on all of it, centred
+    // on the bounding-box centre — not the origin — so no cluster sits off-screen.
+    let minX = Infinity, minY = Infinity, minZ = Infinity, maxX = -Infinity, maxY = -Infinity, maxZ = -Infinity
+    for (const n of nodes) {
+      const p = positions.get(n.path)!
+      minX = Math.min(minX, p.x); minY = Math.min(minY, p.y); minZ = Math.min(minZ, p.z)
+      maxX = Math.max(maxX, p.x); maxY = Math.max(maxY, p.y); maxZ = Math.max(maxZ, p.z)
+    }
+    const cx = (minX + maxX) / 2, cy = (minY + maxY) / 2, cz = (minZ + maxZ) / 2
+    const graphRadius = Math.max(60, ...nodes.map((n) => { const p = positions.get(n.path)!; return Math.hypot(p.x - cx, p.y - cy, p.z - cz) }))
+    const cam = { theta: 0.7, phi: 1.05, r: graphRadius * 2.2, tx: cx, ty: cy, tz: cz }
     const applyCam = () => {
       camera.position.set(
         cam.tx + cam.r * Math.sin(cam.phi) * Math.cos(cam.theta),
@@ -291,6 +334,14 @@ export default function FileGraph({ graph }: { graph?: GraphData }) {
       camera.lookAt(cam.tx, cam.ty, cam.tz)
     }
     applyCam()
+    // Distance at which the bounding sphere fits inside both FOVs (+8% margin).
+    const fitCamera = () => {
+      const vFov = (camera.fov * Math.PI) / 180
+      const hFov = 2 * Math.atan(Math.tan(vFov / 2) * camera.aspect)
+      cam.r = (graphRadius / Math.sin(Math.min(vFov, hFov) / 2)) * 1.08
+      applyCam()
+    }
+    let fitted = false
 
     const el = renderer.domElement
     el.style.cursor = "grab"
@@ -304,7 +355,7 @@ export default function FileGraph({ graph }: { graph?: GraphData }) {
       const rect = el.getBoundingClientRect()
       const ndc = new THREE.Vector2(((clientX - rect.left) / rect.width) * 2 - 1, -((clientY - rect.top) / rect.height) * 2 + 1)
       raycaster.setFromCamera(ndc, camera)
-      const hits = raycaster.intersectObjects([...meshes.values()].filter((m) => m.visible))
+      const hits = raycaster.intersectObjects(Array.from(meshes.values()).filter((m) => m.visible))
       return hits.length ? (hits[0].object.userData.path as string) : null
     }
 
@@ -327,9 +378,9 @@ export default function FileGraph({ graph }: { graph?: GraphData }) {
       if (Math.abs(dx) + Math.abs(dy) > 2) moved = true
       prev.x = e.clientX; prev.y = e.clientY
       if (pointers.size === 2) {
-        const [a, b] = [...pointers.values()]
+        const [a, b] = Array.from(pointers.values())
         const dist = Math.hypot(a.x - b.x, a.y - b.y)
-        if (lastPinch > 0) cam.r = Math.max(radius * 0.15, Math.min(radius * 4, cam.r * (lastPinch / dist)))
+        if (lastPinch > 0) cam.r = Math.max(graphRadius * 0.15, Math.min(graphRadius * 4, cam.r * (lastPinch / dist)))
         lastPinch = dist
         applyCam()
         return
@@ -359,7 +410,7 @@ export default function FileGraph({ graph }: { graph?: GraphData }) {
     }
     const onWheel = (e: WheelEvent) => {
       e.preventDefault()
-      cam.r = Math.max(radius * 0.15, Math.min(radius * 4, cam.r * (1 + e.deltaY * 0.0012)))
+      cam.r = Math.max(graphRadius * 0.15, Math.min(graphRadius * 4, cam.r * (1 + e.deltaY * 0.0012)))
       applyCam()
     }
     const onLeave = () => { stateRef.current.hover = null; setLabel(null) }
@@ -377,6 +428,11 @@ export default function FileGraph({ graph }: { graph?: GraphData }) {
         renderer.setSize(width, height, false)
         camera.aspect = width / height
         camera.updateProjectionMatrix()
+        Object.values(edgeMats).forEach((m) => m.resolution.set(width, height))
+        if (!fitted) {
+          fitted = true
+          fitCamera()
+        }
       }
     })
     ro.observe(host)
@@ -397,7 +453,7 @@ export default function FileGraph({ graph }: { graph?: GraphData }) {
     animate()
 
     // Imperative bridge: parent state (filters/selection) applied imperatively per render below.
-    ;(host as HTMLDivElement & { __apply?: (s: { shown: Set<string>; selected: string | null; buildEdges: boolean; imports: boolean; returns: boolean }) => void }).__apply = ({ shown, selected: sel, buildEdges: rebuild, imports: imp, returns: ret }) => {
+    ;(host as HTMLDivElement & { __apply?: (s: { shown: Set<string>; selected: string | null; imports: boolean; returns: boolean }) => void }).__apply = ({ shown, selected: sel, imports: imp, returns: ret }) => {
       toggleState.imports = imp
       toggleState.returns = ret
       const focus = stateRef.current.hover || sel
@@ -412,12 +468,11 @@ export default function FileGraph({ graph }: { graph?: GraphData }) {
         halos.get(path)!.visible = inFilter
         if (!inFilter) return
         const dimmed = !!focus && path !== focus && !neighbors.has(path)
-        ;(mesh.material as THREE.MeshBasicMaterial).color.set(dimmed ? "#4a443b" : riskGlow(nodes.find((n) => n.path === path)!.complexity))
+        ;(mesh.material as THREE.MeshBasicMaterial).color.set(dimmed ? "#c9c1b2" : riskColor(nodes.find((n) => n.path === path)!.complexity))
         const base = NODE_BASE_SIZE + Math.min(nodes.find((n) => n.path === path)!.complexity, 80) / NODE_COMPLEXITY_SCALE
         mesh.scale.setScalar(path === focus ? base * 1.6 : base)
       })
-      if (rebuild) buildEdges()
-      edgeGroup.children.forEach((line) => { (line as THREE.LineSegments).visible = true })
+      buildEdges(shown)
       setLabel(focus || sel)
     }
 
@@ -442,18 +497,16 @@ export default function FileGraph({ graph }: { graph?: GraphData }) {
       })
       sphereGeo.dispose()
       haloTex.dispose()
+      Object.values(edgeMats).forEach((m) => m.dispose())
       renderer.dispose()
       if (renderer.domElement.parentNode === host) host.removeChild(renderer.domElement)
     }
   }, [graph, nodes, edges, positions])
 
   // Apply filters / selection / toggles to the live scene without rebuilding it.
-  const toggleRef = useRef({ imports, returns })
   useEffect(() => {
-    const host = hostRef.current as (HTMLDivElement & { __apply?: (s: { shown: Set<string>; selected: string | null; buildEdges: boolean; imports: boolean; returns: boolean }) => void }) | null
-    const rebuild = toggleRef.current.imports !== imports || toggleRef.current.returns !== returns
-    toggleRef.current = { imports, returns }
-    host?.__apply?.({ shown: shownSet, selected, buildEdges: rebuild, imports, returns })
+    const host = hostRef.current as (HTMLDivElement & { __apply?: (s: { shown: Set<string>; selected: string | null; imports: boolean; returns: boolean }) => void }) | null
+    host?.__apply?.({ shown: shownSet, selected, imports, returns })
   }, [shownSet, selected, imports, returns])
 
   const focusNode = (path: string) => setSelected(path)
@@ -502,10 +555,10 @@ export default function FileGraph({ graph }: { graph?: GraphData }) {
       <div className="graph-body">
         <div className="graph-visual">
           <div ref={hostRef} className="graph-stage-3d" role="img" aria-label="Interactive 3D file graph. Use the adjacent file list for keyboard exploration." />
-          {!shown.length && <p className="graph-message graph-message-dark">No files match these filters.</p>}
-          <div className="graph-legend graph-legend-dark">
+          {!shown.length && <p className="graph-message">No files match these filters.</p>}
+          <div className="graph-legend">
             {[[10, "Low ≤25"], [30, "Medium 26–40"], [50, "High >40"]].map(([score, label]) => (
-              <span key={label as string}><i style={{ background: riskGlow(Number(score)) }} />{label}</span>
+              <span key={label as string}><i style={{ background: riskColor(Number(score)) }} />{label}</span>
             ))}
           </div>
         </div>

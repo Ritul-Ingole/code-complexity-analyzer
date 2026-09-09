@@ -4,6 +4,7 @@ import { useLayoutEffect, useRef } from "react"
 import dynamic from "next/dynamic"
 import Link from "next/link"
 import { ArrowRight, Lock, TrendingUp } from "lucide-react"
+import Magnetic from "@/components/Magnetic"
 
 const HeroScene = dynamic(() => import("./HeroScene"), {
   ssr: false,
@@ -124,7 +125,7 @@ export default function HeroSection({ isAuthenticated, login }: HeroSectionProps
             01 — STATIC ANALYSIS, NO SETUP
           </p>
 
-          <h1 className="mb-6 text-4xl font-bold leading-[1.08] text-[#2b2620] md:text-6xl">
+          <h1 className="mb-6 font-display text-4xl font-semibold leading-[1.08] text-[#2b2620] md:text-6xl">
             Every repo has a
             <br />
             worst file.
@@ -140,20 +141,24 @@ export default function HeroSection({ isAuthenticated, login }: HeroSectionProps
           {!isAuthenticated ? (
             <div className="space-y-5">
               <div className="flex flex-col gap-3 sm:flex-row">
-                <Link
-                  href="/analyze"
-                  className="group inline-flex items-center justify-center gap-2 rounded-lg bg-[#d9a441] px-6 py-3 font-semibold text-[#2b2620] transition-colors hover:bg-[#cc9738]"
-                >
-                  Try Free Analysis
-                  <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
-                </Link>
-                <Link
-                  href="/api/auth/login"
-                  className="inline-flex items-center justify-center gap-2 rounded-lg border border-[#d8d2c4] bg-[#faf8f3] px-6 py-3 font-semibold text-[#2b2620] transition-colors hover:border-[#a89f8c]"
-                >
-                  <Lock className="h-4 w-4" />
-                  Sign in for Unlimited
-                </Link>
+                <Magnetic>
+                  <Link
+                    href="/analyze"
+                    className="group inline-flex items-center justify-center gap-2 rounded-lg bg-[#d9a441] px-6 py-3 font-semibold text-[#2b2620] transition-colors hover:bg-[#cc9738]"
+                  >
+                    Try Free Analysis
+                    <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
+                  </Link>
+                </Magnetic>
+                <Magnetic>
+                  <Link
+                    href="/api/auth/login"
+                    className="inline-flex items-center justify-center gap-2 rounded-lg border border-[#d8d2c4] bg-[#faf8f3] px-6 py-3 font-semibold text-[#2b2620] transition-colors hover:border-[#a89f8c]"
+                  >
+                    <Lock className="h-4 w-4" />
+                    Sign in for Unlimited
+                  </Link>
+                </Magnetic>
               </div>
               <p className="text-xs text-[#8a8172]">
                 Free: one analysis per session, no login required.
@@ -165,20 +170,24 @@ export default function HeroSection({ isAuthenticated, login }: HeroSectionProps
                 Welcome back, <span className="font-medium text-[#c1694f]">{login}</span>
               </p>
               <div className="flex flex-col gap-3 sm:flex-row">
-                <Link
-                  href="/analyze"
-                  className="group inline-flex items-center justify-center gap-2 rounded-lg bg-[#d9a441] px-6 py-3 font-semibold text-[#2b2620] transition-colors hover:bg-[#cc9738]"
-                >
-                  Analyze Repository
-                  <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
-                </Link>
-                <Link
-                  href="/dashboard"
-                  className="inline-flex items-center justify-center gap-2 rounded-lg border border-[#d8d2c4] bg-[#faf8f3] px-6 py-3 font-semibold text-[#2b2620] transition-colors hover:border-[#a89f8c]"
-                >
-                  <TrendingUp className="h-4 w-4" />
-                  View History
-                </Link>
+                <Magnetic>
+                  <Link
+                    href="/analyze"
+                    className="group inline-flex items-center justify-center gap-2 rounded-lg bg-[#d9a441] px-6 py-3 font-semibold text-[#2b2620] transition-colors hover:bg-[#cc9738]"
+                  >
+                    Analyze Repository
+                    <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
+                  </Link>
+                </Magnetic>
+                <Magnetic>
+                  <Link
+                    href="/dashboard"
+                    className="inline-flex items-center justify-center gap-2 rounded-lg border border-[#d8d2c4] bg-[#faf8f3] px-6 py-3 font-semibold text-[#2b2620] transition-colors hover:border-[#a89f8c]"
+                  >
+                    <TrendingUp className="h-4 w-4" />
+                    View History
+                  </Link>
+                </Magnetic>
               </div>
             </div>
           )}

@@ -1,19 +1,39 @@
 :root {
   --paper: #f4f1ea;
   --surface: #faf8f3;
+  --surface-raised: #fffdf9;
   --ink: #2b2620;
+  --ink-soft: #4a4238;
   --body: #6f665a;
+  --muted: #8a8172;
   --line: #e6e0d4;
+  --line-strong: #d8d2c4;
   --clay: #a85c42;
+  --terracotta: #c1694f;
   --gold: #d9a441;
+  --gold-hover: #cc9738;
+  --moss: #4d7142;
+  --amber: #947011;
+  --rust: #b4493d;
 }
 
 .app-shell {
   background: var(--paper);
   color: var(--ink);
   min-height: 100vh;
-  font: 16px/1.5 Arial, Helvetica, sans-serif;
+  font: 16px/1.5 var(--font-sans), Arial, Helvetica, sans-serif;
   color-scheme: light;
+}
+
+.app-shell h1,
+.app-shell h2,
+.app-shell h3,
+.app-shell .form-panel h2,
+.app-shell .intake-guide h2,
+.app-shell .graph-header h3,
+.app-shell .graph-empty h3,
+.app-shell .history-overview strong {
+  font-family: var(--font-display), Georgia, serif;
 }
 
 .app-shell * {
@@ -151,6 +171,7 @@
   font-weight: 600;
   border: 1px solid transparent;
   line-height: 1.4;
+  transition: background-color .25s ease, border-color .25s ease, transform .25s cubic-bezier(.16,1,.3,1), box-shadow .25s ease;
 }
 
 .primary-action {
@@ -159,7 +180,9 @@
 }
 
 .primary-action:hover {
-  background: #cc9738;
+  background: var(--gold-hover);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px -8px rgba(43, 38, 32, 0.35);
 }
 
 .secondary-action {
@@ -171,6 +194,7 @@
 .secondary-action:hover {
   background: #eee9de;
   border-color: #a89f8c;
+  transform: translateY(-2px);
 }
 
 .text-action {
@@ -876,10 +900,77 @@
   }
 }
 
+/* ===== Motion & structural accents (design system v2) ===== */
+
+@keyframes ringPulse {
+  0%, 100% { transform: scale(1); opacity: .16; }
+  50% { transform: scale(1.06); opacity: .32; }
+}
+
+.corridor-ring {
+  animation: ringPulse 4s ease-in-out infinite;
+}
+
+.spine-line {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  width: 1px;
+  background: linear-gradient(to bottom, transparent, var(--terracotta) 15%, var(--terracotta) 85%, transparent);
+  opacity: .18;
+  pointer-events: none;
+}
+
+.reveal-item {
+  opacity: 0;
+  transform: translateY(28px);
+  transition: opacity .7s cubic-bezier(.16,1,.3,1), transform .7s cubic-bezier(.16,1,.3,1);
+}
+
+.reveal-visible {
+  opacity: 1;
+  transform: none;
+}
+
+.magnetic-wrap {
+  display: inline-flex;
+}
+
+.nav-underline {
+  position: relative;
+}
+
+.nav-underline::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 100%;
+  bottom: -2px;
+  height: 1px;
+  background: currentColor;
+  transition: right .3s cubic-bezier(.16,1,.3,1);
+}
+
+.nav-underline:hover::after {
+  right: 0;
+}
+
+.graph-file-list button,
+.intake-guide li,
+.history-overview,
+.paper-card {
+  transition: border-color .3s ease, box-shadow .3s ease;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .app-shell * {
     animation: none !important;
     transition: none !important;
     scroll-behavior: auto !important;
+  }
+  .reveal-item {
+    opacity: 1 !important;
+    transform: none !important;
   }
 }

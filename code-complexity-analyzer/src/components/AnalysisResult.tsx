@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from "react"
 import FileGraph, { riskColor } from "./FileGraph"
+import ScrollReveal from "./ScrollReveal"
+import AnimatedCounter from "./AnimatedCounter"
 import type { GraphData } from "./FileGraph"
 import { X } from "lucide-react"
 import dynamic from "next/dynamic"
@@ -146,12 +148,14 @@ export default function AnalysisResults({
       )}
 
       {/* Metrics Grid */}
-      <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
-        <MetricCard label="Total LOC" value={metrics.totalLoc.toLocaleString()} />
-        <MetricCard label="Functions" value={metrics.totalFunctions.toLocaleString()} />
-        <MetricCard label="Avg Complexity" value={metrics.averageComplexity.toFixed(1)} />
-        <MetricCard label="Files" value={metrics.fileCount.toLocaleString()} />
-      </div>
+      <ScrollReveal>
+        <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
+          <MetricCard label="Total LOC" value={metrics.totalLoc} />
+          <MetricCard label="Functions" value={metrics.totalFunctions} />
+          <MetricCard label="Avg Complexity" value={metrics.averageComplexity} decimals={1} />
+          <MetricCard label="Files" value={metrics.fileCount} />
+        </div>
+      </ScrollReveal>
 
       {/* Trend Card */}
       {!isShared && !isPreview && !loadingComparison && priorAnalyses.length > 0 && (
@@ -320,11 +324,13 @@ export default function AnalysisResults({
   )
 }
 
-function MetricCard({ label, value }: { label: string; value: string | number }) {
+function MetricCard({ label, value, decimals = 0 }: { label: string; value: number; decimals?: number }) {
   return (
-    <div className="bg-[#faf8f3] rounded-2xl border border-[#e6e0d4] shadow-sm p-4">
+    <div className="bg-[#faf8f3] rounded-2xl border border-[#e6e0d4] shadow-sm p-4 transition-all hover:-translate-y-0.5 hover:border-[#c1694f]/30 hover:shadow-md">
       <p className="text-sm text-[#6f665a] mb-1">{label}</p>
-      <p className="text-2xl font-bold text-[#2b2620]">{value}</p>
+      <p className="font-display text-2xl font-semibold text-[#2b2620]">
+        <AnimatedCounter value={value} decimals={decimals} />
+      </p>
     </div>
   )
 }

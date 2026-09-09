@@ -70,6 +70,13 @@ function complexityBadge(complexity: number) {
   return "bg-green-500"
 }
 
+const MetricTile = ({ m }: { m: (typeof MOCK_METRICS)[number] }) => (
+  <div className="rounded-xl border border-[#e6e0d4]/80 bg-white/70 p-4">
+    <p className="text-sm text-[#6f665a]">{m.label}</p>
+    <p className="mt-1 text-2xl font-bold text-[#2b2620]">{m.value}</p>
+  </div>
+)
+
 export function ProductPreview() {
   return (
     <section className="relative z-10 px-6 py-28 md:px-16 lg:px-24">
@@ -81,54 +88,64 @@ export function ProductPreview() {
           sub="No vague grade, no black box. Aggregate metrics up top, your most complex files ranked below — every number traceable to a real file."
         />
 
-        <div className="mt-16 rounded-3xl border border-[#e6e0d4]/80 bg-[#faf8f3]/85 p-6 shadow-sm backdrop-blur-md md:p-10">
-          {/* Mock report header */}
-          <div className="flex flex-wrap items-center justify-between gap-4 border-b border-[#e6e0d4]/80 pb-6">
-            <div className="flex items-center gap-3">
-              <GitBranch className="h-5 w-5 text-[#c1694f]" />
-              <div>
-                <p className="font-mono text-sm font-semibold text-[#2b2620]">acme/checkout</p>
-                <p className="text-xs text-[#8a8172]">248 commits · analyzed just now</p>
-              </div>
-            </div>
-            <span className="rounded-lg border border-[#d8d2c4] bg-[#faf8f3] px-4 py-2 text-sm font-medium text-[#8a8172]">
-              Analyze Another
-            </span>
-          </div>
-
-          {/* Metric tiles */}
-          <div className="mt-6 grid grid-cols-2 gap-4 md:grid-cols-4">
-            {MOCK_METRICS.map((m) => (
-              <div key={m.label} className="rounded-xl border border-[#e6e0d4]/80 bg-white/70 p-4">
-                <p className="text-sm text-[#6f665a]">{m.label}</p>
-                <p className="mt-1 text-2xl font-bold text-[#2b2620]">{m.value}</p>
-              </div>
-            ))}
-          </div>
-
-          {/* Top complex files */}
-          <h3 className="mt-8 text-lg font-semibold text-[#2b2620]">
-            Top 5 Most Complex Files
-          </h3>
-          <div className="mt-4 divide-y divide-[#e6e0d4]/80 overflow-hidden rounded-xl border border-[#e6e0d4]/80 bg-white/70">
-            {MOCK_FILES.map((file) => (
-              <div
-                key={file.path}
-                className="flex items-center justify-between gap-4 px-4 py-3.5"
-              >
-                <p className="truncate font-mono text-sm text-[#2b2620]">{file.path}</p>
-                <div className="flex flex-shrink-0 items-center gap-3">
-                  <p className="hidden text-xs text-[#8a8172] sm:block">
-                    {file.loc} LOC · {file.functions} fns
-                  </p>
-                  <span
-                    className={`flex h-7 w-11 items-center justify-center rounded-full text-xs font-semibold text-white ${complexityBadge(file.complexity)}`}
-                  >
-                    {file.complexity}
-                  </span>
+        {/* Mock report split around a transparent center corridor so the fixed 3D scene shines through */}
+        <div className="mt-16 grid gap-6 lg:grid-cols-[1fr_minmax(200px,320px)_1fr] lg:items-center">
+          {/* Left panel: mock report header + first 2 metric tiles */}
+          <div className="rounded-3xl border border-[#e6e0d4]/80 bg-[#faf8f3]/85 p-6 shadow-sm backdrop-blur-md md:p-10">
+            <div className="flex flex-wrap items-center justify-between gap-4 border-b border-[#e6e0d4]/80 pb-6">
+              <div className="flex items-center gap-3">
+                <GitBranch className="h-5 w-5 text-[#c1694f]" />
+                <div>
+                  <p className="font-mono text-sm font-semibold text-[#2b2620]">acme/checkout</p>
+                  <p className="text-xs text-[#8a8172]">248 commits · analyzed just now</p>
                 </div>
               </div>
-            ))}
+              <span className="rounded-lg border border-[#d8d2c4] bg-[#faf8f3] px-4 py-2 text-sm font-medium text-[#8a8172]">
+                Analyze Another
+              </span>
+            </div>
+
+            <div className="mt-6 grid grid-cols-2 gap-4">
+              {MOCK_METRICS.slice(0, 2).map((m) => (
+                <MetricTile key={m.label} m={m} />
+              ))}
+            </div>
+          </div>
+
+          {/* Corridor: deliberately transparent so the 3D sphere & particle burst shine through */}
+          <div aria-hidden="true" className="pointer-events-none hidden lg:block" />
+
+          {/* Right panel: last 2 metric tiles + top 5 files */}
+          <div className="rounded-3xl border border-[#e6e0d4]/80 bg-[#faf8f3]/85 p-6 shadow-sm backdrop-blur-md md:p-10">
+            <div className="grid grid-cols-2 gap-4">
+              {MOCK_METRICS.slice(2).map((m) => (
+                <MetricTile key={m.label} m={m} />
+              ))}
+            </div>
+
+            <h3 className="mt-8 text-lg font-semibold text-[#2b2620]">
+              Top 5 Most Complex Files
+            </h3>
+            <div className="mt-4 divide-y divide-[#e6e0d4]/80 overflow-hidden rounded-xl border border-[#e6e0d4]/80 bg-white/70">
+              {MOCK_FILES.map((file) => (
+                <div
+                  key={file.path}
+                  className="flex items-center justify-between gap-4 px-4 py-3.5"
+                >
+                  <p className="truncate font-mono text-sm text-[#2b2620]">{file.path}</p>
+                  <div className="flex flex-shrink-0 items-center gap-3">
+                    <p className="hidden text-xs text-[#8a8172] sm:block">
+                      {file.loc} LOC · {file.functions} fns
+                    </p>
+                    <span
+                      className={`flex h-7 w-11 items-center justify-center rounded-full text-xs font-semibold text-white ${complexityBadge(file.complexity)}`}
+                    >
+                      {file.complexity}
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
 

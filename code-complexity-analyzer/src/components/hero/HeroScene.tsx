@@ -3,6 +3,7 @@
 import { useEffect, useRef } from "react"
 import type { MutableRefObject } from "react"
 import * as THREE from "three"
+import { introState, markReady } from "@/lib/intro"
 
 interface HeroSceneProps {
   labelOpacity: MutableRefObject<number>
@@ -26,6 +27,18 @@ const SWEEP = 3.0
 
 // Cursor attraction — pull strength when cursor is over a node
 const ATTRACT_STRENGTH = 1.2
+// ===== Intro pop-out (preloader only) =====
+// While the loading bar fills, each node is flung outward along its own random
+// direction, one after another, on a spring so it overshoots and settles —
+// that is the "inertia" in the reference clip. Everything here multiplies out
+// to zero the moment the intro finishes, so the scroll-driven animation that
+// follows is completely untouched.
+const INTRO_POP_MIN = 1.7 // closest a node travels from its orbit position
+const INTRO_POP_MAX = 5.4 // furthest a node travels
+const INTRO_STAGGER = 0.6 // last node starts popping at 60% of the bar
+const INTRO_RAMP = 0.4 // width of each node's own travel window
+const INTRO_SPRING = 0.13 // spring stiffness (higher = snappier pop)
+const INTRO_DAMP = 0.84 // velocity damping (lower = more overshoot/wobble)
 
 const NODES = [
   { name: "analyzer.ts",   color: "#77864a", size: 0.55 },
@@ -141,6 +154,8 @@ export default function HeroScene({
     try {
       renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true })
     } catch {
+      // Unblock the preloader — there will never be a scene to wait for.
+      markReady("hero-scene")
       return // WebGL unavailable — the hero keeps the plain page background
     }
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5))
@@ -219,6 +234,34 @@ export default function HeroScene({
       hexes.push(mesh)
       labelSprites.push(label)
     })
+
+    // ===== Per-node intro pop-out vectors =====
+    // Deterministic (hash-based, not Math.random) so the intro looks identical
+    // on every visit and never differs between two tabs.
+    const introHash = (n: number) => {
+      const v = Math.sin(n * 127.1 + 311.7) * 43758.5453
+      return v - Math.floor(v)
+    }
+    const introDir: THREE.Vector3[] = []
+    const introAmp: number[] = []
+    const introStart: number[] = []
+    const introOff: THREE.Vector3[] = []
+    const introVel: THREE.Vector3[] = []
+    for (let i = 0; i < NODES.length; i++) {
+      const inc = Math.acos(1 - 2 * introHash(i + 11))
+      const az = introHash(i + 29) * Math.PI * 2
+      introDir.push(
+        new THREE.Vector3(
+          Math.sin(inc) * Math.cos(az),
+          Math.cos(inc) * 0.82, // slightly flattened so nodes spread wide, not tall
+          Math.sin(inc) * Math.sin(az)
+        )
+      )
+      introAmp.push(INTRO_POP_MIN + introHash(i + 53) * (INTRO_POP_MAX - INTRO_POP_MIN))
+      introStart.push(introHash(i + 71) * INTRO_STAGGER)
+      introOff.push(new THREE.Vector3())
+      introVel.push(new THREE.Vector3())
+    }
 
     // ===== Scanner ring sweeping up and down through the structure =====
     // The hole clears the node sphere (3.6 radius + largest node), so the
@@ -416,6 +459,12 @@ export default function HeroScene({
       smoothSp += (scrollProgress.current - smoothSp) * 0.08
       const sp = smoothSp
 
+      // Intro pop-out amount. Rises with the loading bar, then is multiplied
+      // back to 0 as the panel settles into its home slot, so the nodes fly
+      // back in with the same spring inertia they flew out with.
+      const introPop = introState.progress * (1 - introState.panelT)
+      const introActive = introState.panelT < 1
+
       // Slow autorotate + cursor tilt
       autoRot += dt * 0.06
       orrery.rotation.y += (targetY * 0.14 + autoRot - orrery.rotation.y) * 0.05
@@ -477,9 +526,26 @@ export default function HeroScene({
 
         // Compressed rest position pulls toward origin
         const jitter=pressure*(1-fragment)*0.065
-        const px=base.x*packingRadius+Math.sin(elapsed*37+i*2.7)*jitter
-        const py=base.y*packingRadius+Math.cos(elapsed*43+i*1.3)*jitter
-        const pz=base.z*packingRadius+Math.sin(elapsed*41+i*3.1)*jitter
+        let px=base.x*packingRadius+Math.sin(elapsed*37+i*2.7)*jitter
+        let py=base.y*packingRadius+Math.cos(elapsed*43+i*1.3)*jitter
+        let pz=base.z*packingRadius+Math.sin(elapsed*41+i*3.1)*jitter
+
+        // Intro: spring the node out along its own vector, then back in.
+        if (introActive || introOff[i].lengthSq() > 1e-6) {
+          const local = Math.max(0, Math.min((introPop - introStart[i]) / INTRO_RAMP, 1))
+          const eased = local * local * (3 - 2 * local)
+          const amp = introAmp[i] * eased
+          const o = introOff[i]
+          const v = introVel[i]
+          v.x += (introDir[i].x * amp - o.x) * INTRO_SPRING
+          v.y += (introDir[i].y * amp - o.y) * INTRO_SPRING
+          v.z += (introDir[i].z * amp - o.z) * INTRO_SPRING
+          v.multiplyScalar(INTRO_DAMP)
+          o.add(v)
+          px += o.x
+          py += o.y
+          pz += o.z
+        }
 
         let tx = px
         let ty = py
@@ -512,7 +578,7 @@ export default function HeroScene({
           }
         }
 
-        const follow=pressure>0.1?0.65:0.12
+        const follow=introActive?0.42:(pressure>0.1?0.65:0.12)
         g.position.x+=(tx-g.position.x)*follow
         g.position.y+=(ty-g.position.y)*follow
         g.position.z+=(tz-g.position.z)*follow
@@ -676,10 +742,13 @@ export default function HeroScene({
       ring.position.y = -SWEEP + cycle * SWEEP * 2
       const ringMat = ring.material as THREE.MeshBasicMaterial
       ringMat.opacity =
-        (0.7 + Math.sin(cycle * Math.PI) * 0.3) * labelOpacity.current * orreryNodeScale
+        (0.7 + Math.sin(cycle * Math.PI) * 0.3) *
+        labelOpacity.current *
+        orreryNodeScale *
+        introState.labels
 
       // Labels fade
-      const lo = labelOpacity.current * orreryNodeScale
+      const lo = labelOpacity.current * orreryNodeScale * introState.labels
       for (const s of labelSprites) {
         ;(s.material as THREE.SpriteMaterial).opacity = lo
       }
@@ -687,6 +756,8 @@ export default function HeroScene({
       renderer.render(scene, camera)
     }
     animate()
+    // First frame is on screen — tell the preloader the hero is genuinely ready.
+    markReady("hero-scene")
 
     return () => {
       cancelAnimationFrame(raf)

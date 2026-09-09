@@ -5,6 +5,7 @@ import ScrollReveal from "@/components/ScrollReveal"
 import Magnetic from "@/components/Magnetic"
 import Link from "next/link"
 import { Link2, Gauge, TrendingUp, ArrowRight, Lock } from "lucide-react"
+import IntroLoader from "@/components/hero/IntroLoader"
 
 interface NavProps {
   isAuthenticated: boolean
@@ -13,7 +14,7 @@ interface NavProps {
 
 function Navbar({ isAuthenticated, login }: NavProps) {
   return (
-    <nav className="sticky top-0 z-30 flex items-center justify-between border-b border-[#e6e0d4] bg-[#f4f1ea]/85 px-6 py-4 backdrop-blur-md md:px-16 lg:px-24">
+    <nav className="intro-nav sticky top-0 z-30 flex items-center justify-between border-b border-[#e6e0d4] bg-[#f4f1ea]/85 px-6 py-4 backdrop-blur-md md:px-16 lg:px-24">
       <Link href="/" className="font-mono text-sm tracking-tight text-[#2b2620]">
         code<span className="text-[#c1694f]">·</span>complexity
       </Link>
@@ -178,6 +179,7 @@ export default async function Home() {
 
   return (
     <div className="min-h-screen bg-[#f4f1ea]">
+      <IntroLoader />
       <Navbar isAuthenticated={!!session} login={session?.login} />
       <HeroSection isAuthenticated={!!session} login={session?.login} />
       <HowItWorks isAuthenticated={!!session} />

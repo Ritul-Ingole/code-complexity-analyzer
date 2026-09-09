@@ -20,6 +20,10 @@ export default function SmoothScroll() {
       touchMultiplier: 1.1,
     })
 
+    // Exposed so the intro preloader can freeze/resume smooth scrolling while
+    // the page is locked. Nothing else should reach for this.
+    ;(window as unknown as { __lenis?: Lenis }).__lenis = lenis
+
     let raf = 0
     const loop = (time: number) => {
       lenis.raf(time)
@@ -29,6 +33,7 @@ export default function SmoothScroll() {
 
     return () => {
       cancelAnimationFrame(raf)
+      delete (window as unknown as { __lenis?: Lenis }).__lenis
       lenis.destroy()
     }
   }, [])

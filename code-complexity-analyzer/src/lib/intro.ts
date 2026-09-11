@@ -64,7 +64,7 @@ export function onIntroFrame(fn: Listener) {
 }
 
 export function emitIntroFrame() {
-  for (const fn of frameListeners) fn()
+  frameListeners.forEach(fn => fn())
 }
 
 /** Play once per tab session, and never for reduced-motion users. */

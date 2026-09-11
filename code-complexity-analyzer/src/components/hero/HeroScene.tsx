@@ -28,17 +28,17 @@ const SWEEP = 3.0
 // Cursor attraction — pull strength when cursor is over a node
 const ATTRACT_STRENGTH = 1.2
 // ===== Intro pop-out (preloader only) =====
-// While the loading bar fills, each node is flung outward along its own random
-// direction, one after another, on a spring so it overshoots and settles —
-// that is the "inertia" in the reference clip. Everything here multiplies out
-// to zero the moment the intro finishes, so the scroll-driven animation that
-// follows is completely untouched.
-const INTRO_POP_MIN = 1.7 // closest a node travels from its orbit position
-const INTRO_POP_MAX = 5.4 // furthest a node travels
-const INTRO_STAGGER = 0.6 // last node starts popping at 60% of the bar
-const INTRO_RAMP = 0.4 // width of each node's own travel window
-const INTRO_SPRING = 0.13 // spring stiffness (higher = snappier pop)
-const INTRO_DAMP = 0.84 // velocity damping (lower = more overshoot/wobble)
+// While the loading bar fills, each node springs from inside the core out to
+// its home orbit (along its own ray origin → home), staggered one after
+// another, overshooting ~12% and bouncing back — that is the "inertia" in the
+// reference clip. The wave completes by progress 0.65, so the form is frozen
+// in its perfect state during the settling slide. Only touches the intro;
+// every scroll-driven transformation below is untouched.
+const INTRO_CORE_SCALE = 0.055 // node rest inside the core (radius ≈ 0.2 vs 3.6 orbit)
+const INTRO_STAGGER = 0.4 // wave spans progress 0.05 → 0.45 (+0.2 ramp)
+const INTRO_RAMP = 0.2 // width of each node's own travel window
+const INTRO_SPRING = 0.09 // spring stiffness
+const INTRO_DAMP = 0.82 // velocity damping → overshoot then settle
 
 const NODES = [
   { name: "analyzer.ts",   color: "#77864a", size: 0.55 },
@@ -235,32 +235,22 @@ export default function HeroScene({
       labelSprites.push(label)
     })
 
-    // ===== Per-node intro pop-out vectors =====
+    // ===== Per-node intro pop-out state =====
     // Deterministic (hash-based, not Math.random) so the intro looks identical
-    // on every visit and never differs between two tabs.
+    // on every visit and never differs between two tabs. Nodes parked inside
+    // the core (scale 0.055) when the intro plays, at home (1) otherwise.
     const introHash = (n: number) => {
       const v = Math.sin(n * 127.1 + 311.7) * 43758.5453
       return v - Math.floor(v)
     }
-    const introDir: THREE.Vector3[] = []
-    const introAmp: number[] = []
     const introStart: number[] = []
-    const introOff: THREE.Vector3[] = []
-    const introVel: THREE.Vector3[] = []
+    const introScale: number[] = []
+    const introVel: number[] = []
+    const introPlays = introState.progress < 1
     for (let i = 0; i < NODES.length; i++) {
-      const inc = Math.acos(1 - 2 * introHash(i + 11))
-      const az = introHash(i + 29) * Math.PI * 2
-      introDir.push(
-        new THREE.Vector3(
-          Math.sin(inc) * Math.cos(az),
-          Math.cos(inc) * 0.82, // slightly flattened so nodes spread wide, not tall
-          Math.sin(inc) * Math.sin(az)
-        )
-      )
-      introAmp.push(INTRO_POP_MIN + introHash(i + 53) * (INTRO_POP_MAX - INTRO_POP_MIN))
-      introStart.push(introHash(i + 71) * INTRO_STAGGER)
-      introOff.push(new THREE.Vector3())
-      introVel.push(new THREE.Vector3())
+      introStart.push(0.05 + introHash(i + 71) * INTRO_STAGGER)
+      introScale.push(introPlays ? INTRO_CORE_SCALE : 1)
+      introVel.push(0)
     }
 
     // ===== Scanner ring sweeping up and down through the structure =====
@@ -459,11 +449,11 @@ export default function HeroScene({
       smoothSp += (scrollProgress.current - smoothSp) * 0.08
       const sp = smoothSp
 
-      // Intro pop-out amount. Rises with the loading bar, then is multiplied
-      // back to 0 as the panel settles into its home slot, so the nodes fly
-      // back in with the same spring inertia they flew out with.
-      const introPop = introState.progress * (1 - introState.panelT)
-      const introActive = introState.panelT < 1
+      // Intro pop-out amount. Rises with the loading bar and deliberately does
+      // NOT fall during the settling slide — the form must stay frozen while
+      // the panel glides centre → right. Zero shape change, zero pop-ins.
+      const introPop = introState.progress
+      const introActive = introPop < 1
 
       // Slow autorotate + cursor tilt
       autoRot += dt * 0.06
@@ -530,21 +520,23 @@ export default function HeroScene({
         let py=base.y*packingRadius+Math.cos(elapsed*43+i*1.3)*jitter
         let pz=base.z*packingRadius+Math.sin(elapsed*41+i*3.1)*jitter
 
-        // Intro: spring the node out along its own vector, then back in.
-        if (introActive || introOff[i].lengthSq() > 1e-6) {
+        // Intro: node springs from inside the core out to its home orbit —
+        // position scales along its own ray origin → home, overshooting ~12%
+        // and settling. Once settled it stays at 1 forever (no fly-back).
+        const s = introScale[i]
+        if (introActive || Math.abs(s - 1) > 1e-4) {
           const local = Math.max(0, Math.min((introPop - introStart[i]) / INTRO_RAMP, 1))
           const eased = local * local * (3 - 2 * local)
-          const amp = introAmp[i] * eased
-          const o = introOff[i]
-          const v = introVel[i]
-          v.x += (introDir[i].x * amp - o.x) * INTRO_SPRING
-          v.y += (introDir[i].y * amp - o.y) * INTRO_SPRING
-          v.z += (introDir[i].z * amp - o.z) * INTRO_SPRING
-          v.multiplyScalar(INTRO_DAMP)
-          o.add(v)
-          px += o.x
-          py += o.y
-          pz += o.z
+          const target = INTRO_CORE_SCALE + (1 - INTRO_CORE_SCALE) * eased
+          let v = introVel[i]
+          v += (target - s) * INTRO_SPRING
+          v *= INTRO_DAMP
+          const ns = s + v
+          introScale[i] = ns
+          introVel[i] = v
+          px *= ns
+          py *= ns
+          pz *= ns
         }
 
         let tx = px
@@ -737,7 +729,8 @@ export default function HeroScene({
         ptsGeo.attributes.position.needsUpdate = true
       }
 
-      // Scanner sweep
+      // Scanner sweep. Fades up as the pop-out wave completes (progress
+      // 0.5 → 0.65), then stays up — no sudden pop-in during the slide.
       const cycle = (Math.sin(elapsed * 0.5 - Math.PI / 2) + 1) / 2
       ring.position.y = -SWEEP + cycle * SWEEP * 2
       const ringMat = ring.material as THREE.MeshBasicMaterial
@@ -745,12 +738,15 @@ export default function HeroScene({
         (0.7 + Math.sin(cycle * Math.PI) * 0.3) *
         labelOpacity.current *
         orreryNodeScale *
-        introState.labels
+        introState.labels *
+        Math.max(0, Math.min((introPop - 0.5) / 0.15, 1))
 
-      // Labels fade
+      // Labels fade. Each label rides its own node's spring: hidden inside the
+      // core, smoothly appearing as the node arrives and settles at home.
       const lo = labelOpacity.current * orreryNodeScale * introState.labels
-      for (const s of labelSprites) {
-        ;(s.material as THREE.SpriteMaterial).opacity = lo
+      for (let i = 0; i < labelSprites.length; i++) {
+        ;(labelSprites[i].material as THREE.SpriteMaterial).opacity =
+          lo * Math.max(0, Math.min((introScale[i] - INTRO_CORE_SCALE) / (1 - INTRO_CORE_SCALE), 1))
       }
 
       renderer.render(scene, camera)

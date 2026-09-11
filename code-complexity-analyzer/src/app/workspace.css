@@ -91,7 +91,8 @@
   gap: 8px;
 }
 
-.app-nav nav a {
+.app-nav nav a,
+.app-nav nav button {
   display: flex;
   align-items: center;
   padding: 8px 18px;
@@ -102,7 +103,8 @@
 }
 
 .app-nav nav a[aria-current=page],
-.app-nav nav a:hover {
+.app-nav nav a:hover,
+.app-nav nav button:hover {
   background: #eae3d5;
   color: var(--ink);
 }
@@ -784,7 +786,8 @@
   .app-nav nav {
     gap: 0;
   }
-  .app-nav nav a {
+  .app-nav nav a,
+  .app-nav nav button {
     padding: 8px 10px;
     font-size: 14px;
   }

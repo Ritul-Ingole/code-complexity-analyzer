@@ -26,12 +26,17 @@ export default function AppShell({
           </Link>
           
           {authenticated ? (
-            <Link 
-              href="/dashboard" 
-              aria-current={active === "dashboard" ? "page" : undefined}
-            >
-              History
-            </Link>
+            <>
+              <Link 
+                href="/dashboard" 
+                aria-current={active === "dashboard" ? "page" : undefined}
+              >
+                History
+              </Link>
+              <form action="/api/auth/logout" method="post">
+                <button type="submit">Logout</button>
+              </form>
+            </>
           ) : (
             <Link href="/api/auth/login">
               Sign in ↗

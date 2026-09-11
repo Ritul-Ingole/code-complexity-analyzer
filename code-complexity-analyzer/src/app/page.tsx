@@ -34,6 +34,14 @@ function Navbar({ isAuthenticated, login }: NavProps) {
               History
             </Link>
             <span className="font-mono text-xs text-[#a85c42]">{login}</span>
+            <form action="/api/auth/logout" method="post">
+              <button
+                type="submit"
+                className="rounded-full border border-[#d8d2c4] bg-[#faf8f3] px-4 py-1.5 text-xs font-medium text-[#2b2620] transition-all hover:border-[#a89f8c] hover:-translate-y-0.5"
+              >
+                Logout
+              </button>
+            </form>
           </>
         ) : (
           <a

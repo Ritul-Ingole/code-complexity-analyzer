@@ -14,6 +14,7 @@ import {
 const MIN_LOAD_MS = 2000 // organic duration target (~2.0s), per the plan
 const MAX_LOAD_MS = 5000 // ceiling safety net
 const SETTLE_MS = 950 // 3D panel travels smoothly centre → right-column home slot
+const LABELS_MS = 900 // file-name sprites + scanner disc fade up AFTER the glide lands
 
 const easeInOutCubic = (t: number) =>
   t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2
@@ -24,7 +25,7 @@ export default function IntroLoader() {
     if (play) {
       introState.progress = 0
       introState.panelT = 0
-      introState.labels = 1
+      introState.labels = 0 // hidden until the panel has glided into place
       introState.phase = "loading"
     }
     return play
@@ -68,6 +69,7 @@ export default function IntroLoader() {
 
     const start = performance.now()
     let settleStart = 0
+    let labelsStart = 0
     let holdStart = 0
     let raf = 0
 
@@ -135,7 +137,16 @@ export default function IntroLoader() {
         const t = Math.min((now - settleStart) / SETTLE_MS, 1)
         introState.panelT = easeInOutCubic(t)
         if (t >= 1) {
+          // Glide landed in its right-column home — only now do the file-name
+          // sprites and scanner disc slowly fade up (phase "labels").
           introState.panelT = 1
+          introState.phase = "labels"
+          labelsStart = now
+        }
+      } else if (introState.phase === "labels") {
+        const t = Math.min((now - labelsStart) / LABELS_MS, 1)
+        introState.labels = easeInOutCubic(t)
+        if (t >= 1) {
           emitIntroFrame()
           finish()
           return

@@ -554,7 +554,7 @@
   border: 1px solid var(--line);
   border-radius: 12px;
   overflow: hidden;
-  background: radial-gradient(circle, #dcd5c8 .7px, transparent .8px);
+  background: radial-gradient(circle, #b3aa9a 1px, transparent 1.1px);
   background-size: 22px 22px;
   touch-action: none;
 }

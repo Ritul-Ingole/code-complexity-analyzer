@@ -554,7 +554,7 @@ export default function FileGraph({ graph }: { graph?: GraphData }) {
 
       <div className="graph-body">
         <div className="graph-visual">
-          <div ref={hostRef} className="graph-stage-3d" role="img" aria-label="Interactive 3D file graph. Use the adjacent file list for keyboard exploration." />
+          <div ref={hostRef} className="graph-stage-3d" data-lenis-prevent="true" role="img" aria-label="Interactive 3D file graph. Use the adjacent file list for keyboard exploration." />
           {!shown.length && <p className="graph-message">No files match these filters.</p>}
           <div className="graph-legend">
             {[[10, "Low ≤25"], [30, "Medium 26–40"], [50, "High >40"]].map(([score, label]) => (
@@ -569,7 +569,7 @@ export default function FileGraph({ graph }: { graph?: GraphData }) {
               <h4>{chosen.path}</h4>
               <p style={{ color: riskColor(chosen.complexity) }}>{riskLevel(chosen.complexity)} · {chosen.complexity}</p>
               <p>{chosen.loc} lines · {chosen.functions} functions</p>
-              <div className="graph-file-list">
+              <div className="graph-file-list" data-lenis-prevent="true">
                 {connections.length ? connections.map((e, i) => (
                   <button type="button" key={i} onClick={() => focusNode(e.source === selected ? e.target : e.source)}>
                     <span>{e.source === selected ? "→" : "←"} {e.kind} · {e.count} site{e.count !== 1 ? "s" : ""}</span>
@@ -584,7 +584,7 @@ export default function FileGraph({ graph }: { graph?: GraphData }) {
               <p className="eyebrow">FILE EXPLORER</p>
               <h4>{shown.length} files in view</h4>
               <p>Select a node or file to inspect its connections.</p>
-              <div className="graph-file-list">
+              <div className="graph-file-list" data-lenis-prevent="true">
                 {shown.map((n) => (
                   <button type="button" key={n.path} onClick={() => focusNode(n.path)}>
                     <strong>{n.path}</strong>

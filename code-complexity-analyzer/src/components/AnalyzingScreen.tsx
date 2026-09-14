@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { CheckCircle2, Loader2 } from "lucide-react"
+import { CheckCircle2 } from "lucide-react"
 
 // Short, self-contained facts. Each should be readable in a few seconds.
 const FACTS = [
@@ -19,10 +19,10 @@ const FACTS = [
 
 // ponytail: stage advancement is timer-based, not real Lambda progress — add SSE/status polling only if analyses regularly exceed ~60s
 const STAGES = [
-  { label: "Fetching repository", at: 0 },
-  { label: "Parsing source files", at: 4 },
-  { label: "Scoring complexity", at: 10 },
-  { label: "Building the graph", at: 20 },
+  "Fetching repository",
+  "Parsing source files",
+  "Scoring complexity",
+  "Building the graph",
 ]
 
 interface AnalyzingScreenProps {
@@ -47,8 +47,6 @@ export default function AnalyzingScreen({ ready }: AnalyzingScreenProps) {
     }
   }, [ready])
 
-  const stageIndex = STAGES.reduce((acc, s, i) => (elapsed >= s.at ? i : acc), 0)
-
   return (
     <div className="bg-[#faf8f3] rounded-2xl border border-[#e6e0d4] shadow-sm p-8 text-center">
       {!ready ? (
@@ -60,25 +58,14 @@ export default function AnalyzingScreen({ ready }: AnalyzingScreenProps) {
             Analyzing Repository · {elapsed}s
           </p>
           <ul className="max-w-[260px] mx-auto mb-6 space-y-2 text-left">
-            {STAGES.map((stage, i) => (
+            {STAGES.map((label, i) => (
               <li
-                key={stage.label}
-                className={`flex items-center gap-2.5 text-sm ${
-                  i < stageIndex
-                    ? "text-[#6f665a]"
-                    : i === stageIndex
-                      ? "text-[#2b2620] font-medium"
-                      : "text-[#c5bcae]"
-                }`}
+                key={label}
+                style={{ animationDelay: `${i * 400}ms`, animationFillMode: "both" }}
+                className="flex items-center gap-2.5 text-sm text-[#c5bcae] animate-fade-in"
               >
-                {i < stageIndex ? (
-                  <CheckCircle2 size={15} className="text-[#4d7142] shrink-0" />
-                ) : i === stageIndex ? (
-                  <Loader2 size={15} className="text-[#a85c42] shrink-0 animate-spin" />
-                ) : (
-                  <span className="w-[15px] h-[15px] rounded-full border border-[#e6e0d4] shrink-0" />
-                )}
-                {stage.label}
+                <span className="w-[15px] h-[15px] rounded-full border border-[#e6e0d4] shrink-0" />
+                {label}
               </li>
             ))}
           </ul>
@@ -99,7 +86,18 @@ export default function AnalyzingScreen({ ready }: AnalyzingScreenProps) {
           <p className="text-lg font-semibold text-[#2b2620]">
             Analysis ready
           </p>
-          <p className="text-sm text-[#6f665a] mt-1">
+          <ul className="max-w-[260px] mx-auto mt-4 space-y-2 text-left">
+            {STAGES.map((label) => (
+              <li
+                key={label}
+                className="flex items-center gap-2.5 text-sm text-[#6f665a]"
+              >
+                <CheckCircle2 size={15} className="text-[#4d7142] shrink-0" />
+                {label}
+              </li>
+            ))}
+          </ul>
+          <p className="text-sm text-[#6f665a] mt-4">
             Pulling up your results...
           </p>
         </div>

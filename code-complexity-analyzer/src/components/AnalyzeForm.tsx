@@ -33,7 +33,7 @@ interface AnalysisResponse {
   analysisId: string
 }
 
-const READY_GRACE_PERIOD_MS = 1800
+const READY_GRACE_PERIOD_MS = 2600
 
 interface AnalyzeFormProps {
   isAuthenticated: boolean

@@ -52,6 +52,8 @@ export default function AnalyzeForm({ isAuthenticated }: AnalyzeFormProps) {
   const [analysisId, setAnalysisId] = useState<string | null>(null)
   const [hasUsedFreeAnalysis, setHasUsedFreeAnalysis] = useState(false)
   const [migrating, setMigrating] = useState(false)
+  const [remaining, setRemaining] = useState<number | null>(null)
+  const [resetsAt, setResetsAt] = useState<string | null>(null)
 
   // Auto-migrate on signin if there's a pending analysis
   useEffect(() => {
@@ -99,6 +101,25 @@ export default function AnalyzeForm({ isAuthenticated }: AnalyzeFormProps) {
     }
   }, [isAuthenticated])
 
+  // Daily analysis quota — shown on the submit button. Server is the source of
+  // truth; if this fetch fails we just hide the counter (hard limit still enforced).
+  useEffect(() => {
+    if (!isAuthenticated) {
+      setRemaining(null)
+      setResetsAt(null)
+      return
+    }
+    fetch("/api/usage")
+      .then(res => (res.ok ? res.json() : null))
+      .then(data => {
+        if (data && typeof data.remaining === "number") {
+          setRemaining(data.remaining)
+          setResetsAt(data.resetsAt ?? null)
+        }
+      })
+      .catch(() => setRemaining(null))
+  }, [isAuthenticated])
+
   const handleAnalyze = async (e: React.FormEvent) => {
     e.preventDefault()
     setError("")
@@ -133,6 +154,7 @@ export default function AnalyzeForm({ isAuthenticated }: AnalyzeFormProps) {
       const response: AnalysisResponse = await res.json()
 
       if (!res.ok) {
+        if (res.status === 429) setRemaining(0)
         throw new Error((response as any).message || (response as any).error || "Analysis failed")
       }
 
@@ -148,6 +170,7 @@ export default function AnalyzeForm({ isAuthenticated }: AnalyzeFormProps) {
           setResults(response.data)
           setUserId(response.userID)
           setAnalysisId(response.analysisId)
+          setRemaining(r => (r === null ? null : Math.max(0, r - 1)))
         }
         setLoading(false)
       }, READY_GRACE_PERIOD_MS)
@@ -199,14 +222,18 @@ export default function AnalyzeForm({ isAuthenticated }: AnalyzeFormProps) {
                     {error}
                   </div>
                 }
-                <button className="primary-action" type="submit" disabled={!isAuthenticated&&hasUsedFreeAnalysis}>
+                <button className="primary-action" type="submit" disabled={(!isAuthenticated&&hasUsedFreeAnalysis)||remaining===0}>
                   {
                     !isAuthenticated&&hasUsedFreeAnalysis?"Free analysis used":"Analyze repository"
                   }
+                  {isAuthenticated&&remaining!==null&&<span> · {remaining} left</span>}
                   <span aria-hidden="true">↗</span>
                   </button>{
                     !isAuthenticated&&<p className="preview-note">One free analysis. No sign-in required. <Link href="/api/auth/login">Sign in for unlimited analyses →</Link>
                   </p>
+                  }
+                  {
+                    isAuthenticated&&remaining===0&&resetsAt&&<p className="preview-note">Daily limit reached. Resets at {new Date(resetsAt).toLocaleTimeString()}.</p>
                   }
               </form>
                   <div className="form-assurance">

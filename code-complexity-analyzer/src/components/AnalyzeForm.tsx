@@ -184,5 +184,67 @@ export default function AnalyzeForm({ isAuthenticated }: AnalyzeFormProps) {
     return <AnalyzingScreen ready={ready} />
   }
 
-  return <div className="analyze-intake"><section className="paper-card form-panel"><p className="eyebrow">01 — START WITH A REPOSITORY</p><h2>Every file tells a story.</h2><p className="form-intro">Paste a public GitHub URL. We’ll map the connections and bring the most complex files to the surface.</p><form onSubmit={handleAnalyze} className="repo-form"><label htmlFor="repository-url">GitHub repository URL</label><input id="repository-url" type="url" placeholder="https://github.com/owner/repository" value={repoUrl} onChange={e=>setRepoUrl(e.target.value)} required disabled={!isAuthenticated&&hasUsedFreeAnalysis} aria-describedby="repository-help" aria-invalid={!!error}/><p id="repository-help">Public repositories · .js, .jsx, .ts and .tsx · up to 500 files / 25 MB of source</p>{error&&<div className="form-error" role="alert">{error}</div>}<button className="primary-action" type="submit" disabled={!isAuthenticated&&hasUsedFreeAnalysis}>{!isAuthenticated&&hasUsedFreeAnalysis?"Free analysis used":"Analyze repository"}<span aria-hidden="true">↗</span></button>{!isAuthenticated&&<p className="preview-note">One free analysis. No sign-in required. <Link href="/api/auth/login">Sign in for unlimited analyses →</Link></p>}</form><div className="form-assurance"><span>✓ Source code isn’t stored</span><span>✓ Static analysis, never executed</span></div></section><aside className="intake-guide"><p className="eyebrow">FROM CODE TO CLARITY</p><h2>A map, not just<br/>a number.</h2><ol><li><span>01</span><div><h3>Find the hotspots</h3><p>Rank files by complexity, with lines of code and function counts alongside.</p></div></li><li><span>02</span><div><h3>Follow the connections</h3><p>Explore a file graph with directional calls and complexity-colored nodes.</p></div></li><li><span>03</span><div><h3>Watch the change</h3><p>Sign in to save reports, compare runs and share what you find.</p></div></li></ol><div className="intake-key"><span>● Low ≤25</span><span>● Medium 26–40</span><span>● High &gt;40</span></div></aside></div>
+  return <div className="analyze-intake">
+          <section className="paper-card form-panel">
+            <p className="eyebrow">01 — START WITH A REPOSITORY</p>
+              <h2>Every file tells a story.</h2>
+            <p className="form-intro">Paste a public GitHub URL. We’ll map the connections and bring the most complex files to the surface.</p>
+              <form onSubmit={handleAnalyze} className="repo-form">
+                <label htmlFor="repository-url">GitHub repository URL</label>
+                <input id="repository-url" type="url" placeholder="https://github.com/owner/repository" value={repoUrl} onChange={e=>setRepoUrl(e.target.value)} required disabled={!isAuthenticated&&hasUsedFreeAnalysis} aria-describedby="repository-help" aria-invalid={!!error}/>
+                <p id="repository-help">Public repositories · .js, .jsx, .ts and .tsx · up to 500 files / 25 MB of source</p>
+                {
+                  error && 
+                  <div className="form-error" role="alert">
+                    {error}
+                  </div>
+                }
+                <button className="primary-action" type="submit" disabled={!isAuthenticated&&hasUsedFreeAnalysis}>
+                  {
+                    !isAuthenticated&&hasUsedFreeAnalysis?"Free analysis used":"Analyze repository"
+                  }
+                  <span aria-hidden="true">↗</span>
+                  </button>{
+                    !isAuthenticated&&<p className="preview-note">One free analysis. No sign-in required. <Link href="/api/auth/login">Sign in for unlimited analyses →</Link>
+                  </p>
+                  }
+              </form>
+                  <div className="form-assurance">
+                    <span>✓ Source code isn’t stored</span>
+                    <span>✓ Static analysis, never executed</span>
+                  </div>
+            </section>
+                <aside className="intake-guide">
+                  <p className="eyebrow">FROM CODE TO CLARITY</p>
+                  <h2>A map, not just<br/>a number.</h2>
+                  <ol>
+                    <li>
+                      <span>01</span>
+                      <div>
+                        <h3>Find the hotspots</h3>
+                        <p>Rank files by complexity, with lines of code and function counts alongside.</p>
+                      </div>
+                    </li>
+                    <li>
+                      <span>02</span>
+                      <div>
+                        <h3>Follow the connections</h3>
+                        <p>Explore a file graph with directional calls and complexity-colored nodes.</p>
+                      </div>
+                    </li>
+                    <li>
+                      <span>03</span>
+                      <div>
+                        <h3>Watch the change</h3>
+                        <p>Sign in to save reports, compare runs and share what you find.</p>
+                      </div>
+                    </li>
+                  </ol>
+                  <div className="intake-key">
+                    <span>● Low ≤25</span>
+                    <span>● Medium 26–40</span>
+                    <span>● High &gt;40</span>
+                  </div>
+                </aside>
+          </div>
 }

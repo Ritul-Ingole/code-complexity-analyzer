@@ -4,6 +4,7 @@ import { useState } from "react"
 import { ChevronDown, ChevronUp } from "lucide-react"
 import dynamic from "next/dynamic"
 import { Bar, XAxis, YAxis, CartesianGrid, Tooltip } from "recharts"
+import { REPORT_SHELL, REPORT_CORE } from "./report-shell"
 
 const BarChartComponent = dynamic(
   () => import("recharts").then((mod) => mod.BarChart),
@@ -116,7 +117,17 @@ function AnalysisColumn({
               width={100}
               tick={{ fontSize: 11 }}
             />
-            <Tooltip />
+            <Tooltip
+              contentStyle={{
+                background: "#faf8f3",
+                border: "1px solid #e6e0d4",
+                borderRadius: 12,
+                boxShadow: "0 8px 24px -12px rgba(43,38,32,0.25)",
+                fontSize: 12,
+                color: "#2b2620",
+              }}
+              cursor={{ fill: "rgba(193,105,79,0.08)" }}
+            />
             <Bar
               dataKey="complexity"
               fill="#c1694f"
@@ -194,22 +205,21 @@ export default function ComparisonSection({
   )
 
   return (
-    <div className="bg-[#faf8f3] rounded-2xl border border-[#e6e0d4] shadow-sm overflow-hidden">
+    <div className={REPORT_SHELL}>
+      <div className={`${REPORT_CORE} overflow-hidden`}>
       {/* Header - clickable to toggle */}
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="w-full flex items-center justify-between px-6 py-4 hover:bg-[#f4f1ea] transition-colors"
+        aria-expanded={isOpen}
+        className="w-full flex items-center justify-between px-6 py-4 text-left transition-colors duration-300 hover:bg-[#f4f1ea]"
       >
-        <div className="flex-1 text-left">
+        <div className="flex-1">
           <h3 className="text-lg font-semibold text-[#2b2620]">Detailed Comparison</h3>
-          <p className="text-sm text-[#6f665a]">
-            {isOpen ? "Click to collapse" : "Click to expand"}
-          </p>
         </div>
         {isOpen ? (
-          <ChevronUp size={24} className="text-[#6f665a]" />
+          <ChevronUp size={24} className="text-[#6f665a]" strokeWidth={1.5} />
         ) : (
-          <ChevronDown size={24} className="text-[#6f665a]" />
+          <ChevronDown size={24} className="text-[#6f665a]" strokeWidth={1.5} />
         )}
       </button>
 
@@ -224,7 +234,7 @@ export default function ComparisonSection({
             <select
               value={selectedAnalysisIndex}
               onChange={(e) => setSelectedAnalysisIndex(Number(e.target.value))}
-              className="px-4 py-2 border border-[#d8d2c4] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#a85c42] max-w-md"
+              className="max-w-md rounded-xl border border-[#d8d2c4] bg-[#fffdf9] px-4 py-2.5 text-sm text-[#2b2620]"
             >
               {priorAnalyses.map((analysis, idx) => (
                 <option key={idx} value={idx}>
@@ -242,7 +252,7 @@ export default function ComparisonSection({
           </div>
 
           {/* Responsive comparison: stacked on mobile, side-by-side on lg+ (desktop/big screens) */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-6 lg:divide-x lg:divide-gray-200">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-6 lg:divide-x lg:divide-[#e6e0d4]">
             <div className="lg:pr-6">
               <AnalysisColumn
                 title="Current Analysis"
@@ -265,6 +275,7 @@ export default function ComparisonSection({
           </div>
         </div>
       )}
+      </div>
     </div>
   )
 }

@@ -3,61 +3,10 @@ import HeroSection from "@/components/hero/HeroSection"
 import { ProductPreview, TrendsTeaser, TrustFaq } from "@/components/hero/LandingSections"
 import ScrollReveal from "@/components/ScrollReveal"
 import Magnetic from "@/components/Magnetic"
+import NavBar from "@/components/NavBar"
 import Link from "next/link"
-import { Link2, Gauge, TrendingUp, ArrowRight, Lock } from "lucide-react"
+import { Link2, Gauge, TrendingUp, ArrowRight } from "lucide-react"
 import IntroLoader from "@/components/hero/IntroLoader"
-
-interface NavProps {
-  isAuthenticated: boolean
-  login?: string
-}
-
-function Navbar({ isAuthenticated, login }: NavProps) {
-  return (
-    <div className="intro-nav sticky top-0 z-30 px-4 pt-4 sm:px-6 md:px-10">
-      <nav className="mx-auto flex w-full max-w-5xl items-center justify-between rounded-full border border-[#e6e0d4] bg-[#f4f1ea]/80 py-2.5 pl-6 pr-3 shadow-[0_8px_30px_rgba(43,38,32,0.06)] backdrop-blur-md">
-        <Link href="/" className="font-mono text-sm tracking-tight text-[#2b2620]">
-          code<span className="text-[#c1694f]">·</span>complexity
-        </Link>
-        <div className="flex items-center gap-2 sm:gap-3">
-          <Link
-            href="/analyze"
-            className="rounded-full px-3 py-1.5 text-sm text-[#6f665a] transition-colors hover:bg-white/60 hover:text-[#2b2620]"
-          >
-            Analyze
-          </Link>
-          {isAuthenticated ? (
-            <>
-              <Link
-                href="/dashboard"
-                className="rounded-full px-3 py-1.5 text-sm text-[#6f665a] transition-colors hover:bg-white/60 hover:text-[#2b2620]"
-              >
-                History
-              </Link>
-              <span className="hidden font-mono text-xs text-[#a85c42] md:inline">{login}</span>
-              <form action="/api/auth/logout" method="post">
-                <button
-                  type="submit"
-                  className="rounded-full border border-[#d8d2c4] bg-[#faf8f3] px-4 py-1.5 text-xs font-medium text-[#2b2620] transition-[border-color,transform] duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] hover:border-[#a89f8c] active:scale-95"
-                >
-                  Logout
-                </button>
-              </form>
-            </>
-          ) : (
-            <a
-              href="/api/auth/login"
-              className="flex items-center gap-1.5 rounded-full border border-[#d8d2c4] bg-[#faf8f3] px-4 py-1.5 text-xs font-medium text-[#2b2620] transition-[border-color,transform] duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] hover:border-[#a89f8c] active:scale-95"
-            >
-              <Lock className="h-3 w-3" />
-              Sign in
-            </a>
-          )}
-        </div>
-      </nav>
-    </div>
-  )
-}
 
 // Shared premium CTA — pill with a nested circular arrow orb (button-in-button).
 // Terracotta is the single accent; the old gold secondary accent is retired.
@@ -241,7 +190,7 @@ export default async function Home() {
   return (
     <div className="min-h-screen bg-[#f4f1ea]">
       <IntroLoader />
-      <Navbar isAuthenticated={!!session} login={session?.login} />
+      <NavBar isAuthenticated={!!session} login={session?.login} />
       <HeroSection isAuthenticated={!!session} login={session?.login} />
       <HowItWorks />
       <ProductPreview />

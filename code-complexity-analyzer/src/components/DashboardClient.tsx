@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { ChevronDown, ChevronUp, Search, Filter, X, Download, MoreVertical, Share2 } from "lucide-react"
+import { ChevronDown, ChevronUp, Search, Filter, X, Download, MoreVertical, Share2, ArrowRight } from "lucide-react"
 import AppShell from "./AppShell"
 import AnalysisResults from "./AnalysisResult"
 import type { GraphData } from "./FileGraph"
@@ -328,7 +328,7 @@ export default function DashboardClient({ userId }: DashboardClientProps) {
   return (
     <AppShell active="dashboard"><div className="history-workspace">
       <div className="history-content">
-        <header className="workspace-heading heading-with-action"><div><p className="eyebrow">YOUR REPOSITORY NOTEBOOK</p><h1>Less guesswork.<br/><span>More perspective.</span></h1><p>Revisit your analyses and decide what deserves attention next.</p></div><a href="/analyze" className="primary-action">Analyze a repository ↗</a></header>
+        <header className="workspace-heading heading-with-action"><div><p className="eyebrow">YOUR REPOSITORY NOTEBOOK</p><h1>Less guesswork.<br/><span>More perspective.</span></h1><p>Revisit your analyses and decide what deserves attention next.</p></div><a href="/analyze" className="primary-action">Analyze a repository<span className="action-orb" aria-hidden="true">↗</span></a></header>
         {!loading&&!error&&<div className="history-overview"><div><span>Saved analyses</span><strong>{analyses.length}</strong></div><div><span>Repositories explored</span><strong>{new Set(analyses.map(a=>a.repoUrl)).size}</strong></div><div><span>History retention</span><strong>30 <small>days</small></strong></div></div>}
 
         {loading && (
@@ -370,20 +370,21 @@ export default function DashboardClient({ userId }: DashboardClientProps) {
                 placeholder="Search by repository name..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 border border-[#d8d2c4] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#a85c42]"
+                className="w-full rounded-full border border-[#d8d2c4] bg-[#fffdf9] pl-10 pr-4 py-2.5 text-sm text-[#2b2620] placeholder:text-[#a89f8c]"
               />
             </div>
 
             {/* Filter Panel Toggle */}
             <button
               onClick={() => setFilterPanelOpen(!filterPanelOpen)}
-              className={`flex items-center gap-2 px-4 py-2 rounded-lg border transition-colors ${
+              aria-expanded={filterPanelOpen}
+              className={`flex items-center gap-2 px-4 py-2 rounded-full border transition-[background-color,border-color,color,transform] duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] active:scale-[0.98] ${
                 hasActiveFilters
                   ? "bg-[#f2ead9] border-[#dfcba2] text-[#8c4c36]"
                   : "bg-[#faf8f3] border-[#d8d2c4] text-[#51483d] hover:bg-[#f4f1ea]"
               }`}
             >
-              <Filter size={18} />
+              <Filter size={18} strokeWidth={1.5} />
               Filters {hasActiveFilters && <span className="text-xs font-bold">(active)</span>}
             </button>
 
@@ -400,9 +401,10 @@ export default function DashboardClient({ userId }: DashboardClientProps) {
                       <button
                         key={range}
                         onClick={() => setDateRange(range)}
-                        className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                        aria-pressed={dateRange === range}
+                        className={`rounded-full px-4 py-2 text-sm font-medium transition-[background-color,color,transform] duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] active:scale-[0.98] ${
                           dateRange === range
-                            ? "bg-[#d9a441] text-[#2b2620]"
+                            ? "bg-[#c1694f] text-[#faf8f3]"
                             : "bg-[#eee9de] text-[#51483d] hover:bg-[#e6e0d4]"
                         }`}
                       >
@@ -426,9 +428,10 @@ export default function DashboardClient({ userId }: DashboardClientProps) {
                       <button
                         key={level}
                         onClick={() => setComplexityFilter(level)}
-                        className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                        aria-pressed={complexityFilter === level}
+                        className={`rounded-full px-4 py-2 text-sm font-medium transition-[background-color,color,transform] duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] active:scale-[0.98] ${
                           complexityFilter === level
-                            ? "bg-[#d9a441] text-[#2b2620]"
+                            ? "bg-[#c1694f] text-[#faf8f3]"
                             : "bg-[#eee9de] text-[#51483d] hover:bg-[#e6e0d4]"
                         }`}
                       >
@@ -448,7 +451,7 @@ export default function DashboardClient({ userId }: DashboardClientProps) {
                   <select
                     value={sortBy}
                     onChange={(e) => setSortBy(e.target.value as SortOption)}
-                    className="w-full px-3 py-2 border border-[#d8d2c4] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#a85c42]"
+                    className="w-full rounded-xl border border-[#d8d2c4] bg-[#fffdf9] px-3 py-2.5 text-sm text-[#2b2620]"
                   >
                     <option value="newest">Newest First</option>
                     <option value="oldest">Oldest First</option>
@@ -479,13 +482,16 @@ export default function DashboardClient({ userId }: DashboardClientProps) {
         )}
 
         {analyses.length === 0 && !loading && !error && (
-          <div className="bg-[#faf8f3] rounded-2xl border border-[#e6e0d4] shadow-sm p-12 text-center">
+          <div className="rounded-2xl border border-[#e6e0d4] bg-[#faf8f3] p-12 text-center">
             <p className="text-[#6f665a] mb-4">No analyses yet.</p>
             <a
               href="/analyze"
-              className="inline-block px-6 py-2 bg-[#d9a441] text-[#2b2620] rounded-lg hover:bg-[#cc9738] transition-colors"
+              className="btn-primary"
             >
               Analyze a Repository
+              <span className="btn-orb">
+                <ArrowRight className="h-4 w-4" />
+              </span>
             </a>
           </div>
         )}
@@ -503,12 +509,12 @@ export default function DashboardClient({ userId }: DashboardClientProps) {
                 {filteredAndSortedAnalyses.map((analysis) => (
                   <div
                     key={analysis.analysisId}
-                    className="bg-[#faf8f3] rounded-2xl border border-[#e6e0d4] shadow-sm hover:shadow-lg transition-shadow overflow-hidden"
+                    className="rounded-2xl border border-[#e6e0d4] bg-[#faf8f3] shadow-[0_1px_2px_rgba(43,38,32,0.04),0_12px_32px_-20px_rgba(43,38,32,0.2)] transition-[box-shadow,transform] duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] hover:-translate-y-0.5 hover:shadow-[0_2px_4px_rgba(43,38,32,0.05),0_20px_44px_-20px_rgba(43,38,32,0.28)] overflow-hidden"
                   >
                     <div className="p-6">
                       <div className="flex items-start justify-between mb-4 flex-wrap gap-4">
                         <div className="flex-1 min-w-0">
-                          <h3 className="text-xl font-bold text-[#2b2620] truncate">
+                          <h3 className="text-xl font-semibold text-[#2b2620] truncate">
                             {analysis.repoUrl.split("/").pop()}
                           </h3>
                           <p className="text-sm text-[#6f665a] mt-1">
@@ -569,7 +575,7 @@ export default function DashboardClient({ userId }: DashboardClientProps) {
                           <p className="text-xs font-semibold text-[#6f665a] uppercase tracking-wide">
                             LOC
                           </p>
-                          <p className="text-2xl font-bold text-[#2b2620] mt-1">
+                          <p className="font-display text-2xl font-semibold text-[#2b2620] mt-1 tabular-nums">
                             {analysis.metrics.totalLoc.toLocaleString()}
                           </p>
                         </div>
@@ -577,7 +583,7 @@ export default function DashboardClient({ userId }: DashboardClientProps) {
                           <p className="text-xs font-semibold text-[#6f665a] uppercase tracking-wide">
                             Functions
                           </p>
-                          <p className="text-2xl font-bold text-[#2b2620] mt-1">
+                          <p className="font-display text-2xl font-semibold text-[#2b2620] mt-1 tabular-nums">
                             {analysis.metrics.totalFunctions.toLocaleString()}
                           </p>
                         </div>
@@ -585,7 +591,7 @@ export default function DashboardClient({ userId }: DashboardClientProps) {
                           <p className="text-xs font-semibold text-[#6f665a] uppercase tracking-wide">
                             Avg Complexity
                           </p>
-                          <p className="text-2xl font-bold text-[#2b2620] mt-1">
+                          <p className="font-display text-2xl font-semibold text-[#2b2620] mt-1 tabular-nums">
                             {analysis.metrics.averageComplexity.toFixed(1)}
                           </p>
                         </div>
@@ -593,7 +599,7 @@ export default function DashboardClient({ userId }: DashboardClientProps) {
                           <p className="text-xs font-semibold text-[#6f665a] uppercase tracking-wide">
                             Files Analyzed
                           </p>
-                          <p className="text-2xl font-bold text-[#2b2620] mt-1">
+                          <p className="font-display text-2xl font-semibold text-[#2b2620] mt-1 tabular-nums">
                             {analysis.metrics.fileCount}
                           </p>
                         </div>

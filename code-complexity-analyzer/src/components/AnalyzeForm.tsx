@@ -209,6 +209,7 @@ export default function AnalyzeForm({ isAuthenticated }: AnalyzeFormProps) {
 
   return <div className="analyze-intake">
           <section className="paper-card form-panel">
+            <div className="form-panel-core">
             <p className="eyebrow">01 — START WITH A REPOSITORY</p>
               <h2>Every file tells a story.</h2>
             <p className="form-intro">Paste a public GitHub URL. We’ll map the connections and bring the most complex files to the surface.</p>
@@ -227,7 +228,7 @@ export default function AnalyzeForm({ isAuthenticated }: AnalyzeFormProps) {
                     !isAuthenticated&&hasUsedFreeAnalysis?"Free analysis used":"Analyze repository"
                   }
                   {isAuthenticated&&remaining!==null&&<span> · {remaining} left</span>}
-                  <span aria-hidden="true">↗</span>
+                  <span className="action-orb" aria-hidden="true">↗</span>
                   </button>{
                     !isAuthenticated&&<p className="preview-note">One free analysis. No sign-in required. <Link href="/api/auth/login">Sign in for unlimited analyses →</Link>
                   </p>
@@ -237,9 +238,10 @@ export default function AnalyzeForm({ isAuthenticated }: AnalyzeFormProps) {
                   }
               </form>
                   <div className="form-assurance">
-                    <span>✓ Source code isn’t stored</span>
-                    <span>✓ Static analysis, never executed</span>
+                    <span><span className="check">✓</span> Source code isn’t stored</span>
+                    <span><span className="check">✓</span> Static analysis, never executed</span>
                   </div>
+            </div>
             </section>
                 <aside className="intake-guide">
                   <p className="eyebrow">FROM CODE TO CLARITY</p>

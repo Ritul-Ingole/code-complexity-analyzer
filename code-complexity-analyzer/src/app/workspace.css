@@ -10,8 +10,7 @@
   --line-strong: #d8d2c4;
   --clay: #a85c42;
   --terracotta: #c1694f;
-  --gold: #d9a441;
-  --gold-hover: #cc9738;
+  --terracotta-deep: #b25a41;
   --moss: #4d7142;
   --amber: #947011;
   --rust: #b4493d;
@@ -79,54 +78,8 @@
   touch-action: manipulation;
 }
 
-.app-nav {
-  max-width: 1440px;
-  height: 80px;
-  margin: auto;
-  padding: 0 48px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  border-bottom: 1px solid var(--line);
-  gap: 24px;
-}
-
-.app-brand {
-  font: 600 18px ui-monospace, monospace;
-  text-decoration: none;
-  color: var(--ink);
-  white-space: nowrap;
-  display: flex;
-  align-items: center;
-}
-
-.app-brand span {
-  color: #c1694f;
-  font-size: 26px;
-}
-
-.app-nav nav {
-  display: flex;
-  gap: 8px;
-}
-
-.app-nav nav a,
-.app-nav nav button {
-  display: flex;
-  align-items: center;
-  padding: 8px 18px;
-  font-size: 14px;
-  text-decoration: none;
-  color: var(--body);
-  border-radius: 8px;
-}
-
-.app-nav nav a[aria-current=page],
-.app-nav nav a:hover,
-.app-nav nav button:hover {
-  background: #eae3d5;
-  color: var(--ink);
-}
+/* App pages use the shared floating NavBar component (NavBar.tsx) — the flat
+   .app-nav bar styles were removed with it. */
 
 .app-main {
   max-width: 1280px;
@@ -184,38 +137,66 @@
   min-height: 48px;
   align-items: center;
   justify-content: center;
-  gap: 24px;
-  padding: 12px 20px;
-  border-radius: 8px;
+  gap: 12px;
+  padding: 12px 22px;
+  border-radius: 9999px;
   text-decoration: none;
   font-size: 14px;
   font-weight: 600;
   border: 1px solid transparent;
   line-height: 1.4;
-  transition: background-color .25s ease, border-color .25s ease, transform .25s cubic-bezier(.16,1,.3,1), box-shadow .25s ease;
+  transition:
+    background-color 300ms cubic-bezier(0.32, 0.72, 0, 1),
+    border-color 300ms cubic-bezier(0.32, 0.72, 0, 1),
+    box-shadow 300ms cubic-bezier(0.32, 0.72, 0, 1),
+    transform 200ms cubic-bezier(0.32, 0.72, 0, 1);
 }
 
 .primary-action {
-  background: var(--gold);
-  color: var(--ink);
+  background: var(--terracotta);
+  color: var(--surface);
+  box-shadow:
+    0 1px 2px rgba(43, 38, 32, 0.08),
+    0 8px 24px -8px rgba(193, 105, 79, 0.35);
 }
 
 .primary-action:hover {
-  background: var(--gold-hover);
-  transform: translateY(-2px);
-  box-shadow: 0 8px 20px -8px rgba(43, 38, 32, 0.35);
+  background: var(--terracotta-deep);
+  box-shadow:
+    0 2px 4px rgba(43, 38, 32, 0.08),
+    0 12px 32px -8px rgba(193, 105, 79, 0.45);
+}
+
+.primary-action:active,
+.secondary-action:active {
+  transform: scale(0.98);
+}
+
+/* Trailing icon never sits naked — nested circular orb (button-in-button) */
+.action-orb {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 9999px;
+  background: rgba(250, 248, 243, 0.18);
+  transition: transform 300ms cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+.primary-action:hover .action-orb {
+  transform: translate(2px, -1px) scale(1.06);
 }
 
 .secondary-action {
-  background: #faf8f3;
+  background: var(--surface-raised);
   color: var(--ink);
-  border-color: #d8d2c4;
+  border-color: var(--line-strong);
 }
 
 .secondary-action:hover {
-  background: #eee9de;
+  background: #fffdf8;
   border-color: #a89f8c;
-  transform: translateY(-2px);
 }
 
 .text-action {
@@ -236,7 +217,21 @@
 }
 
 .form-panel {
+  /* Double-bezel: outer shell (ring + padding), inner core carries content */
+  padding: 8px;
+  background: rgba(255, 255, 255, 0.4);
+  border: 1px solid var(--line);
+  border-radius: 26px;
+  box-shadow:
+    0 1px 2px rgba(43, 38, 32, 0.04),
+    0 16px 40px -24px rgba(43, 38, 32, 0.2);
+}
+
+.form-panel-core {
+  background: var(--surface);
+  border-radius: 20px;
   padding: 36px;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.7);
 }
 
 .form-panel h2,
@@ -268,19 +263,26 @@
 .repo-form input,
 .graph-toolbar input[type=search],
 .graph-toolbar select {
-  font: 14px/1.4 Arial, sans-serif;
+  font: 14px/1.4 var(--font-sans), Arial, sans-serif;
   min-height: 48px;
-  border: 1px solid #c9c0b0;
+  border: 1px solid var(--line-strong);
   background: #fffdf9;
-  border-radius: 8px;
+  border-radius: 10px;
   padding: 12px 14px;
   color: var(--ink);
   width: 100%;
   max-width: 100%;
+  transition: border-color 300ms cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+.repo-form input:hover,
+.graph-toolbar input[type=search]:hover,
+.graph-toolbar select:hover {
+  border-color: #c9c0b0;
 }
 
 .repo-form input {
-  font-family: ui-monospace, monospace;
+  font-family: var(--font-mono), ui-monospace, monospace;
 }
 
 .repo-form p {
@@ -314,6 +316,11 @@
   border-radius: 8px;
 }
 
+.form-assurance .check {
+  color: var(--terracotta);
+  font-weight: 600;
+}
+
 .form-assurance {
   display: flex;
   flex-wrap: wrap;
@@ -344,17 +351,22 @@
 
 .intake-guide li {
   display: flex;
-  align-items: start;
+  align-items: baseline;
   gap: 16px;
 }
 
 .intake-guide li > span {
-  font: 14px/34px ui-monospace, monospace;
-  border: 1px solid #d8d2c4;
-  border-radius: 50%;
-  min-width: 34px;
-  text-align: center;
-  color: var(--clay);
+  font-family: var(--font-display), Georgia, serif;
+  font-size: 44px;
+  line-height: 1;
+  font-weight: 500;
+  color: var(--terracotta);
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+}
+
+.intake-guide li > div {
+  margin-top: -6px;
 }
 
 .intake-guide h3 {
@@ -437,6 +449,7 @@
 .history-overview strong {
   font-size: 32px;
   font-weight: 500;
+  font-variant-numeric: tabular-nums;
 }
 
 .history-overview small {
@@ -459,6 +472,21 @@
 .analysis-report td:first-child {
   overflow-wrap: anywhere;
   max-width: 450px;
+}
+
+/* Recharts tooltip — paper surface, hairline border, tinted shadow.
+   Recharts inlines its own styles, so these need !important. */
+.analysis-report .recharts-default-tooltip {
+  background: var(--surface) !important;
+  border: 1px solid var(--line) !important;
+  border-radius: 12px !important;
+  box-shadow: 0 8px 24px -12px rgba(43, 38, 32, 0.25) !important;
+  font-variant-numeric: tabular-nums;
+}
+
+.analysis-report .recharts-tooltip-label,
+.analysis-report .recharts-tooltip-item {
+  color: var(--ink-soft) !important;
 }
 
 .analysis-report .bg-red-500 {

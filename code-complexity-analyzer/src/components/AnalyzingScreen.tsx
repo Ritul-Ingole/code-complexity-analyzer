@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react"
 import { CheckCircle2 } from "lucide-react"
+import { REPORT_SHELL, REPORT_CORE } from "./report-shell"
 
 // Short, self-contained facts. Each should be readable in a few seconds.
 const FACTS = [
@@ -48,7 +49,8 @@ export default function AnalyzingScreen({ ready }: AnalyzingScreenProps) {
   }, [ready])
 
   return (
-    <div className="bg-[#faf8f3] rounded-2xl border border-[#e6e0d4] shadow-sm p-8 text-center">
+    <div className={REPORT_SHELL}>
+      <div className={`${REPORT_CORE} p-8 text-center`}>
       {!ready ? (
         <>
           <div className="flex justify-center mb-6">
@@ -62,9 +64,9 @@ export default function AnalyzingScreen({ ready }: AnalyzingScreenProps) {
               <li
                 key={label}
                 style={{ animationDelay: `${i * 400}ms`, animationFillMode: "both" }}
-                className="flex items-center gap-2.5 text-sm text-[#c5bcae] animate-fade-in"
+                className="flex items-center gap-2.5 text-sm text-[#8a8172] animate-fade-in"
               >
-                <span className="w-[15px] h-[15px] rounded-full border border-[#e6e0d4] shrink-0" />
+                <span className="w-[15px] h-[15px] rounded-full border border-[#d8d2c4] shrink-0" />
                 {label}
               </li>
             ))}
@@ -102,6 +104,7 @@ export default function AnalyzingScreen({ ready }: AnalyzingScreenProps) {
           </p>
         </div>
       )}
+      </div>
     </div>
   )
 }

@@ -1,5 +1,7 @@
 "use client"
 
+import { REPORT_SHELL, REPORT_CORE } from "./report-shell"
+
 import { TrendingUp, TrendingDown } from "lucide-react"
 
 interface Metric {
@@ -67,7 +69,7 @@ function DeltaDisplay({
     <div className="flex flex-col gap-1">
       <p className="text-sm text-[#6f665a]">{label}</p>
       <div className="flex items-center gap-2">
-        <p className="text-lg font-bold text-[#2b2620]">
+        <p className="font-display text-lg font-semibold text-[#2b2620] tabular-nums">
           {current.toLocaleString()}
         </p>
         <span className="text-[#766c5e]">→</span>
@@ -88,7 +90,8 @@ export default function TrendCard({
   previousDate,
 }: TrendCardProps) {
   return (
-    <div className="bg-[#faf8f3] rounded-2xl border border-[#e6e0d4] border-l-4 border-l-[#c1694f] shadow-[0_1px_2px_rgba(43,38,32,0.04),0_12px_32px_-20px_rgba(43,38,32,0.2)] p-6">
+    <div className={REPORT_SHELL}>
+      <div className={`${REPORT_CORE} border-l-4 border-l-[#c1694f] p-6`}>
       <div className="mb-4">
         <h3 className="text-lg font-semibold text-[#2b2620]">
           Trend vs. previous analysis
@@ -121,6 +124,7 @@ export default function TrendCard({
           current={current.totalFunctions}
           previous={previous.totalFunctions}
         />
+      </div>
       </div>
     </div>
   )

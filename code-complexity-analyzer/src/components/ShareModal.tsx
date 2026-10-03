@@ -33,8 +33,9 @@ export default function ShareModal({
   }
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4">
-      <div className="bg-[#faf8f3] rounded-2xl border border-[#e6e0d4] shadow-xl max-w-md w-full">
+    <div className="fixed inset-0 z-50 bg-[#2b2620]/45 backdrop-blur-sm flex items-center justify-center p-4">
+      <div className="animate-modal-in w-full max-w-md rounded-[2rem] bg-white/40 p-1.5 ring-1 ring-[#e6e0d4] shadow-[0_24px_60px_-24px_rgba(43,38,32,0.35)]">
+        <div className="bg-[#faf8f3] rounded-[1.625rem] shadow-[inset_0_1px_0_rgba(255,255,255,0.7)] overflow-hidden">
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-[#e6e0d4]">
           <h2 className="text-lg font-semibold text-[#2b2620]">Share Analysis</h2>
@@ -70,7 +71,7 @@ export default function ShareModal({
             {copied ? (
               <>
                 <Check size={18} />
-                Copied!
+                Copied
               </>
             ) : (
               <>
@@ -81,9 +82,9 @@ export default function ShareModal({
           </button>
 
           {/* Info */}
-          <div className="bg-[#f2ead9] rounded-lg p-3 border border-[#dfcba2]">
+          <div className="bg-[#f2ead9] rounded-xl p-3 border border-[#dfcba2]">
             <p className="text-xs text-[#51483d]">
-              <span className="font-semibold">Note:</span> This link is public and anyone with the URL can view this analysis.
+              This link is public — anyone with the URL can view this analysis.
             </p>
           </div>
         </div>
@@ -92,10 +93,11 @@ export default function ShareModal({
         <div className="px-6 py-4 border-t border-[#e6e0d4] flex justify-end">
           <button
             onClick={onClose}
-            className="px-4 py-2 text-[#51483d] hover:bg-[#eee9de] rounded-lg transition-colors font-medium"
+            className="rounded-full px-5 py-2 text-[#51483d] hover:bg-[#eee9de] transition-[background-color,transform] duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] active:scale-[0.98] font-medium"
           >
             Done
           </button>
+        </div>
         </div>
       </div>
     </div>

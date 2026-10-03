@@ -5,11 +5,12 @@ import FileGraph, { riskColor } from "./FileGraph"
 import ScrollReveal from "./ScrollReveal"
 import AnimatedCounter from "./AnimatedCounter"
 import type { GraphData } from "./FileGraph"
-import { X } from "lucide-react"
+import { X, ArrowRight } from "lucide-react"
 import dynamic from "next/dynamic"
 import TrendCard from "./TrendCard"
 import ComparisonSection from "./ComparisonSection"
 import ShareModal from "./ShareModal"
+import { REPORT_SHELL, REPORT_CORE } from "./report-shell"
 
 const BarChartComponent = dynamic(
   () => import("recharts").then((mod) => mod.BarChart),
@@ -138,11 +139,14 @@ export default function AnalysisResults({
               <span className="font-semibold">Preview analysis:</span> Sign in to save this result to your history and unlock trends & comparisons.
             </p>
             <a
-              href="/api/auth/login"
-              className="px-4 py-2 bg-[#d9a441] text-[#2b2620] rounded-lg hover:bg-[#cc9738] text-sm font-medium whitespace-nowrap transition-colors"
-            >
-              Sign in with GitHub
-            </a>
+            href="/api/auth/login"
+            className="btn-primary"
+          >
+            Sign in with GitHub
+            <span className="btn-orb">
+              <ArrowRight className="h-4 w-4" />
+            </span>
+          </a>
           </div>
         </div>
       )}
@@ -168,83 +172,101 @@ export default function AnalysisResults({
 
       <FileGraph graph={data.fileGraph} />
       {/* Bar Chart */}
-      <div className="bg-[#faf8f3] rounded-2xl border border-[#e6e0d4] shadow-sm p-6">
-        <h3 className="text-lg font-semibold mb-4 text-[#2b2620]">Top 10 Most Complex Files</h3>
-        <ResponsiveContainerComponent width="100%" height={chartHeight}>
-          <BarChartComponent
-            data={chartData}
-            layout="vertical"
-            margin={{ left: 8, right: 24, top: 8, bottom: 8 }}
-          >
-            <CartesianGrid strokeDasharray="3 3" horizontal={false} />
-            <XAxis type="number" domain={[0, "dataMax + 5"]} tick={{ fontSize: 12 }} />
-            <YAxis
-              type="category"
-              dataKey="displayName"
-              width={110}
-              tick={{ fontSize: 12 }}
-            />
-            <Tooltip />
-            <Bar dataKey="complexity" fill="#c1694f" name="Complexity Score" radius={[0,4,4,0]}>{chartData.map(file=><Cell key={file.path} fill={riskColor(file.complexity)}/>)}</Bar>
-          </BarChartComponent>
-        </ResponsiveContainerComponent>
+      <div className={REPORT_SHELL}>
+        <div className={`${REPORT_CORE} p-6`}>
+          <h3 className="text-lg font-semibold mb-4 text-[#2b2620]">Top 10 Most Complex Files</h3>
+          <ResponsiveContainerComponent width="100%" height={chartHeight}>
+            <BarChartComponent
+              data={chartData}
+              layout="vertical"
+              margin={{ left: 8, right: 24, top: 8, bottom: 8 }}
+            >
+              <CartesianGrid strokeDasharray="3 3" horizontal={false} />
+              <XAxis type="number" domain={[0, "dataMax + 5"]} tick={{ fontSize: 12 }} />
+              <YAxis
+                type="category"
+                dataKey="displayName"
+                width={110}
+                tick={{ fontSize: 12 }}
+              />
+              <Tooltip
+                contentStyle={{
+                  background: "#faf8f3",
+                  border: "1px solid #e6e0d4",
+                  borderRadius: 12,
+                  boxShadow: "0 8px 24px -12px rgba(43,38,32,0.25)",
+                  fontSize: 12,
+                  color: "#2b2620",
+                }}
+                cursor={{ fill: "rgba(193,105,79,0.08)" }}
+              />
+              <Bar dataKey="complexity" fill="#c1694f" name="Complexity Score" radius={[0,4,4,0]}>{chartData.map(file=><Cell key={file.path} fill={riskColor(file.complexity)}/>)}</Bar>
+            </BarChartComponent>
+          </ResponsiveContainerComponent>
+        </div>
       </div>
 
       {/* File Table - Desktop */}
-      <div className="hidden sm:block bg-[#faf8f3] rounded-2xl border border-[#e6e0d4] shadow-sm overflow-hidden">
-        <div className="px-6 py-4 border-b border-[#e6e0d4]">
-          <h3 className="text-lg font-semibold text-[#2b2620]">File Details</h3>
-        </div>
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead className="bg-[#f4f1ea] border-b border-[#e6e0d4]">
-              <tr>
-                <th className="px-6 py-3 text-left font-semibold text-[#51483d]">File</th>
-                <th className="px-6 py-3 text-right font-semibold text-[#51483d]">LOC</th>
-                <th className="px-6 py-3 text-right font-semibold text-[#51483d]">Functions</th>
-                <th className="px-6 py-3 text-right font-semibold text-[#51483d]">Complexity</th>
-              </tr>
-            </thead>
-            <tbody>
-              {topComplexFiles.map((file, idx) => (
-                <tr key={idx} className="border-b border-[#e6e0d4] hover:bg-[#f4f1ea]">
-                  <td className="px-6 py-4 text-[#2b2620]">{file.path}</td>
-                  <td className="px-6 py-4 text-right text-[#6f665a]">{file.loc}</td>
-                  <td className="px-6 py-4 text-right text-[#6f665a]">{file.functions}</td>
-                  <td className="px-6 py-4 text-right">
-                    <span className={`px-3 py-1 rounded-full text-white text-xs font-semibold ${getComplexityColor(file.complexity)}`}>
-                      {file.complexity}
-                    </span>
-                  </td>
+      <div className={REPORT_SHELL}>
+        <div className={`${REPORT_CORE} overflow-hidden`}>
+          <div className="px-6 py-4 border-b border-[#e6e0d4]">
+            <h3 className="text-lg font-semibold text-[#2b2620]">File Details</h3>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead className="bg-[#f4f1ea] border-b border-[#e6e0d4]">
+                <tr>
+                  <th className="px-6 py-3 text-left font-semibold text-[#51483d]">File</th>
+                  <th className="px-6 py-3 text-right font-semibold text-[#51483d]">LOC</th>
+                  <th className="px-6 py-3 text-right font-semibold text-[#51483d]">Functions</th>
+                  <th className="px-6 py-3 text-right font-semibold text-[#51483d]">Complexity</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {topComplexFiles.map((file, idx) => (
+                  <tr key={idx} className="border-b border-[#e6e0d4] transition-colors duration-200 last:border-b-0 hover:bg-[#f4f1ea]">
+                    <td className="px-6 py-4 text-[#2b2620]">{file.path}</td>
+                    <td className="px-6 py-4 text-right text-[#6f665a] tabular-nums">{file.loc}</td>
+                    <td className="px-6 py-4 text-right text-[#6f665a] tabular-nums">{file.functions}</td>
+                    <td className="px-6 py-4 text-right">
+                      <span className={`px-3 py-1 rounded-full text-[#faf8f3] text-xs font-semibold tabular-nums ${getComplexityColor(file.complexity)}`}>
+                        {file.complexity}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
 
       {/* File List - Mobile */}
-      <div className="sm:hidden bg-[#faf8f3] rounded-2xl border border-[#e6e0d4] shadow-sm overflow-hidden">
-        <div className="px-4 py-4 border-b border-[#e6e0d4]">
-          <h3 className="text-lg font-semibold text-[#2b2620]">File Details</h3>
-        </div>
-        <div>
-          {topComplexFiles.map((file, idx) => (
-            <button
-              key={idx}
-              onClick={() => setSelectedFile(file)}
-              className="w-full flex items-center justify-between px-4 py-4 border-b border-[#e6e0d4] last:border-b-0 hover:bg-[#f4f1ea] active:bg-[#eee9de] text-left"
-            >
-              <span className="text-[#2b2620] truncate pr-3">
-                {file.path.split("/").pop()}
-              </span>
-              <span
-                className={`flex-shrink-0 px-3 py-1 rounded-full text-white text-xs font-semibold ${getComplexityColor(file.complexity)}`}
-              >
-                {file.complexity}
-              </span>
-            </button>
-          ))}
+      <div className="sm:hidden">
+        <div className={REPORT_SHELL}>
+          <div className={`${REPORT_CORE} overflow-hidden`}>
+            <div className="px-4 py-4 border-b border-[#e6e0d4]">
+              <h3 className="text-lg font-semibold text-[#2b2620]">File Details</h3>
+            </div>
+            <div>
+              {topComplexFiles.map((file, idx) => (
+                <button
+                  key={idx}
+                  onClick={() => setSelectedFile(file)}
+                  className="w-full flex items-center justify-between px-4 py-4 border-b border-[#e6e0d4] last:border-b-0 hover:bg-[#f4f1ea] active:bg-[#eee9de] text-left transition-colors duration-200"
+                >
+                  <span className="text-[#2b2620] truncate pr-3">
+                    {file.path.split("/").pop()}
+                  </span>
+                  <span
+                    className={`flex-shrink-0 px-3 py-1 rounded-full text-[#faf8f3] text-xs font-semibold tabular-nums ${getComplexityColor(file.complexity)}`}
+                  >
+                    {file.complexity}
+                  </span>
+                </button>
+              ))}
+            </div>
+          </div>
         </div>
       </div>
 
@@ -254,18 +276,19 @@ export default function AnalysisResults({
           className="fixed inset-0 z-50 sm:hidden"
           onClick={() => setSelectedFile(null)}
         >
-          <div className="absolute inset-0 bg-black/40" />
+          <div className="absolute inset-0 bg-[#2b2620]/45" />
           <div
-            className="absolute bottom-0 left-0 right-0 bg-[#faf8f3] rounded-t-2xl p-6 pb-8 animate-slide-up"
+            className="absolute bottom-0 left-0 right-0 bg-[#faf8f3] rounded-t-3xl p-6 pb-8 animate-slide-up"
             onClick={(e) => e.stopPropagation()}
           >
+            <div className="mx-auto mb-4 h-1 w-10 rounded-full bg-[#d8d2c4]" />
             <div className="flex items-start justify-between mb-4">
               <p className="text-sm font-mono text-[#51483d] break-all pr-4">
                 {selectedFile.path}
               </p>
               <button
                 onClick={() => setSelectedFile(null)}
-                className="flex-shrink-0 p-1 text-[#766c5e] hover:text-[#6f665a]"
+                className="flex-shrink-0 p-1 text-[#766c5e] hover:text-[#6f665a] transition-colors"
                 aria-label="Close"
               >
                 <X size={22} />
@@ -275,16 +298,16 @@ export default function AnalysisResults({
             <div className="grid grid-cols-3 gap-4 mt-2">
               <div>
                 <p className="text-xs font-semibold text-[#6f665a] uppercase tracking-wide">LOC</p>
-                <p className="text-xl font-bold text-[#2b2620] mt-1">{selectedFile.loc}</p>
+                <p className="text-xl font-semibold text-[#2b2620] mt-1 tabular-nums">{selectedFile.loc}</p>
               </div>
               <div>
                 <p className="text-xs font-semibold text-[#6f665a] uppercase tracking-wide">Functions</p>
-                <p className="text-xl font-bold text-[#2b2620] mt-1">{selectedFile.functions}</p>
+                <p className="text-xl font-semibold text-[#2b2620] mt-1 tabular-nums">{selectedFile.functions}</p>
               </div>
               <div>
                 <p className="text-xs font-semibold text-[#6f665a] uppercase tracking-wide">Complexity</p>
                 <span
-                  className={`inline-block mt-1 px-3 py-1 rounded-full text-white text-sm font-semibold ${getComplexityColor(selectedFile.complexity)}`}
+                  className={`inline-block mt-1 px-3 py-1 rounded-full text-[#faf8f3] text-sm font-semibold tabular-nums ${getComplexityColor(selectedFile.complexity)}`}
                 >
                   {selectedFile.complexity}
                 </span>
@@ -314,9 +337,12 @@ export default function AnalysisResults({
         <div className="flex justify-center pt-4">
           <button
             onClick={() => setShowShareModal(true)}
-            className="px-6 py-2 bg-[#d9a441] text-[#2b2620] rounded-lg hover:bg-[#cc9738] transition-colors font-medium"
+            className="btn-primary"
           >
             Share Analysis
+            <span className="btn-orb">
+              <ArrowRight className="h-4 w-4" />
+            </span>
           </button>
         </div>
       )}
@@ -326,9 +352,9 @@ export default function AnalysisResults({
 
 function MetricCard({ label, value, decimals = 0 }: { label: string; value: number; decimals?: number }) {
   return (
-    <div className="bg-[#faf8f3] rounded-2xl border border-[#e6e0d4] shadow-sm p-4 transition-all hover:-translate-y-0.5 hover:border-[#c1694f]/30 hover:shadow-md">
+    <div className="rounded-xl border border-[#e6e0d4]/80 bg-white/70 p-4 transition-[transform,border-color] duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] hover:-translate-y-0.5 hover:border-[#c1694f]/30">
       <p className="text-sm text-[#6f665a] mb-1">{label}</p>
-      <p className="font-display text-2xl font-semibold text-[#2b2620]">
+      <p className="font-display text-2xl font-semibold text-[#2b2620] tabular-nums">
         <AnimatedCounter value={value} decimals={decimals} />
       </p>
     </div>

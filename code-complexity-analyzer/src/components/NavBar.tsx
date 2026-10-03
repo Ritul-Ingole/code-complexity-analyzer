@@ -20,7 +20,7 @@ export default function NavBar({ isAuthenticated, login, active }: NavBarProps) 
 
   return (
     <div className="intro-nav sticky top-0 z-30 px-4 pt-4 sm:px-6 md:px-10">
-      <nav className="mx-auto flex w-full max-w-5xl items-center justify-between rounded-full border border-[#e6e0d4] bg-[#f4f1ea]/80 py-2.5 pl-6 pr-3 shadow-[0_8px_30px_rgba(43,38,32,0.06)] backdrop-blur-md">
+      <nav className="mx-auto flex w-full max-w-5xl items-center justify-between rounded-full border border-[#e6e0d4] bg-[#f4f1ea]/50 py-2.5 pl-6 pr-3 shadow-[0_8px_30px_rgba(43,38,32,0.06)] backdrop-blur-md">
         <Link href="/" className="font-mono text-sm tracking-tight text-[#2b2620]">
           code<span className="text-[#c1694f]">·</span>complexity
         </Link>

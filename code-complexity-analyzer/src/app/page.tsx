@@ -14,50 +14,104 @@ interface NavProps {
 
 function Navbar({ isAuthenticated, login }: NavProps) {
   return (
-    <nav className="intro-nav sticky top-0 z-30 flex items-center justify-between border-b border-[#e6e0d4] bg-[#f4f1ea]/85 px-6 py-4 backdrop-blur-md md:px-16 lg:px-24">
-      <Link href="/" className="font-mono text-sm tracking-tight text-[#2b2620]">
-        code<span className="text-[#c1694f]">·</span>complexity
-      </Link>
-      <div className="flex items-center gap-6">
-        <Link
-          href="/analyze"
-          className="nav-underline text-sm text-[#6f665a] transition-colors hover:text-[#2b2620]"
-        >
-          Analyze
+    <div className="intro-nav sticky top-0 z-30 px-4 pt-4 sm:px-6 md:px-10">
+      <nav className="mx-auto flex w-full max-w-5xl items-center justify-between rounded-full border border-[#e6e0d4] bg-[#f4f1ea]/80 py-2.5 pl-6 pr-3 shadow-[0_8px_30px_rgba(43,38,32,0.06)] backdrop-blur-md">
+        <Link href="/" className="font-mono text-sm tracking-tight text-[#2b2620]">
+          code<span className="text-[#c1694f]">·</span>complexity
         </Link>
-        {isAuthenticated ? (
-          <>
-            <Link
-              href="/dashboard"
-              className="nav-underline text-sm text-[#6f665a] transition-colors hover:text-[#2b2620]"
-            >
-              History
-            </Link>
-            <span className="font-mono text-xs text-[#a85c42]">{login}</span>
-            <form action="/api/auth/logout" method="post">
-              <button
-                type="submit"
-                className="rounded-full border border-[#d8d2c4] bg-[#faf8f3] px-4 py-1.5 text-xs font-medium text-[#2b2620] transition-all hover:border-[#a89f8c] hover:-translate-y-0.5"
-              >
-                Logout
-              </button>
-            </form>
-          </>
-        ) : (
-          <a
-            href="/api/auth/login"
-            className="flex items-center gap-1.5 rounded-full border border-[#d8d2c4] bg-[#faf8f3] px-4 py-1.5 text-xs font-medium text-[#2b2620] transition-all hover:border-[#a89f8c] hover:-translate-y-0.5"
+        <div className="flex items-center gap-2 sm:gap-3">
+          <Link
+            href="/analyze"
+            className="rounded-full px-3 py-1.5 text-sm text-[#6f665a] transition-colors hover:bg-white/60 hover:text-[#2b2620]"
           >
-            <Lock className="h-3 w-3" />
-            Sign in
-          </a>
-        )}
-      </div>
-    </nav>
+            Analyze
+          </Link>
+          {isAuthenticated ? (
+            <>
+              <Link
+                href="/dashboard"
+                className="rounded-full px-3 py-1.5 text-sm text-[#6f665a] transition-colors hover:bg-white/60 hover:text-[#2b2620]"
+              >
+                History
+              </Link>
+              <span className="hidden font-mono text-xs text-[#a85c42] md:inline">{login}</span>
+              <form action="/api/auth/logout" method="post">
+                <button
+                  type="submit"
+                  className="rounded-full border border-[#d8d2c4] bg-[#faf8f3] px-4 py-1.5 text-xs font-medium text-[#2b2620] transition-[border-color,transform] duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] hover:border-[#a89f8c] active:scale-95"
+                >
+                  Logout
+                </button>
+              </form>
+            </>
+          ) : (
+            <a
+              href="/api/auth/login"
+              className="flex items-center gap-1.5 rounded-full border border-[#d8d2c4] bg-[#faf8f3] px-4 py-1.5 text-xs font-medium text-[#2b2620] transition-[border-color,transform] duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] hover:border-[#a89f8c] active:scale-95"
+            >
+              <Lock className="h-3 w-3" />
+              Sign in
+            </a>
+          )}
+        </div>
+      </nav>
+    </div>
   )
 }
 
-function HowItWorks({ isAuthenticated }: { isAuthenticated: boolean }) {
+// Shared premium CTA — pill with a nested circular arrow orb (button-in-button).
+// Terracotta is the single accent; the old gold secondary accent is retired.
+function PrimaryCta({ href, children }: { href: string; children: React.ReactNode }) {
+  return (
+    <Magnetic>
+      <Link href={href} className="btn-primary group">
+        {children}
+        <span className="btn-orb">
+          <ArrowRight className="h-4 w-4" />
+        </span>
+      </Link>
+    </Magnetic>
+  )
+}
+
+// Card system: "double-bezel" — an outer shell with a hairline ring and
+// padding, an inner core with its own surface and concentric radius.
+// No backdrop-blur on scrolling content (GPU repaints); solid paper instead.
+const STEP_SHELL =
+  "rounded-[1.625rem] bg-white/40 p-1.5 ring-1 ring-[#e6e0d4] shadow-[0_1px_2px_rgba(43,38,32,0.04),0_16px_40px_-24px_rgba(43,38,32,0.2)] transition-transform duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] hover:-translate-y-1"
+const STEP_CORE =
+  "rounded-[1.25rem] bg-[#faf8f3] p-7 shadow-[inset_0_1px_0_rgba(255,255,255,0.7)]"
+
+function StepCard({
+  icon,
+  step,
+  title,
+  children,
+}: {
+  icon: React.ReactNode
+  step: string
+  title: string
+  children: React.ReactNode
+}) {
+  return (
+    <div className={STEP_SHELL}>
+      <div className={STEP_CORE}>
+        <div className="flex items-start justify-between">
+          <span className="font-display text-5xl font-semibold leading-none text-[#c1694f]">
+            {step}
+          </span>
+          <span className="mt-1 flex h-9 w-9 items-center justify-center rounded-full bg-[#f4f1ea] text-[#c1694f]">
+            {icon}
+          </span>
+        </div>
+        <h3 className="mt-5 text-lg font-semibold text-[#2b2620]">{title}</h3>
+        <p className="mt-2 text-sm leading-relaxed text-[#6f665a]">{children}</p>
+      </div>
+    </div>
+  )
+}
+
+function HowItWorks() {
   return (
     <section className="relative z-10 min-h-[150vh] px-6 py-28 md:px-16 lg:px-24 flex flex-col justify-between">
       <div className="mx-auto w-full max-w-7xl">
@@ -67,10 +121,10 @@ function HowItWorks({ isAuthenticated }: { isAuthenticated: boolean }) {
             <span className="font-mono text-xs tracking-wider text-[#a85c42]">
               02 — THREE STEPS, INSTANT CLARITY
             </span>
-            <h2 className="mt-3 font-display text-3xl font-semibold tracking-tight text-[#2b2620] md:text-5xl">
+            <h2 className="mt-3 font-display text-3xl font-semibold tracking-tight text-[#2b2620] text-balance md:text-5xl">
               From complex graph to pure signal.
             </h2>
-            <p className="mt-3 max-w-lg text-sm md:text-base text-[#6f665a] md:mx-0 mx-auto">
+            <p className="mx-auto mt-3 max-w-lg text-sm text-[#6f665a] md:mx-0 md:text-base text-pretty">
               Watch hundreds of files, imports, and dependencies collapse into a unified
               score, then explode into prioritized hotspots.
             </p>
@@ -83,33 +137,25 @@ function HowItWorks({ isAuthenticated }: { isAuthenticated: boolean }) {
           {/* Left Column */}
           <div className="flex flex-col gap-6">
             <ScrollReveal delay={0}>
-              <div className="rounded-2xl border border-[#e6e0d4]/90 bg-[#faf8f3]/80 p-7 shadow-sm backdrop-blur-md transition-all hover:-translate-y-1 hover:bg-[#faf8f3]/95 hover:shadow-md hover:border-[#c1694f]/30">
-                <div className="flex items-center justify-between">
-                  <Link2 className="h-5 w-5 text-[#c1694f]" />
-                  <span className="font-mono text-xs text-[#8a8172]">01</span>
-                </div>
-                <h3 className="mt-4 text-lg font-semibold text-[#2b2620]">Paste any repo URL</h3>
-                <p className="mt-2 text-sm leading-relaxed text-[#6f665a]">
-                  Point to any public GitHub repository. Zero install, no tokens required, and
-                  nothing to configure.
-                </p>
-              </div>
+              <StepCard
+                icon={<Link2 className="h-4 w-4" strokeWidth={1.5} />}
+                step="01"
+                title="Paste any repo URL"
+              >
+                Point to any public GitHub repository. Zero install, no tokens required, and
+                nothing to configure.
+              </StepCard>
             </ScrollReveal>
 
             <ScrollReveal delay={100}>
-              <div className="rounded-2xl border border-[#e6e0d4]/90 bg-[#faf8f3]/80 p-7 shadow-sm backdrop-blur-md transition-all hover:-translate-y-1 hover:bg-[#faf8f3]/95 hover:shadow-md hover:border-[#c1694f]/30">
-                <div className="flex items-center justify-between">
-                  <Gauge className="h-5 w-5 text-[#c1694f]" />
-                  <span className="font-mono text-xs text-[#8a8172]">02</span>
-                </div>
-                <h3 className="mt-4 text-lg font-semibold text-[#2b2620]">
-                  Condense into core metrics
-                </h3>
-                <p className="mt-2 text-sm leading-relaxed text-[#6f665a]">
-                  AST parsing condenses thousands of lines into cyclomatic complexity, Halstead
-                  volume, and maintainability indices in seconds.
-                </p>
-              </div>
+              <StepCard
+                icon={<Gauge className="h-4 w-4" strokeWidth={1.5} />}
+                step="02"
+                title="Condense into core metrics"
+              >
+                AST parsing condenses thousands of lines into cyclomatic complexity, Halstead
+                volume, and maintainability indices in seconds.
+              </StepCard>
             </ScrollReveal>
           </div>
 
@@ -124,61 +170,68 @@ function HowItWorks({ isAuthenticated }: { isAuthenticated: boolean }) {
           {/* Right Column */}
           <div className="flex flex-col gap-6">
             <ScrollReveal delay={0}>
-              <div className="rounded-2xl border border-[#e6e0d4]/90 bg-[#faf8f3]/80 p-7 shadow-sm backdrop-blur-md transition-all hover:-translate-y-1 hover:bg-[#faf8f3]/95 hover:shadow-md hover:border-[#c1694f]/30">
-                <div className="flex items-center justify-between">
-                  <TrendingUp className="h-5 w-5 text-[#c1694f]" />
-                  <span className="font-mono text-xs text-[#8a8172]">03</span>
-                </div>
-                <h3 className="mt-4 text-lg font-semibold text-[#2b2620]">Surface the hotspots</h3>
-                <p className="mt-2 text-sm leading-relaxed text-[#6f665a]">
-                  Watch the complexity field burst open into prioritized file ranks, warning
-                  indicators, and concrete refactoring opportunities.
-                </p>
-              </div>
+              <StepCard
+                icon={<TrendingUp className="h-4 w-4" strokeWidth={1.5} />}
+                step="03"
+                title="Surface the hotspots"
+              >
+                Watch the complexity field burst open into prioritized file ranks, warning
+                indicators, and concrete refactoring opportunities.
+              </StepCard>
             </ScrollReveal>
 
             <ScrollReveal delay={100}>
-              <div className="rounded-2xl border border-[#e6e0d4]/90 bg-[#faf8f3]/80 p-7 shadow-sm backdrop-blur-md transition-all hover:-translate-y-1 hover:bg-[#faf8f3]/95 hover:shadow-md hover:border-[#c1694f]/30">
-                <div className="flex items-center justify-between">
-                  <span className="font-mono text-xs font-semibold text-[#c1694f]">FAST &amp; SECURE</span>
-                  <span className="font-mono text-xs text-[#8a8172]">STATS</span>
+              <div className={STEP_SHELL}>
+                <div className={STEP_CORE}>
+                  <div className="flex items-center justify-between">
+                    <span className="font-mono text-xs font-semibold text-[#c1694f]">FAST &amp; SECURE</span>
+                    <span className="font-mono text-xs text-[#8a8172]">STATS</span>
+                  </div>
+                  <h3 className="mt-4 text-lg font-semibold text-[#2b2620]">
+                    Built for rapid feedback
+                  </h3>
+                  <p className="mt-2 text-sm leading-relaxed text-[#6f665a]">
+                    Serverless AWS Lambda backend scores large repositories in &lt;10s with zero
+                    code stored on our servers.
+                  </p>
                 </div>
-                <h3 className="mt-4 text-lg font-semibold text-[#2b2620]">
-                  Built for rapid feedback
-                </h3>
-                <p className="mt-2 text-sm leading-relaxed text-[#6f665a]">
-                  Serverless AWS Lambda backend scores large repositories in &lt;10s with zero
-                  code stored on our servers.
-                </p>
               </div>
             </ScrollReveal>
           </div>
         </div>
-
-        {/* Bottom Action Card */}
-        <ScrollReveal>
-          <div className="mt-24 flex flex-col items-center justify-center gap-4 rounded-3xl border border-[#e6e0d4]/80 bg-[#faf8f3]/85 p-10 text-center shadow-sm backdrop-blur-md sm:flex-row">
-            <Magnetic>
-              <Link
-                href="/analyze"
-                className="inline-flex items-center gap-2 rounded-lg bg-[#d9a441] px-7 py-3.5 font-semibold text-[#2b2620] transition-colors hover:bg-[#cc9738]"
-              >
-                Analyze your first repo
-                <ArrowRight className="h-4 w-4" />
-              </Link>
-            </Magnetic>
-            {!isAuthenticated && (
-              <a
-                href="/api/auth/login"
-                className="text-sm font-medium text-[#6f665a] underline underline-offset-4 transition-colors hover:text-[#2b2620]"
-              >
-                or sign in for unlimited analyses
-              </a>
-            )}
-          </div>
-        </ScrollReveal>
       </div>
     </section>
+  )
+}
+
+function Footer({ isAuthenticated }: { isAuthenticated: boolean }) {
+  return (
+    <footer className="relative z-10 border-t border-[#e6e0d4] px-6 py-10 md:px-16 lg:px-24">
+      <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-4 sm:flex-row">
+        <span className="font-mono text-xs text-[#8a8172]">
+          © {new Date().getFullYear()} code·complexity
+        </span>
+        <div className="flex items-center gap-6">
+          <Link
+            href="/analyze"
+            className="text-xs font-medium text-[#6f665a] transition-colors hover:text-[#2b2620]"
+          >
+            Analyze
+          </Link>
+          {isAuthenticated && (
+            <Link
+              href="/dashboard"
+              className="text-xs font-medium text-[#6f665a] transition-colors hover:text-[#2b2620]"
+            >
+              History
+            </Link>
+          )}
+        </div>
+        <span className="font-mono text-xs text-[#8a8172]">
+          Public GitHub repositories · JavaScript &amp; TypeScript
+        </span>
+      </div>
+    </footer>
   )
 }
 
@@ -190,10 +243,11 @@ export default async function Home() {
       <IntroLoader />
       <Navbar isAuthenticated={!!session} login={session?.login} />
       <HeroSection isAuthenticated={!!session} login={session?.login} />
-      <HowItWorks isAuthenticated={!!session} />
+      <HowItWorks />
       <ProductPreview />
       <TrendsTeaser isAuthenticated={!!session} />
       <TrustFaq isAuthenticated={!!session} />
+      <Footer isAuthenticated={!!session} />
     </div>
   )
 }

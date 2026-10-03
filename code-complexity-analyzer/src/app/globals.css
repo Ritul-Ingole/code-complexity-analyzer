@@ -5,13 +5,27 @@
 :root {
   --background: #ffffff;
   --foreground: #171717;
+  /* Brand tokens — warm editorial palette, terracotta is the single accent */
+  --ink: #2b2620;
+  --taupe: #6f665a;
+  --faint: #8a8172;
+  --paper: #faf8f3;
+  --canvas: #f4f1ea;
+  --sand-deep: #ece5d6;
+  --hairline: #e6e0d4;
+  --accent: #c1694f;
+  --accent-deep: #b25a41;
+  --ok: #4d7142;
+  --warn: #b4493d;
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-fluid: cubic-bezier(0.32, 0.72, 0, 1);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+/* Visible keyboard focus everywhere — accessibility requirement, on-brand color */
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+  border-radius: 4px;
 }
 
 body {
@@ -21,14 +35,98 @@ body {
 }
 
 ::selection {
-  background: #c1694f;
-  color: #faf8f3;
+  background: var(--accent);
+  color: var(--paper);
 }
 
 @layer utilities {
   .text-balance {
     text-wrap: balance;
   }
+  .text-pretty {
+    text-wrap: pretty;
+  }
+}
+
+/* ============================================================
+   Shared premium controls — pill CTA with nested "button-in-button"
+   arrow orb, pill ghost secondary. Used by landing + app pages.
+   ============================================================ */
+
+.btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  border-radius: 9999px;
+  padding: 0.875rem 1.25rem 0.875rem 1.75rem;
+  background: var(--accent);
+  color: var(--paper);
+  font-weight: 600;
+  font-size: 0.875rem;
+  line-height: 1;
+  box-shadow:
+    0 1px 2px rgba(43, 38, 32, 0.08),
+    0 8px 24px -8px rgba(193, 105, 79, 0.35);
+  transition:
+    background-color 300ms var(--ease-fluid),
+    box-shadow 300ms var(--ease-fluid),
+    transform 200ms var(--ease-fluid);
+}
+
+.btn-primary:hover {
+  background: var(--accent-deep);
+  box-shadow:
+    0 2px 4px rgba(43, 38, 32, 0.08),
+    0 12px 32px -8px rgba(193, 105, 79, 0.45);
+}
+
+.btn-primary:active {
+  transform: scale(0.98);
+}
+
+/* Trailing icon never sits naked — nested in its own circular wrapper */
+.btn-orb {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 9999px;
+  background: rgba(250, 248, 243, 0.18);
+  transition: transform 300ms var(--ease-fluid);
+}
+
+.btn-primary:hover .btn-orb {
+  transform: translate(2px, -1px) scale(1.06);
+}
+
+.btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  border-radius: 9999px;
+  padding: 0.875rem 1.75rem;
+  border: 1px solid var(--hairline);
+  background: var(--paper);
+  color: var(--ink);
+  font-weight: 600;
+  font-size: 0.875rem;
+  line-height: 1;
+  transition:
+    border-color 300ms var(--ease-fluid),
+    transform 200ms var(--ease-fluid),
+    background-color 300ms var(--ease-fluid);
+}
+
+.btn-secondary:hover {
+  border-color: #c9c2b1;
+  background: #fffdf8;
+}
+
+.btn-secondary:active {
+  transform: scale(0.98);
 }
 
 /* ============================================================

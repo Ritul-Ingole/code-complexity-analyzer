@@ -31,8 +31,21 @@ const jetbrainsMono = JetBrains_Mono({
 })
 
 export const metadata: Metadata = {
-  title: "Code Complexity Analyzer",
-  description: "Analyze JavaScript repositories for complexity metrics",
+  title: "Code Complexity Analyzer — find your worst file",
+  description:
+    "Paste a public GitHub repository and get cyclomatic complexity, LOC and hotspot rankings in seconds. Zero install, nothing stored.",
+  openGraph: {
+    title: "Code Complexity Analyzer",
+    description:
+      "Every repo has a worst file. Find yours — complexity, LOC and hotspot rankings in seconds.",
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Code Complexity Analyzer",
+    description:
+      "Every repo has a worst file. Find yours — complexity, LOC and hotspot rankings in seconds.",
+  },
 }
 
 export default function RootLayout({

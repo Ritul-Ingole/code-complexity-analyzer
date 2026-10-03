@@ -175,19 +175,15 @@ export default function HeroSection({ isAuthenticated, login }: HeroSectionProps
             <div className="space-y-5">
               <div className="flex flex-col gap-3 sm:flex-row">
                 <Magnetic>
-                  <Link
-                    href="/analyze"
-                    className="group inline-flex items-center justify-center gap-2 rounded-lg bg-[#d9a441] px-6 py-3 font-semibold text-[#2b2620] transition-colors hover:bg-[#cc9738]"
-                  >
+                  <Link href="/analyze" className="btn-primary">
                     Try Free Analysis
-                    <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
+                    <span className="btn-orb">
+                      <ArrowRight className="h-4 w-4" />
+                    </span>
                   </Link>
                 </Magnetic>
                 <Magnetic>
-                  <Link
-                    href="/api/auth/login"
-                    className="inline-flex items-center justify-center gap-2 rounded-lg border border-[#d8d2c4] bg-[#faf8f3] px-6 py-3 font-semibold text-[#2b2620] transition-colors hover:border-[#a89f8c]"
-                  >
+                  <Link href="/api/auth/login" className="btn-secondary">
                     <Lock className="h-4 w-4" />
                     Sign in for Unlimited
                   </Link>
@@ -204,19 +200,15 @@ export default function HeroSection({ isAuthenticated, login }: HeroSectionProps
               </p>
               <div className="flex flex-col gap-3 sm:flex-row">
                 <Magnetic>
-                  <Link
-                    href="/analyze"
-                    className="group inline-flex items-center justify-center gap-2 rounded-lg bg-[#d9a441] px-6 py-3 font-semibold text-[#2b2620] transition-colors hover:bg-[#cc9738]"
-                  >
+                  <Link href="/analyze" className="btn-primary">
                     Analyze Repository
-                    <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
+                    <span className="btn-orb">
+                      <ArrowRight className="h-4 w-4" />
+                    </span>
                   </Link>
                 </Magnetic>
                 <Magnetic>
-                  <Link
-                    href="/dashboard"
-                    className="inline-flex items-center justify-center gap-2 rounded-lg border border-[#d8d2c4] bg-[#faf8f3] px-6 py-3 font-semibold text-[#2b2620] transition-colors hover:border-[#a89f8c]"
-                  >
+                  <Link href="/dashboard" className="btn-secondary">
                     <TrendingUp className="h-4 w-4" />
                     View History
                   </Link>

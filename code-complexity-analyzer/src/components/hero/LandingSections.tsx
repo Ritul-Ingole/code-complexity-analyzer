@@ -6,8 +6,12 @@ import ScrollReveal from "@/components/ScrollReveal"
 import Magnetic from "@/components/Magnetic"
 import AnimatedCounter from "@/components/AnimatedCounter"
 
-const CARD =
-  "rounded-2xl border border-[#e6e0d4]/90 bg-[#faf8f3]/80 p-7 shadow-sm backdrop-blur-md transition-all hover:-translate-y-1 hover:bg-[#faf8f3]/95 hover:shadow-md hover:border-[#c1694f]/30"
+// Double-bezel card system: outer shell (hairline ring + padding) and inner
+// core (own surface, concentric radius). Solid paper — no backdrop-blur on
+// scrolling content. Slight lift + tinted shadow on hover, custom easing.
+const SHELL =
+  "rounded-[1.625rem] bg-white/40 p-1.5 ring-1 ring-[#e6e0d4] shadow-[0_1px_2px_rgba(43,38,32,0.04),0_16px_40px_-24px_rgba(43,38,32,0.2)] transition-transform duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] hover:-translate-y-1"
+const CORE = "rounded-[1.25rem] bg-[#faf8f3] p-7 shadow-[inset_0_1px_0_rgba(255,255,255,0.7)]"
 
 const MOCK_METRICS: Array<{ label: string; value: number; decimals: number }> = [
   { label: "Total LOC", value: 48213, decimals: 0 },
@@ -54,11 +58,11 @@ function SectionHeading({
     <ScrollReveal>
       <div className="text-center md:text-left">
         <span className="font-mono text-xs tracking-wider text-[#a85c42]">{kicker}</span>
-        <h2 className="mt-3 font-display text-3xl font-semibold tracking-tight text-[#2b2620] md:text-5xl">
+        <h2 className="mt-3 font-display text-3xl font-semibold tracking-tight text-[#2b2620] text-balance md:text-5xl">
           {title}
         </h2>
         {description && (
-          <p className="mt-3 max-w-lg text-sm md:text-base text-[#6f665a] md:mx-0 mx-auto">
+          <p className="mx-auto mt-3 max-w-lg text-sm text-[#6f665a] md:mx-0 md:text-base text-pretty">
             {description}
           </p>
         )}
@@ -68,9 +72,9 @@ function SectionHeading({
 }
 
 const MetricTile = ({ m }: { m: (typeof MOCK_METRICS)[number] }) => (
-  <div className="rounded-xl border border-[#e6e0d4]/80 bg-white/70 p-4 transition-all hover:-translate-y-0.5 hover:border-[#c1694f]/30">
+  <div className="rounded-xl border border-[#e6e0d4]/80 bg-white/70 p-4 transition-[transform,border-color] duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] hover:-translate-y-0.5 hover:border-[#c1694f]/30">
     <p className="text-sm text-[#6f665a]">{m.label}</p>
-    <p className="mt-1 font-display text-2xl font-semibold text-[#2b2620]">
+    <p className="mt-1 font-display text-2xl font-semibold tabular-nums text-[#2b2620]">
       <AnimatedCounter value={m.value} decimals={m.decimals} />
     </p>
   </div>
@@ -92,15 +96,17 @@ export function ProductPreview() {
           <div className="spine-line hidden lg:block" />
 
           <ScrollReveal delay={0}>
-            <div className={CARD}>
-              <div className="flex items-center justify-between">
-                <span className="font-mono text-xs text-[#8a8172]">ANALYSIS SUMMARY</span>
-                <Sparkles className="h-4 w-4 text-[#c1694f]" />
-              </div>
-              <div className="mt-5 grid grid-cols-2 gap-3">
+            <div className={`${SHELL} lg:-rotate-1`}>
+              <div className={CORE}>
+                <div className="flex items-center justify-between">
+                  <span className="font-mono text-xs text-[#8a8172]">ANALYSIS SUMMARY</span>
+                  <Sparkles className="h-4 w-4 text-[#c1694f]" strokeWidth={1.5} />
+                </div>
+                <div className="mt-5 grid grid-cols-2 gap-3">
                 {MOCK_METRICS.map((m) => (
                   <MetricTile key={m.label} m={m} />
                 ))}
+              </div>
               </div>
             </div>
           </ScrollReveal>
@@ -112,27 +118,29 @@ export function ProductPreview() {
           />
 
           <ScrollReveal delay={100}>
-            <div className={CARD}>
-              <div className="flex items-center justify-between">
-                <span className="font-mono text-xs text-[#8a8172]">TREND VS. LAST RUN</span>
-                <ShieldCheck className="h-4 w-4 text-[#4d7142]" />
-              </div>
-              <div className="mt-5 space-y-3">
-                {TREND_ROWS.map((row) => (
-                  <div
-                    key={row.label}
-                    className="flex items-center justify-between rounded-xl border border-[#e6e0d4]/80 bg-white/70 px-4 py-3 transition-all hover:border-[#c1694f]/30"
-                  >
-                    <span className="text-sm text-[#4a4238]">{row.label}</span>
-                    <span
-                      className={`font-mono text-xs font-semibold ${
-                        row.positive ? "text-[#4d7142]" : "text-[#b4493d]"
-                      }`}
+            <div className={`${SHELL} lg:rotate-1`}>
+              <div className={CORE}>
+                <div className="flex items-center justify-between">
+                  <span className="font-mono text-xs text-[#8a8172]">TREND VS. LAST RUN</span>
+                  <ShieldCheck className="h-4 w-4 text-[#4d7142]" strokeWidth={1.5} />
+                </div>
+                <div className="mt-5 space-y-3">
+                  {TREND_ROWS.map((row) => (
+                    <div
+                      key={row.label}
+                      className="flex items-center justify-between rounded-xl border border-[#e6e0d4]/80 bg-white/70 px-4 py-3 transition-colors duration-300 hover:border-[#c1694f]/30"
                     >
-                      {row.delta}
-                    </span>
-                  </div>
-                ))}
+                      <span className="text-sm text-[#4a4238]">{row.label}</span>
+                      <span
+                        className={`font-mono text-xs font-semibold tabular-nums ${
+                          row.positive ? "text-[#4d7142]" : "text-[#b4493d]"
+                        }`}
+                      >
+                        {row.delta}
+                      </span>
+                    </div>
+                  ))}
+                </div>
               </div>
             </div>
           </ScrollReveal>
@@ -154,32 +162,34 @@ export function TrendsTeaser({ isAuthenticated }: { isAuthenticated: boolean }) 
         />
 
         <ScrollReveal delay={80}>
-          <div className={`${CARD} mt-12`}>
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <div className="flex items-center gap-2">
-                <span className="h-2 w-2 rounded-full bg-[#4d7142]" />
-                <span className="text-sm font-medium text-[#2b2620]">
-                  Improving over last 3 analyses
-                </span>
-              </div>
-              <span className="font-mono text-xs text-[#8a8172]">acme/web-client</span>
-            </div>
-            <div className="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-3">
-              {TREND_ROWS.map((row) => (
-                <div
-                  key={row.label}
-                  className="rounded-xl border border-[#e6e0d4]/80 bg-white/70 p-4 transition-all hover:-translate-y-0.5 hover:border-[#c1694f]/30"
-                >
-                  <p className="text-xs text-[#8a8172]">{row.label}</p>
-                  <p
-                    className={`mt-1 font-mono text-sm font-semibold ${
-                      row.positive ? "text-[#4d7142]" : "text-[#b4493d]"
-                    }`}
-                  >
-                    {row.delta}
-                  </p>
+          <div className={`${SHELL} mt-12`}>
+            <div className={CORE}>
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div className="flex items-center gap-2">
+                  <span className="h-2 w-2 rounded-full bg-[#4d7142]" />
+                  <span className="text-sm font-medium text-[#2b2620]">
+                    Improving over last 3 analyses
+                  </span>
                 </div>
-              ))}
+                <span className="font-mono text-xs text-[#8a8172]">acme/web-client</span>
+              </div>
+              <div className="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-3">
+                {TREND_ROWS.map((row) => (
+                  <div
+                    key={row.label}
+                    className="rounded-xl border border-[#e6e0d4]/80 bg-white/70 p-4 transition-[transform,border-color] duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] hover:-translate-y-0.5 hover:border-[#c1694f]/30"
+                  >
+                    <p className="text-xs text-[#8a8172]">{row.label}</p>
+                    <p
+                      className={`mt-1 font-mono text-sm font-semibold tabular-nums ${
+                        row.positive ? "text-[#4d7142]" : "text-[#b4493d]"
+                      }`}
+                    >
+                      {row.delta}
+                    </p>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
         </ScrollReveal>
@@ -214,12 +224,13 @@ export function TrustFaq({ isAuthenticated }: { isAuthenticated: boolean }) {
       <div className="mx-auto w-full max-w-5xl">
         <SectionHeading kicker="05 — QUESTIONS, ANSWERED" title="Built to be trusted with your codebase." />
 
-        <div className="mt-12 grid grid-cols-1 gap-4 sm:grid-cols-2">
+        {/* Divided list — hairline separators instead of a wall of identical cards */}
+        <div className="mt-12 grid grid-cols-1 gap-x-16 sm:grid-cols-2">
           {FAQS.map((faq, idx) => (
             <ScrollReveal key={faq.q} delay={idx * 80}>
-              <div className={CARD}>
+              <div className="border-t border-[#e6e0d4] py-6">
                 <div className="flex items-start gap-2">
-                  <Check className="mt-0.5 h-4 w-4 flex-shrink-0 text-[#c1694f]" />
+                  <Check className="mt-1 h-4 w-4 flex-shrink-0 text-[#c1694f]" strokeWidth={1.75} />
                   <h3 className="text-base font-semibold text-[#2b2620]">{faq.q}</h3>
                 </div>
                 <p className="mt-2 pl-6 text-sm leading-relaxed text-[#6f665a]">{faq.a}</p>
@@ -228,25 +239,34 @@ export function TrustFaq({ isAuthenticated }: { isAuthenticated: boolean }) {
           ))}
         </div>
 
+        {/* Closing band — a slightly deeper shade of the same palette, not a theme swap */}
         <ScrollReveal delay={160}>
-          <div className="mt-16 flex flex-col items-center justify-center gap-4 rounded-3xl border border-[#e6e0d4]/80 bg-[#faf8f3]/85 p-10 text-center shadow-sm backdrop-blur-md sm:flex-row">
-            <Magnetic>
-              <Link
-                href="/analyze"
-                className="inline-flex items-center gap-2 rounded-lg bg-[#d9a441] px-7 py-3.5 font-semibold text-[#2b2620] transition-colors hover:bg-[#cc9738]"
-              >
-                Analyze your first repo
-                <ArrowRight className="h-4 w-4" />
-              </Link>
-            </Magnetic>
-            {!isAuthenticated && (
-              <a
-                href="/api/auth/login"
-                className="text-sm font-medium text-[#6f665a] underline underline-offset-4 transition-colors hover:text-[#2b2620]"
-              >
-                or sign in for unlimited analyses
-              </a>
-            )}
+          <div className="mt-16 rounded-[2.5rem] bg-[#ece5d6] px-6 py-20 text-center ring-1 ring-[#e6e0d4]">
+            <p className="font-mono text-xs tracking-wider text-[#a85c42]">06 — START NOW</p>
+            <h2 className="mx-auto mt-4 max-w-xl font-display text-3xl font-semibold tracking-tight text-[#2b2620] text-balance md:text-4xl">
+              Your worst file is one paste away.
+            </h2>
+            <p className="mx-auto mt-4 max-w-md text-sm text-[#6f665a] text-pretty">
+              Free analysis runs in seconds — no login, no install, nothing stored.
+            </p>
+            <div className="mt-10 flex flex-col items-center justify-center gap-4">
+              <Magnetic>
+                <Link href="/analyze" className="btn-primary">
+                  Analyze your first repo
+                  <span className="btn-orb">
+                    <ArrowRight className="h-4 w-4" />
+                  </span>
+                </Link>
+              </Magnetic>
+              {!isAuthenticated && (
+                <a
+                  href="/api/auth/login"
+                  className="text-sm font-medium text-[#6f665a] underline underline-offset-4 transition-colors hover:text-[#2b2620]"
+                >
+                  or sign in for unlimited analyses
+                </a>
+              )}
+            </div>
           </div>
         </ScrollReveal>
       </div>

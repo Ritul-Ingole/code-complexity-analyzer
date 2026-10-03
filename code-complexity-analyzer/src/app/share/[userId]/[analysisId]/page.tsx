@@ -67,7 +67,7 @@ export default function SharePage() {
     return (
       <div className="app-shell min-h-screen bg-[#f4f1ea] py-12 px-4 flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#c1694f] mx-auto mb-4"></div>
           <p className="text-[#6f665a]">Loading analysis...</p>
         </div>
       </div>

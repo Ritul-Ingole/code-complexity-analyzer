@@ -39,11 +39,11 @@ type DateRange = "7days" | "30days" | "all"
 type ComplexityLevel = "all" | "low" | "medium" | "high"
 type SortOption = "newest" | "oldest" | "mostComplex" | "leastComplex" | "mostLOC"
 
-// Complexity color badge helper
+// Complexity color badge helper — brand-tinted semantic badges
 function getComplexityColor(complexity: number): string {
-  if (complexity <= 25) return "bg-green-100 text-green-800"
-  if (complexity <= 40) return "bg-yellow-100 text-yellow-800"
-  return "bg-red-100 text-red-800"
+  if (complexity <= 25) return "badge-low"
+  if (complexity <= 40) return "badge-med"
+  return "badge-high"
 }
 
 // Get complexity level label
@@ -103,7 +103,7 @@ function ActionMenu({
             onClick={() => setOpen(false)}
           />
           {/* Dropdown menu */}
-          <div className="absolute right-0 mt-2 w-48 bg-[#faf8f3] border border-[#e6e0d4] rounded-2xl border border-[#e6e0d4] shadow-sm-lg z-50">
+          <div className="absolute right-0 mt-2 w-48 rounded-2xl border border-[#e6e0d4] bg-[#faf8f3] shadow-[0_8px_30px_rgba(43,38,32,0.12)] z-50">
             <button
               onClick={() => {
                 downloadJSON(analysis)
@@ -354,7 +354,7 @@ export default function DashboardClient({ userId }: DashboardClientProps) {
         )}
 
         {error && (
-          <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-red-700">
+          <div className="rounded-lg border border-[#e4c0ba] bg-[#f7e8e5] p-4 text-[#8f372e]">
             <p className="font-semibold">Error loading analyses</p>
             <p className="text-sm mt-1">{error}</p>
           </div>
@@ -467,7 +467,7 @@ export default function DashboardClient({ userId }: DashboardClientProps) {
                       setComplexityFilter("all")
                       setSortBy("newest")
                     }}
-                    className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-red-600 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors"
+                    className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-[#b4493d] hover:bg-[#f7e8e5] rounded-lg transition-colors"
                   >
                     <X size={16} />
                     Clear All Filters

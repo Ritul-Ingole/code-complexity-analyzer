@@ -17,6 +17,25 @@
   --rust: #b4493d;
 }
 
+/* Complexity / delta badges — brand-tinted semantic colors (replaces default
+   Tailwind green/yellow/red-100 badges that clashed with the warm palette) */
+.badge-good,
+.badge-low {
+  background: rgba(77, 113, 66, 0.12);
+  color: #3d5a35;
+}
+
+.badge-med {
+  background: rgba(148, 112, 17, 0.12);
+  color: #6e5410;
+}
+
+.badge-bad,
+.badge-high {
+  background: rgba(180, 73, 61, 0.12);
+  color: #8f372e;
+}
+
 .app-shell {
   background: var(--paper);
   color: var(--ink);

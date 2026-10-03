@@ -46,20 +46,20 @@ function DeltaDisplay({
   } else if (isComplexity) {
     // Complexity: green if decrease, red if increase
     if (delta < 0) {
-      badgeColor = "bg-green-100"
-      badgeText = "text-green-700"
+      badgeColor = "badge-good"
+      badgeText = ""
     } else if (delta > 0) {
-      badgeColor = "bg-red-100"
-      badgeText = "text-red-700"
+      badgeColor = "badge-bad"
+      badgeText = ""
     }
   } else {
     // LOC: green if decrease, red if increase
     if (delta < 0) {
-      badgeColor = "bg-green-100"
-      badgeText = "text-green-700"
+      badgeColor = "badge-good"
+      badgeText = ""
     } else if (delta > 0) {
-      badgeColor = "bg-red-100"
-      badgeText = "text-red-700"
+      badgeColor = "badge-bad"
+      badgeText = ""
     }
   }
 
@@ -88,10 +88,10 @@ export default function TrendCard({
   previousDate,
 }: TrendCardProps) {
   return (
-    <div className="bg-[#faf8f3] rounded-2xl border border-[#e6e0d4] shadow-sm p-6 border-l-4 border-blue-500">
+    <div className="bg-[#faf8f3] rounded-2xl border border-[#e6e0d4] border-l-4 border-l-[#c1694f] shadow-[0_1px_2px_rgba(43,38,32,0.04),0_12px_32px_-20px_rgba(43,38,32,0.2)] p-6">
       <div className="mb-4">
         <h3 className="text-lg font-semibold text-[#2b2620]">
-          📈 Trend vs. Previous Analysis
+          Trend vs. previous analysis
         </h3>
         <p className="text-sm text-[#6f665a]">
           {new Date(previousDate).toLocaleDateString("en-US", {

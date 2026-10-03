@@ -81,7 +81,7 @@ export default function AnalyzingScreen({ ready }: AnalyzingScreenProps) {
       ) : (
         <div className="animate-fade-in">
           <div className="flex justify-center mb-4">
-            <CheckCircle2 className="text-green-500" size={40} />
+            <CheckCircle2 className="text-[#4d7142]" size={40} strokeWidth={1.5} />
           </div>
           <p className="text-lg font-semibold text-[#2b2620]">
             Analysis ready

@@ -61,10 +61,10 @@ export default function ShareModal({
           {/* Copy Button */}
           <button
             onClick={handleCopy}
-            className={`w-full flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors ${
+            className={`w-full flex items-center justify-center gap-2 px-4 py-2 rounded-full font-medium transition-[background-color,transform] duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] active:scale-[0.98] ${
               copied
-                ? "bg-green-100 text-green-700"
-                : "bg-[#d9a441] text-[#2b2620] hover:bg-[#cc9738]"
+                ? "badge-good"
+                : "bg-[#c1694f] text-[#faf8f3] hover:bg-[#b25a41]"
             }`}
           >
             {copied ? (

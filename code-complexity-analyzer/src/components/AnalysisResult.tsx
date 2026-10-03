@@ -123,7 +123,7 @@ export default function AnalysisResults({
         {!isShared && !isPreview && (
           <button
             onClick={onBack}
-            className="px-4 py-2 text-sm border border-green-500 rounded-lg hover:bg-green-50 text-[#2b2620] transition-colors duration-200 border-2 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
+            className="btn-secondary text-sm"
           >
             Analyze Another
           </button>
@@ -132,9 +132,9 @@ export default function AnalysisResults({
 
       {/* Preview banner */}
       {isPreview && (
-        <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
+        <div className="rounded-lg border border-[#e0d3b4] bg-[#f3ead6] p-4">
           <div className="flex flex-wrap items-center justify-between gap-4">
-            <p className="text-sm text-amber-900">
+            <p className="text-sm text-[#6e5410]">
               <span className="font-semibold">Preview analysis:</span> Sign in to save this result to your history and unlock trends & comparisons.
             </p>
             <a

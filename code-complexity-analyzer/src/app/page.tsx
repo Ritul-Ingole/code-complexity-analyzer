@@ -169,7 +169,7 @@ function Footer({ isAuthenticated }: { isAuthenticated: boolean }) {
           </Link>
           {isAuthenticated && (
             <Link
-              href="/dashboard"
+              href="/history"
               className="text-xs font-medium text-[#6f665a] transition-colors hover:text-[#2b2620]"
             >
               History

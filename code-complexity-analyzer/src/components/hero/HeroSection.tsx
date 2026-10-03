@@ -208,7 +208,7 @@ export default function HeroSection({ isAuthenticated, login }: HeroSectionProps
                   </Link>
                 </Magnetic>
                 <Magnetic>
-                  <Link href="/dashboard" className="btn-secondary">
+                  <Link href="/history" className="btn-secondary">
                     <TrendingUp className="h-4 w-4" />
                     View History
                   </Link>

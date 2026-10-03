@@ -7,7 +7,7 @@ export default function AppShell({
   authenticated = true
 }: {
   children: ReactNode;
-  active: "analyze" | "dashboard";
+  active: "analyze" | "history";
   authenticated?: boolean
 }) {
   return (

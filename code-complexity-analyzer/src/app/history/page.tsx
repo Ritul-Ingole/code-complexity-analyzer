@@ -2,7 +2,7 @@ import { getSession } from "@/lib/session"
 import { redirect } from "next/navigation"
 import DashboardClient from "@/components/DashboardClient"
 
-export default async function DashboardPage() {
+export default async function HistoryPage() {
   const session = await getSession()
 
   if (!session) {

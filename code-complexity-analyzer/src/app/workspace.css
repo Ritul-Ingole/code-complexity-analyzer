@@ -72,8 +72,10 @@
   opacity: .5;
 }
 
-.app-shell button,
-.app-shell a {
+/* 44px touch targets for app CONTENT — scoped to .app-main so the shared
+   NavBar (which lives inside .app-shell) keeps its own compact pill sizing */
+.app-main a,
+.app-main button {
   min-height: 44px;
   touch-action: manipulation;
 }

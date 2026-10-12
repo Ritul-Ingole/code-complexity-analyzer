@@ -6,7 +6,7 @@ import { LineSegments2 } from "three/examples/jsm/lines/LineSegments2.js"
 import { LineSegmentsGeometry } from "three/examples/jsm/lines/LineSegmentsGeometry.js"
 import { LineMaterial } from "three/examples/jsm/lines/LineMaterial.js"
 
-export interface GraphNode { path: string; loc: number; functions: number; complexity: number }
+interface GraphNode { path: string; loc: number; functions: number; complexity: number }
 export interface GraphData {
   version: 1
   engine: string
@@ -16,7 +16,7 @@ export interface GraphData {
 }
 
 // Cream theme keeps these muted tones across the report and the 3D stage.
-export const riskLevel = (score: number) => (score > 40 ? "high" : score > 25 ? "medium" : "low")
+const riskLevel = (score: number) => (score > 40 ? "high" : score > 25 ? "medium" : "low")
 export const riskColor = (score: number) => (score > 40 ? "#b4493d" : score > 25 ? "#947011" : "#4d7142")
 
 interface V3 { x: number; y: number; z: number }

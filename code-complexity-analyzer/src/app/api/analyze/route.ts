@@ -20,11 +20,6 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    console.log("About to invoke Lambda with:", {
-      repoUrl,
-      userId: session.userId
-    })
-
     // Quota gate: consumed only for real analyses (past auth + validation).
     // Fail closed on storage errors — cost protection beats availability,
     // so the Lambda is never invoked when we can't verify the quota.

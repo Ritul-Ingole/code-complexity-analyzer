@@ -19,12 +19,7 @@ export async function POST(req: NextRequest) {
 
     if (!previewSessionId) {
       previewSessionId = `preview-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
-      console.log(`Generated new previewSessionId: ${previewSessionId}`)
-    } else {
-      console.log(`Using existing previewSessionId: ${previewSessionId}`)
     }
-
-    console.log("Preview analysis for:", repoUrl)
 
     const { statusCode, body } = await invokeLambda({
       repoUrl,

@@ -36,8 +36,6 @@ function DeltaDisplay({
   // Complexity: lower is better (green = decrease, red = increase)
   // LOC: lower is better (green = decrease, red = increase)
   // Functions: neutral (gray)
-  let bgColor = "bg-[#f4f1ea]"
-  let textColor = "text-[#2b2620]"
   let badgeColor = "bg-[#eee9de]"
   let badgeText = "text-[#51483d]"
 

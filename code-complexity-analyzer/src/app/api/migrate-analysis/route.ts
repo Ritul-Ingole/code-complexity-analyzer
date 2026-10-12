@@ -47,8 +47,6 @@ export async function POST(req: NextRequest) {
       })
     )
 
-    console.log(`Analysis migrated with ID: ${analysisId} for user: ${session.userId}`)
-
     return NextResponse.json({
       success: true,
       userID: String(session.userId),

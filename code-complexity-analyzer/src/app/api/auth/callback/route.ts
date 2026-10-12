@@ -1,30 +1,38 @@
 import { getGitHubAccessToken, getGitHubUser } from "@/lib/github-oauth"
+import { packSession } from "@/lib/session"
 import { cookies } from "next/headers"
 import { redirect } from "next/navigation"
 
 export async function GET(req: Request) {
   const url = new URL(req.url)
   const code = url.searchParams.get("code")
+  const state = url.searchParams.get("state")
 
   if (!code) {
     return new Response("Missing authorization code", { status: 400 })
+  }
+
+  // CSRF protection: the state must match the one stored when login started.
+  const cookieStore = await cookies()
+  const expectedState = cookieStore.get("oauth_state")?.value
+  cookieStore.delete("oauth_state")
+  if (!state || !expectedState || state !== expectedState) {
+    return new Response("Invalid OAuth state", { status: 400 })
   }
 
   try {
     const accessToken = await getGitHubAccessToken(code)
     const user = await getGitHubUser(accessToken)
 
-    // Store session in HTTP-only cookie
-    const sessionData = JSON.stringify({
+    // Store session in HTTP-only cookie (no accessToken: it is never used
+    // after login and should not live in a cookie)
+    const cookieStore = await cookies()
+    cookieStore.set("session", packSession({
       userId: user.id,
       email: user.email,
       login: user.login,
       avatar: user.avatar_url,
-      accessToken
-    })
-
-    const cookieStore = await cookies()
-    cookieStore.set("session", sessionData, {
+    }), {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
       sameSite: "lax",

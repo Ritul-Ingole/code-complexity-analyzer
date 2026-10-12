@@ -1,3 +1,5 @@
+import { randomBytes } from "crypto"
+
 // Determine which OAuth app to use based on APP_URL
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"
 
@@ -28,12 +30,16 @@ const GITHUB_OAUTH_URL = "https://github.com/login/oauth/authorize"
 const GITHUB_TOKEN_URL = "https://github.com/login/oauth/access_token"
 const GITHUB_USER_URL = "https://api.github.com/user"
 
-export function getGitHubAuthUrl() {
+export function generateOAuthState(): string {
+  return randomBytes(16).toString("base64url")
+}
+
+export function getGitHubAuthUrl(state: string) {
   const params = new URLSearchParams({
     client_id: GITHUB_CLIENT_ID,
     redirect_uri: `${APP_URL}/api/auth/callback`,
     scope: "read:user user:email",
-    state: Math.random().toString(36).slice(2)
+    state
   })
   return `${GITHUB_OAUTH_URL}?${params}`
 }

@@ -3,6 +3,9 @@ import { invokeLambda } from "@/lib/lambda"
 import { consumeDailyQuota, refundDailyQuota, QuotaResult } from "@/lib/usage"
 import { NextRequest, NextResponse } from "next/server"
 
+// Anchored: only https(s)://github.com/<owner>/<repo>[.git] passes.
+const GITHUB_REPO_URL = /^https?:\/\/github\.com\/[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+?(\.git)?$/
+
 export async function POST(req: NextRequest) {
   const session = await getSession()
 
@@ -10,16 +13,28 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
   }
 
+  let repoUrl: string
   try {
-    const { repoUrl } = await req.json()
+    ;({ repoUrl } = await req.json())
+  } catch {
+    return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 })
+  }
 
-    if (!repoUrl) {
-      return NextResponse.json(
-        { error: "repoUrl is required" },
-        { status: 400 }
-      )
-    }
+  if (!repoUrl) {
+    return NextResponse.json(
+      { error: "repoUrl is required" },
+      { status: 400 }
+    )
+  }
 
+  if (!GITHUB_REPO_URL.test(repoUrl)) {
+    return NextResponse.json(
+      { error: "Invalid repository URL. Use https://github.com/owner/repo" },
+      { status: 400 }
+    )
+  }
+
+  try {
     // Quota gate: consumed only for real analyses (past auth + validation).
     // Fail closed on storage errors — cost protection beats availability,
     // so the Lambda is never invoked when we can't verify the quota.
@@ -52,6 +67,11 @@ export async function POST(req: NextRequest) {
         userId: session.userId
       })
 
+      if (statusCode >= 400) {
+        // The analysis failed server-side; the user should not lose the attempt.
+        await refundDailyQuota(String(session.userId))
+      }
+
       return NextResponse.json(body, { status: statusCode })
     } catch (error) {
       // Our failure ate one of the user's attempts — give it back, best effort.
@@ -63,6 +83,9 @@ export async function POST(req: NextRequest) {
       )
     }
   } catch (error) {
+    if (error instanceof SyntaxError) {
+      return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 })
+    }
     console.error("Lambda invoke error:", error)
     return NextResponse.json(
       { error: "Failed to invoke analysis", message: error instanceof Error ? error.message : "Unknown error" },

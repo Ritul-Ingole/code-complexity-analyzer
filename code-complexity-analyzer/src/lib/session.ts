@@ -1,12 +1,68 @@
 import { cookies } from "next/headers"
+import { createHmac, timingSafeEqual } from "crypto"
 
 export type Session = {
   userId: number
   email: string
   login: string
   avatar: string
-  accessToken: string
 }
+
+// Session cookie format: "<base64url(json)>.<base64url(hmac-sha256)>".
+// Unsigned/invalid values are rejected; clients cannot forge userId.
+function getSessionSecret(): string {
+  const secret = process.env.SESSION_SECRET
+  if (!secret || secret.length < 16) {
+    throw new Error("SESSION_SECRET is missing or too short (use at least 16 characters)")
+  }
+  return secret
+}
+
+function sign(value: string): string {
+  return createHmac("sha256", getSessionSecret()).update(value).digest("base64url")
+}
+
+function packSession(data: unknown): string {
+  const payload = Buffer.from(JSON.stringify(data)).toString("base64url")
+  return `${payload}.${sign(payload)}`
+}
+
+function unpackSession(value: string): Session | null {
+  const dot = value.indexOf(".")
+  if (dot === -1) return null
+  const payload = value.slice(0, dot)
+  const signature = value.slice(dot + 1)
+  const expected = Buffer.from(sign(payload))
+  let provided: Buffer
+  try {
+    provided = Buffer.from(signature, "base64url")
+  } catch {
+    return null
+  }
+  if (provided.length !== expected.length || !timingSafeEqual(provided, expected)) {
+    return null
+  }
+  try {
+    const parsed = JSON.parse(Buffer.from(payload, "base64url").toString())
+    return isSession(parsed) ? parsed : null
+  } catch {
+    return null
+  }
+}
+
+function isSession(value: unknown): value is Session {
+  if (typeof value !== "object" || value === null) return false
+  const s = value as Record<string, unknown>
+  return (
+    typeof s.userId === "number" &&
+    Number.isFinite(s.userId) &&
+    typeof s.email === "string" &&
+    typeof s.login === "string" &&
+    typeof s.avatar === "string"
+  )
+}
+
+export { packSession }
 
 export async function getSession(): Promise<Session | null> {
   const cookieStore = await cookies()
@@ -14,11 +70,7 @@ export async function getSession(): Promise<Session | null> {
 
   if (!session) return null
 
-  try {
-    return JSON.parse(session)
-  } catch {
-    return null
-  }
+  return unpackSession(session)
 }
 
 export async function clearSession() {

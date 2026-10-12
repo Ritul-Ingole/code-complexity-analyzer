@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { useSearchParams } from "next/navigation"
 import type { GraphData } from "./FileGraph"
 import AnalysisResults from "./AnalysisResult"
@@ -54,6 +54,15 @@ export default function AnalyzeForm({ isAuthenticated }: AnalyzeFormProps) {
   const [migrating, setMigrating] = useState(false)
   const [remaining, setRemaining] = useState<number | null>(null)
   const [resetsAt, setResetsAt] = useState<string | null>(null)
+  const readyTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  // Clear the grace-period timer when the component unmounts so the
+  // delayed state updates never fire on a dead component.
+  useEffect(() => {
+    return () => {
+      if (readyTimerRef.current) clearTimeout(readyTimerRef.current)
+    }
+  }, [])
 
   // Auto-migrate on signin if there's a pending analysis
   useEffect(() => {
@@ -159,7 +168,7 @@ export default function AnalyzeForm({ isAuthenticated }: AnalyzeFormProps) {
       }
 
       setReady(true)
-      setTimeout(() => {
+      readyTimerRef.current = setTimeout(() => {
         if (!isAuthenticated) {
           // Store in sessionStorage and mark as used
           try { sessionStorage.setItem("pendingAnalysis", JSON.stringify(response.data)); sessionStorage.setItem("hasUsedFreeAnalysis", "true") } catch { console.warn("Preview storage unavailable") }

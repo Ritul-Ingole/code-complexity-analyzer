@@ -198,7 +198,7 @@ export function TrendsTeaser({ isAuthenticated }: { isAuthenticated: boolean }) 
           <ScrollReveal delay={160}>
             <div className="mt-8 flex flex-col items-center justify-center gap-4 rounded-2xl border border-[#e6e0d4]/80 bg-[#faf8f3]/70 p-8 text-center sm:flex-row">
               <p className="text-sm text-[#6f665a]">
-                Sign in with GitHub to start tracking your repositories' trends.
+                Sign in with GitHub to start tracking your repositories&apos; trends.
               </p>
               <Magnetic>
                 <a

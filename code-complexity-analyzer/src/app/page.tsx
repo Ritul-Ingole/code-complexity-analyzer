@@ -2,26 +2,10 @@ import { getSession } from "@/lib/session"
 import HeroSection from "@/components/hero/HeroSection"
 import { ProductPreview, TrendsTeaser, TrustFaq } from "@/components/hero/LandingSections"
 import ScrollReveal from "@/components/ScrollReveal"
-import Magnetic from "@/components/Magnetic"
 import NavBar from "@/components/NavBar"
 import Link from "next/link"
-import { Link2, Gauge, TrendingUp, ArrowRight } from "lucide-react"
+import { Link2, Gauge, TrendingUp } from "lucide-react"
 import IntroLoader from "@/components/hero/IntroLoader"
-
-// Shared premium CTA — pill with a nested circular arrow orb (button-in-button).
-// Terracotta is the single accent; the old gold secondary accent is retired.
-function PrimaryCta({ href, children }: { href: string; children: React.ReactNode }) {
-  return (
-    <Magnetic>
-      <Link href={href} className="btn-primary group">
-        {children}
-        <span className="btn-orb">
-          <ArrowRight className="h-4 w-4" />
-        </span>
-      </Link>
-    </Magnetic>
-  )
-}
 
 // Card system: "double-bezel" — an outer shell with a hairline ring and
 // padding, an inner core with its own surface and concentric radius.

@@ -631,28 +631,6 @@
   cursor: grabbing;
 }
 
-.graph-controls {
-  display: flex;
-  gap: 4px;
-  padding: 8px 16px;
-  border-top: 1px solid var(--line);
-  background: #faf8f3;
-}
-
-.graph-controls button {
-  min-height: 44px;
-  min-width: 44px;
-  padding: 8px 12px;
-  border: 0;
-  background: transparent;
-  color: var(--ink);
-  font-size: 14px;
-}
-
-.graph-controls button:hover {
-  background: #eee9de;
-}
-
 .graph-legend {
   display: flex;
   flex-wrap: wrap;
@@ -802,9 +780,6 @@
   .app-main {
     padding: 40px 32px 64px;
   }
-  .app-nav {
-    padding: 0 32px;
-  }
   .analyze-intake {
     gap: 28px;
     grid-template-columns: 1.2fr 1fr;
@@ -821,25 +796,6 @@
 }
 
 @media (max-width: 700px) {
-  .app-nav {
-    height: 72px;
-    padding: 0 20px;
-    gap: 8px;
-  }
-  .app-brand {
-    font-size: 15px;
-  }
-  .app-brand span {
-    font-size: 20px;
-  }
-  .app-nav nav {
-    gap: 0;
-  }
-  .app-nav nav a,
-  .app-nav nav button {
-    padding: 8px 10px;
-    font-size: 14px;
-  }
   .app-main {
     padding: 32px 20px 48px;
   }

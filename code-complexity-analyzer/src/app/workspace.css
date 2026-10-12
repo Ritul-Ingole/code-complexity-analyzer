@@ -989,25 +989,6 @@
   display: inline-flex;
 }
 
-.nav-underline {
-  position: relative;
-}
-
-.nav-underline::after {
-  content: "";
-  position: absolute;
-  left: 0;
-  right: 100%;
-  bottom: -2px;
-  height: 1px;
-  background: currentColor;
-  transition: right .3s cubic-bezier(.16,1,.3,1);
-}
-
-.nav-underline:hover::after {
-  right: 0;
-}
-
 .graph-file-list button,
 .intake-guide li,
 .history-overview,

@@ -54,9 +54,9 @@ export default function AnalyzingScreen({ ready }: AnalyzingScreenProps) {
       {!ready ? (
         <>
           <div className="flex justify-center mb-6">
-            <div className="w-10 h-10 border-4 border-[#dfcba2] border-t-[#a85c42] rounded-full animate-spin" />
+            <div className="w-10 h-10 border-4 border-ui-sand-strong border-t-ui-clay rounded-full animate-spin" />
           </div>
-          <p className="text-sm font-semibold text-[#6f665a] uppercase tracking-wide mb-6">
+          <p className="text-sm font-semibold text-ui-secondary uppercase tracking-wide mb-6">
             Analyzing Repository · {elapsed}s
           </p>
           <ul className="max-w-[260px] mx-auto mb-6 space-y-2 text-left">
@@ -64,9 +64,9 @@ export default function AnalyzingScreen({ ready }: AnalyzingScreenProps) {
               <li
                 key={label}
                 style={{ animationDelay: `${i * 400}ms`, animationFillMode: "both" }}
-                className="flex items-center gap-2.5 text-sm text-[#8a8172] animate-fade-in"
+                className="flex items-center gap-2.5 text-sm text-ui-muted animate-fade-in"
               >
-                <span className="w-[15px] h-[15px] rounded-full border border-[#d8d2c4] shrink-0" />
+                <span className="w-[15px] h-[15px] rounded-full border border-ui-border-strong shrink-0" />
                 {label}
               </li>
             ))}
@@ -74,7 +74,7 @@ export default function AnalyzingScreen({ ready }: AnalyzingScreenProps) {
           <div className="min-h-[72px] flex items-center justify-center px-4">
             <p
               key={factIndex}
-              className="text-[#51483d] leading-relaxed animate-fade-in"
+              className="text-ui-text-deep leading-relaxed animate-fade-in"
             >
               {FACTS[factIndex]}
             </p>
@@ -83,23 +83,23 @@ export default function AnalyzingScreen({ ready }: AnalyzingScreenProps) {
       ) : (
         <div className="animate-fade-in">
           <div className="flex justify-center mb-4">
-            <CheckCircle2 className="text-[#4d7142]" size={40} strokeWidth={1.5} />
+            <CheckCircle2 className="text-ui-success" size={40} strokeWidth={1.5} />
           </div>
-          <p className="text-lg font-semibold text-[#2b2620]">
+          <p className="text-lg font-semibold text-ui-text">
             Analysis ready
           </p>
           <ul className="max-w-[260px] mx-auto mt-4 space-y-2 text-left">
             {STAGES.map((label) => (
               <li
                 key={label}
-                className="flex items-center gap-2.5 text-sm text-[#6f665a]"
+                className="flex items-center gap-2.5 text-sm text-ui-secondary"
               >
-                <CheckCircle2 size={15} className="text-[#4d7142] shrink-0" />
+                <CheckCircle2 size={15} className="text-ui-success shrink-0" />
                 {label}
               </li>
             ))}
           </ul>
-          <p className="text-sm text-[#6f665a] mt-4">
+          <p className="text-sm text-ui-secondary mt-4">
             Pulling up your results...
           </p>
         </div>

@@ -582,7 +582,13 @@
 .graph-stage-3d {
   position: relative;
   min-width: 0;
-  height: 440px;
+  /* Height scales with width so the 3D stage keeps a sane aspect on wide screens.
+     Explicit width so aspect-ratio's max-height→max-width transfer can't shrink the
+     box; minus the 40px of horizontal margins so it exactly fills its grid column. */
+  width: calc(100% - 40px);
+  height: auto;
+  aspect-ratio: 1.8 / 1;
+  min-height: 440px;
   margin: 16px 20px 0;
   border: 1px solid var(--line);
   border-radius: 12px;

@@ -17,6 +17,12 @@ export async function GET(request: NextRequest) {
     )
   }
 
+  // Real user IDs are numeric; rejecting anything else blocks the USAGE#<id>
+  // and "preview" partition keys from being read via this public route.
+  if (!/^\d+$/.test(userId)) {
+    return NextResponse.json({ error: "Invalid userId" }, { status: 400 })
+  }
+
   try {
     const result = await docClient.send(
       new GetCommand({

@@ -96,7 +96,7 @@ export default function SharePage() {
 
   return (
     <div className="app-shell min-h-screen bg-[#f4f1ea] py-12 px-4">
-      <div className="max-w-5xl mx-auto">
+      <div className="w-full">
         {/* Shared link indicator */}
         <div className="mb-8 p-4 bg-[#f2ead9] border border-[#dfcba2] rounded-lg">
           <p className="text-sm text-[#51483d]">

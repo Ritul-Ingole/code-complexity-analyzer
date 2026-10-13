@@ -24,6 +24,23 @@
   --ui-danger-surface: #faf8f3;
   --ui-graph-muted: #8a8172;
   --ui-backdrop: rgb(43 38 32 / 0.45);
+  /* Conditional tokens (D03 human decision): recurring non-canonical values,
+     each its own token — no merging, every value visually identical. */
+  --ui-text-deep: #51483d;
+  --ui-border-strong: #d8d2c4;
+  --ui-sand: #eee9de;
+  --ui-amber-bright: #b8862f;
+  --ui-clay: #a85c42;
+  --ui-rust-deep: #7a3b2e;
+  --ui-moss-bright: #77864a;
+  --ui-clay-deep: #a05239;
+  --ui-surface-raised: #fffdf9;
+  --ui-taupe-faint: #a89f8c;
+  --ui-rust-soft: #8c4c36;
+  --ui-taupe-soft: #766c5e;
+  --ui-sand-strong: #dfcba2;
+  --ui-moss-soft: #6b7a3f;
+  --ui-sand-warm: #f2ead9;
   --ui-radius-control: 9999px;   /* pill, as already used */
   --ui-radius-panel: 1.25rem;    /* core, as already used */
   --ui-radius-shell: 1.625rem;   /* outer shell, as already used */
@@ -76,10 +93,11 @@
   --hairline: var(--ui-border);
   --accent: var(--ui-accent);
   --accent-deep: var(--ui-accent-hover);
-  /* Non-canonical leftovers with existing consumers — mapped in D03, never new colors */
-  --surface-raised: #fffdf9;
+  /* Non-canonical leftovers: aliases where a conditional token now exists;
+     --ink-soft stays a literal (only 2 uses, below the ≥3 threshold). */
+  --surface-raised: var(--ui-surface-raised);
   --ink-soft: #4a4238;
-  --line-strong: #d8d2c4;
+  --line-strong: var(--ui-border-strong);
 
   --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
   --ease-fluid: cubic-bezier(0.32, 0.72, 0, 1);

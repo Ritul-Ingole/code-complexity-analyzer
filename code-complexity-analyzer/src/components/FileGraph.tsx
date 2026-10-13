@@ -123,7 +123,7 @@ function makeLabelSprite(text: string): THREE.Sprite {
   }
   const texture = new THREE.CanvasTexture(canvas)
   texture.colorSpace = THREE.SRGBColorSpace
-  const sprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: texture, transparent: true, depthTest: false }))
+  const sprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: texture, transparent: true, depthTest: false, opacity: 0.72 }))
   // Scale is recalculated every frame from the camera distance, so the label
   // keeps a constant on-screen size. 5.33 is the label canvas aspect (512/96).
   sprite.userData.aspect = canvas.width / canvas.height
@@ -291,26 +291,60 @@ export default function FileGraph({ graph }: { graph?: GraphData }) {
     // const dustPts = new THREE.Points(dustGeo, new THREE.PointsMaterial({ color: 0xcabfa8, size: 0.8, transparent: true, opacity: 0.35, sizeAttenuation: true }))
     // scene.add(dustPts)
 
-    // ===== Hover label =====
-    let labelSprite: THREE.Sprite | null = null
-    let labelFor: string | null = null
-    const setLabel = (path: string | null) => {
-      if (labelFor === path) return
-      labelFor = path
-      if (labelSprite) {
-        scene.remove(labelSprite)
-        const mat = labelSprite.material as THREE.SpriteMaterial
-        mat.map?.dispose(); mat.dispose()
-        labelSprite = null
-      }
-      if (path) {
+    // ===== Name labels =====
+    // One sprite per path, created lazily and toggled visible. Two sources:
+    // the hovered/selected node always gets its tag, and while navigating
+    // (drag/zoom/pan) the nodes nearest the view centre are labelled too.
+    const labelCache = new Map<string, THREE.Sprite>()
+    let focusPath: string | null = null
+    let labelsDirty = true
+    const getLabelSprite = (path: string) => {
+      let s = labelCache.get(path)
+      if (!s) {
+        s = makeLabelSprite(path.split("/").pop() || path)
         const mesh = meshes.get(path)
-        if (mesh) {
-          labelSprite = makeLabelSprite(path.split("/").pop() || path)
-          labelSprite.position.copy(mesh.position).add(new THREE.Vector3(0, 3.4, 0))
-          scene.add(labelSprite)
+        if (mesh) s.position.copy(mesh.position).add(new THREE.Vector3(0, 3.4, 0))
+        s.visible = false
+        scene.add(s)
+        labelCache.set(path, s)
+      }
+      return s
+    }
+    const LABEL_MAX_AMBIENT = 8     // ambient tags at once, so the canvas stays readable
+    const projVec = new THREE.Vector3()
+    const updateLabels = () => {
+      labelsDirty = false
+      const rect = el.getBoundingClientRect()
+      if (!rect.width || !rect.height) return
+      const scored: Array<{ path: string; d: number }> = []
+      meshes.forEach((mesh, path) => {
+        if (!mesh.visible) return
+        projVec.copy(mesh.position).project(camera)
+        if (projVec.z < -1 || projVec.z > 1) return // behind the camera or beyond the far plane
+        // Rank by real distance to the camera: the closest nodes get the tags.
+        scored.push({ path, d: camera.position.distanceTo(mesh.position) })
+      })
+      scored.sort((a, b) => a.d - b.d)
+      const keep = new Set<string>()
+      // Ambient tags only exist when zoomed in: at a distance the canvas would
+      // just be wallpapered with pills, so out here only the focus tag shows.
+      if (cam.r < graphRadius * 1.5) {
+        // "Nearby" means spatially close to the camera: within half the camera
+        // distance, closest first, capped so the canvas stays readable.
+        const nearCut = cam.r * 1
+        for (const s of scored) {
+          if (keep.size >= LABEL_MAX_AMBIENT) break
+          if (s.d <= nearCut) keep.add(s.path)
         }
       }
+      if (focusPath && meshes.get(focusPath)?.visible) keep.add(focusPath)
+      labelCache.forEach((s, path) => { if (!keep.has(path)) s.visible = false })
+      keep.forEach((path) => { getLabelSprite(path).visible = true })
+    }
+    const setLabel = (path: string | null) => {
+      if (focusPath === path) return
+      focusPath = path
+      labelsDirty = true
     }
 
     // ===== Camera orbit controls (drag orbit, wheel/pinch zoom, shift/right-drag pan) =====
@@ -326,6 +360,11 @@ export default function FileGraph({ graph }: { graph?: GraphData }) {
     const graphRadius = Math.max(60, ...nodes.map((n) => { const p = positions.get(n.path)!; return Math.hypot(p.x - cx, p.y - cy, p.z - cz) }))
     const cam = { theta: 0.7, phi: 1.05, r: graphRadius * 2.2, tx: cx, ty: cy, tz: cz }
     const applyCam = () => {
+      // Keep the far plane ahead of the camera at any zoom level, otherwise
+      // zooming out clips nodes against an invisible wall (camera.far was fixed).
+      camera.far = Math.max(2000, cam.r + graphRadius * 2.5)
+      camera.updateProjectionMatrix()
+      labelsDirty = true // camera moved: re-evaluate which nodes are labelled
       camera.position.set(
         cam.tx + cam.r * Math.sin(cam.phi) * Math.cos(cam.theta),
         cam.ty + cam.r * Math.cos(cam.phi),
@@ -440,13 +479,16 @@ export default function FileGraph({ graph }: { graph?: GraphData }) {
     let raf = 0
     const animate = () => {
       raf = requestAnimationFrame(animate)
-      // Keep the filename label a constant on-screen size regardless of zoom:
-      // sprite size scales with its distance from the camera.
-      if (labelSprite) {
-        const dist = camera.position.distanceTo(labelSprite.position)
+      // Refresh which nodes are labelled after camera moves (at most once per frame).
+      if (labelsDirty) updateLabels()
+      // Keep every visible filename label a constant on-screen size regardless of
+      // zoom: sprite size scales with its distance from the camera.
+      labelCache.forEach((s) => {
+        if (!s.visible) return
+        const dist = camera.position.distanceTo(s.position)
         const h = dist * LABEL_SCREEN_SIZE
-        labelSprite.scale.set(h * (labelSprite.userData.aspect as number), h, 1)
-      }
+        s.scale.set(h * (s.userData.aspect as number), h, 1)
+      })
       // Static scene otherwise: the camera only moves when the user drags, zooms or pans.
       renderer.render(scene, camera)
     }
@@ -457,6 +499,7 @@ export default function FileGraph({ graph }: { graph?: GraphData }) {
       toggleState.imports = imp
       toggleState.returns = ret
       const focus = stateRef.current.hover || sel
+      labelsDirty = true
       const neighbors = new Set<string>()
       if (focus) edges.forEach((e) => {
         if (e.source === focus) neighbors.add(e.target)
@@ -474,6 +517,7 @@ export default function FileGraph({ graph }: { graph?: GraphData }) {
       })
       buildEdges(shown)
       setLabel(focus || sel)
+      labelsDirty = true
     }
 
     return () => {

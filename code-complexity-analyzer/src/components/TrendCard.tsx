@@ -36,13 +36,13 @@ function DeltaDisplay({
   // Complexity: lower is better (green = decrease, red = increase)
   // LOC: lower is better (green = decrease, red = increase)
   // Functions: neutral (gray)
-  let badgeColor = "bg-[#eee9de]"
-  let badgeText = "text-[#51483d]"
+  let badgeColor = "bg-ui-sand"
+  let badgeText = "text-ui-text-deep"
 
   if (label === "Functions") {
     // Functions: always gray
-    badgeColor = "bg-[#eee9de]"
-    badgeText = "text-[#51483d]"
+    badgeColor = "bg-ui-sand"
+    badgeText = "text-ui-text-deep"
   } else if (isComplexity) {
     // Complexity: green if decrease, red if increase
     if (delta < 0) {
@@ -65,12 +65,12 @@ function DeltaDisplay({
 
   return (
     <div className="flex flex-col gap-1">
-      <p className="text-sm text-[#6f665a]">{label}</p>
+      <p className="text-sm text-ui-secondary">{label}</p>
       <div className="flex items-center gap-2">
-        <p className="font-display text-lg font-semibold text-[#2b2620] tabular-nums">
+        <p className="font-display text-lg font-semibold text-ui-text tabular-nums">
           {current.toLocaleString()}
         </p>
-        <span className="text-[#766c5e]">→</span>
+        <span className="text-ui-taupe-soft">→</span>
         <div className={`flex items-center gap-1 px-2 py-1 rounded ${badgeColor}`}>
           {!isNeutral && (isPositive ? <TrendingUp size={14} /> : <TrendingDown size={14} />)}
           <span className={`text-sm font-semibold ${badgeText}`}>
@@ -89,12 +89,12 @@ export default function TrendCard({
 }: TrendCardProps) {
   return (
     <div className={REPORT_SHELL}>
-      <div className={`${REPORT_CORE} border-l-4 border-l-[#c1694f] p-6`}>
+      <div className={`${REPORT_CORE} border-l-4 border-l-ui-accent p-6`}>
       <div className="mb-4">
-        <h3 className="text-lg font-semibold text-[#2b2620]">
+        <h3 className="text-lg font-semibold text-ui-text">
           Trend vs. previous analysis
         </h3>
-        <p className="text-sm text-[#6f665a]">
+        <p className="text-sm text-ui-secondary">
           {new Date(previousDate).toLocaleDateString("en-US", {
             year: "numeric",
             month: "short",

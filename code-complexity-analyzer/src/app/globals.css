@@ -3,20 +3,84 @@
 @tailwind utilities;
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
-  /* Brand tokens — warm editorial palette, terracotta is the single accent */
-  --ink: #2b2620;
-  --taupe: #6f665a;
-  --faint: #8a8172;
-  --paper: #faf8f3;
-  --canvas: #f4f1ea;
-  --sand-deep: #ece5d6;
-  --hairline: #e6e0d4;
-  --accent: #c1694f;
-  --accent-deep: #b25a41;
-  --ok: #4d7142;
-  --warn: #b4493d;
+  /* Canonical warm-light set (the only color definitions in the codebase).
+     Terracotta is the single accent; semantic colors are status-only. */
+  --ui-canvas: #f4f1ea;
+  --ui-surface: #faf8f3;
+  --ui-raised: #faf8f3;
+  --ui-border: #e6e0d4;
+  --ui-control-border: #6f665a;
+  --ui-text: #2b2620;
+  --ui-text-secondary: #6f665a;
+  --ui-text-muted: #8a8172;
+  --ui-accent: #c1694f;
+  --ui-accent-hover: #b25a41;
+  --ui-accent-ink: #faf8f3;
+  --ui-success: #4d7142;
+  --ui-success-surface: #faf8f3;
+  --ui-warning: #947011;
+  --ui-warning-surface: #faf8f3;
+  --ui-danger: #b4493d;
+  --ui-danger-surface: #faf8f3;
+  --ui-graph-muted: #8a8172;
+  --ui-backdrop: rgb(43 38 32 / 0.45);
+  --ui-radius-control: 9999px;   /* pill, as already used */
+  --ui-radius-panel: 1.25rem;    /* core, as already used */
+  --ui-radius-shell: 1.625rem;   /* outer shell, as already used */
+  --ui-space-1: 0.25rem;
+  --ui-space-2: 0.5rem;
+  --ui-space-3: 0.75rem;
+  --ui-space-4: 1rem;
+  --ui-space-5: 1.5rem;
+  --ui-space-6: 2rem;
+  --ui-space-7: 3rem;
+  --ui-space-8: 4rem;
+  --ui-space-9: 6rem;
+  --ui-width-form: 42rem;
+  --ui-width-content: 72rem;
+  --ui-width-wide: 80rem;
+  --ui-touch: 2.75rem;
+  --ui-chart-height: 20rem;
+  --ui-chart-row: 2.75rem;
+  --ui-chart-axis: 7rem;
+  --ui-font-caption: 0.75rem;
+  --ui-font-label: 0.875rem;
+  --ui-font-body: 1rem;
+  --ui-font-lead: 1.125rem;
+  --ui-font-section: 1.5rem;
+  --ui-font-metric: 2rem;
+  --ui-font-page: clamp(2rem, 4vw, 3rem);
+  --ui-font-hero: clamp(2.5rem, 5vw, 4rem);
+  --ui-leading-body: 1.6;
+  --ui-leading-label: 1.4;
+  --ui-leading-heading: 1.15;
+  --ui-tracking-heading: -0.025em;
+  --ui-tracking-body: 0em;
+  --ui-z-menu: 40;
+  --ui-z-dialog: 50;
+
+  /* Legacy aliases — existing markup reads these names; do not delete */
+  --paper: var(--ui-surface);
+  --canvas: var(--ui-canvas);
+  --surface: var(--ui-surface);
+  --line: var(--ui-border);
+  --body: var(--ui-text-secondary);
+  --muted: var(--ui-text-muted);
+  --clay: var(--ui-accent-hover);
+  --terracotta: var(--ui-accent);
+  --terracotta-deep: var(--ui-accent-hover);
+  --moss: var(--ui-success);
+  --amber: var(--ui-warning);
+  --rust: var(--ui-danger);
+  --ink: var(--ui-text);
+  --hairline: var(--ui-border);
+  --accent: var(--ui-accent);
+  --accent-deep: var(--ui-accent-hover);
+  /* Non-canonical leftovers with existing consumers — mapped in D03, never new colors */
+  --surface-raised: #fffdf9;
+  --ink-soft: #4a4238;
+  --line-strong: #d8d2c4;
+
   --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
   --ease-fluid: cubic-bezier(0.32, 0.72, 0, 1);
 }
@@ -29,8 +93,8 @@
 }
 
 body {
-  color: var(--foreground);
-  background: var(--background);
+  color: var(--ui-text);
+  background: var(--ui-canvas);
   font-family: var(--font-sans), Arial, Helvetica, sans-serif;
 }
 

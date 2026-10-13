@@ -239,7 +239,7 @@ export default function AnalyzeForm({ isAuthenticated }: AnalyzeFormProps) {
                   {isAuthenticated&&remaining!==null&&<span> · {remaining} left</span>}
                   <span className="action-orb" aria-hidden="true">↗</span>
                   </button>{
-                    !isAuthenticated&&<p className="preview-note">One free analysis. No sign-in required. <Link href="/api/auth/login">Sign in for unlimited analyses →</Link>
+                    !isAuthenticated&&<p className="preview-note">One free analysis. No sign-in required. <a href="/api/auth/login">Sign in for unlimited analyses →</a>
                   </p>
                   }
                   {

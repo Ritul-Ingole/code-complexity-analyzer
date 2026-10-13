@@ -3,7 +3,7 @@ import { createHmac, timingSafeEqual } from "crypto"
 
 export type Session = {
   userId: number
-  email: string
+  email: string | null
   login: string
   avatar: string
 }
@@ -32,7 +32,7 @@ function unpackSession(value: string): Session | null {
   if (dot === -1) return null
   const payload = value.slice(0, dot)
   const signature = value.slice(dot + 1)
-  const expected = Buffer.from(sign(payload))
+  const expected = Buffer.from(sign(payload), "base64url")
   let provided: Buffer
   try {
     provided = Buffer.from(signature, "base64url")
@@ -53,10 +53,11 @@ function unpackSession(value: string): Session | null {
 function isSession(value: unknown): value is Session {
   if (typeof value !== "object" || value === null) return false
   const s = value as Record<string, unknown>
+  // email can be null: GitHub returns null for users who hide their email.
   return (
     typeof s.userId === "number" &&
     Number.isFinite(s.userId) &&
-    typeof s.email === "string" &&
+    (typeof s.email === "string" || s.email === null) &&
     typeof s.login === "string" &&
     typeof s.avatar === "string"
   )

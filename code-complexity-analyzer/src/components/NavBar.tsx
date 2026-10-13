@@ -1,4 +1,5 @@
 import Link from "next/link"
+import AuthLink from "@/components/AuthLink"
 import { Lock } from "lucide-react"
 
 interface NavBarProps {
@@ -52,13 +53,10 @@ export default function NavBar({ isAuthenticated, login, active }: NavBarProps) 
               </form>
             </>
           ) : (
-            <a
-              href="/api/auth/login"
-              className="inline-flex items-center gap-1.5 rounded-full border border-[#d8d2c4] bg-[#faf8f3] px-4 py-1.5 text-xs font-medium text-[#2b2620] transition-[border-color,transform] duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] hover:border-[#a89f8c] active:scale-95"
-            >
+            <AuthLink className="inline-flex items-center gap-1.5 rounded-full border border-[#d8d2c4] bg-[#faf8f3] px-4 py-1.5 text-xs font-medium text-[#2b2620] transition-[border-color,transform] duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] hover:border-[#a89f8c] active:scale-95">
               <Lock className="h-3 w-3" />
               Sign in
-            </a>
+            </AuthLink>
           )}
         </div>
       </nav>

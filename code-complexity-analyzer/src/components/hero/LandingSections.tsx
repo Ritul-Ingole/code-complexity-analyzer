@@ -5,6 +5,7 @@ import { Check, ShieldCheck, Sparkles, ArrowRight } from "lucide-react"
 import ScrollReveal from "@/components/ScrollReveal"
 import Magnetic from "@/components/Magnetic"
 import AnimatedCounter from "@/components/AnimatedCounter"
+import AuthLink from "@/components/AuthLink"
 
 // Double-bezel card system: outer shell (hairline ring + padding) and inner
 // core (own surface, concentric radius). Solid paper — no backdrop-blur on
@@ -201,13 +202,10 @@ export function TrendsTeaser({ isAuthenticated }: { isAuthenticated: boolean }) 
                 Sign in with GitHub to start tracking your repositories&apos; trends.
               </p>
               <Magnetic>
-                <a
-                  href="/api/auth/login"
-                  className="inline-flex items-center gap-2 whitespace-nowrap rounded-lg border border-[#d8d2c4] bg-white px-5 py-2.5 text-sm font-semibold text-[#2b2620] transition-colors hover:border-[#a89f8c]"
-                >
+                <AuthLink className="inline-flex items-center gap-2 whitespace-nowrap rounded-lg border border-[#d8d2c4] bg-white px-5 py-2.5 text-sm font-semibold text-[#2b2620] transition-colors hover:border-[#a89f8c]">
                   Sign in
                   <ArrowRight className="h-4 w-4" />
-                </a>
+                </AuthLink>
               </Magnetic>
             </div>
           </ScrollReveal>
@@ -259,12 +257,9 @@ export function TrustFaq({ isAuthenticated }: { isAuthenticated: boolean }) {
                 </Link>
               </Magnetic>
               {!isAuthenticated && (
-                <a
-                  href="/api/auth/login"
-                  className="text-sm font-medium text-[#6f665a] underline underline-offset-4 transition-colors hover:text-[#2b2620]"
-                >
+                <AuthLink className="text-sm font-medium text-[#6f665a] underline underline-offset-4 transition-colors hover:text-[#2b2620]">
                   or sign in for unlimited analyses
-                </a>
+                </AuthLink>
               )}
             </div>
           </div>

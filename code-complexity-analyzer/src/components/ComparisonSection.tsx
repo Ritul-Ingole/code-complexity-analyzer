@@ -64,43 +64,43 @@ function AnalysisColumn({
 
   return (
     <div className="space-y-4">
-      <h4 className="text-base font-semibold text-[#2b2620]">
+      <h4 className="text-base font-semibold text-ui-text">
         {title}
         {subtitle && (
-          <span className="text-[#6f665a] font-normal text-sm"> ({subtitle})</span>
+          <span className="text-ui-secondary font-normal text-sm"> ({subtitle})</span>
         )}
       </h4>
 
       <div className="grid grid-cols-2 gap-3 text-sm">
         <div>
-          <p className="text-[#6f665a]">LOC</p>
-          <p className="text-lg font-bold text-[#2b2620]">
+          <p className="text-ui-secondary">LOC</p>
+          <p className="text-lg font-bold text-ui-text">
             {analysis.metrics.totalLoc.toLocaleString()}
           </p>
         </div>
         <div>
-          <p className="text-[#6f665a]">Functions</p>
-          <p className="text-lg font-bold text-[#2b2620]">
+          <p className="text-ui-secondary">Functions</p>
+          <p className="text-lg font-bold text-ui-text">
             {analysis.metrics.totalFunctions}
           </p>
         </div>
         <div>
-          <p className="text-[#6f665a]">Avg Complexity</p>
-          <p className="text-lg font-bold text-[#2b2620]">
+          <p className="text-ui-secondary">Avg Complexity</p>
+          <p className="text-lg font-bold text-ui-text">
             {analysis.metrics.averageComplexity.toFixed(1)}
           </p>
         </div>
         <div>
-          <p className="text-[#6f665a]">Files</p>
-          <p className="text-lg font-bold text-[#2b2620]">
+          <p className="text-ui-secondary">Files</p>
+          <p className="text-lg font-bold text-ui-text">
             {analysis.metrics.fileCount}
           </p>
         </div>
       </div>
 
       {/* Chart */}
-      <div className="bg-[#f4f1ea] rounded-lg p-4">
-        <p className="text-sm font-semibold text-[#51483d] mb-3">
+      <div className="bg-ui-canvas rounded-lg p-4">
+        <p className="text-sm font-semibold text-ui-text-deep mb-3">
           Top Complex Files
         </p>
         <ResponsiveContainerComponent width="100%" height={chartHeight}>
@@ -119,12 +119,12 @@ function AnalysisColumn({
             />
             <Tooltip
               contentStyle={{
-                background: "#faf8f3",
-                border: "1px solid #e6e0d4",
+                background: "var(--ui-surface)",
+                border: "1px solid var(--ui-border)",
                 borderRadius: 12,
                 boxShadow: "0 8px 24px -12px rgba(43,38,32,0.25)",
                 fontSize: 12,
-                color: "#2b2620",
+                color: "var(--ui-text)",
               }}
               cursor={{ fill: "rgba(193,105,79,0.08)" }}
             />
@@ -141,30 +141,30 @@ function AnalysisColumn({
       {/* File details table */}
       <div className="hidden sm:block overflow-x-auto">
         <table className="w-full text-sm">
-          <thead className="bg-[#eee9de] border-b border-[#e6e0d4]">
+          <thead className="bg-ui-sand border-b border-ui-border">
             <tr>
-              <th className="px-4 py-2 text-left font-semibold text-[#51483d]">
+              <th className="px-4 py-2 text-left font-semibold text-ui-text-deep">
                 File
               </th>
-              <th className="px-4 py-2 text-right font-semibold text-[#51483d]">
+              <th className="px-4 py-2 text-right font-semibold text-ui-text-deep">
                 LOC
               </th>
-              <th className="px-4 py-2 text-right font-semibold text-[#51483d]">
+              <th className="px-4 py-2 text-right font-semibold text-ui-text-deep">
                 Functions
               </th>
-              <th className="px-4 py-2 text-right font-semibold text-[#51483d]">
+              <th className="px-4 py-2 text-right font-semibold text-ui-text-deep">
                 Complexity
               </th>
             </tr>
           </thead>
           <tbody>
             {analysis.topComplexFiles.map((file, idx) => (
-              <tr key={idx} className="border-b border-[#e6e0d4] hover:bg-[#f4f1ea]">
-                <td className="px-4 py-2 text-[#2b2620]">
+              <tr key={idx} className="border-b border-ui-border hover:bg-ui-canvas">
+                <td className="px-4 py-2 text-ui-text">
                   {file.path.split("/").pop()}
                 </td>
-                <td className="px-4 py-2 text-right text-[#6f665a]">{file.loc}</td>
-                <td className="px-4 py-2 text-right text-[#6f665a]">
+                <td className="px-4 py-2 text-right text-ui-secondary">{file.loc}</td>
+                <td className="px-4 py-2 text-right text-ui-secondary">
                   {file.functions}
                 </td>
                 <td className="px-4 py-2 text-right">
@@ -211,30 +211,30 @@ export default function ComparisonSection({
       <button
         onClick={() => setIsOpen(!isOpen)}
         aria-expanded={isOpen}
-        className="w-full flex items-center justify-between px-6 py-4 text-left transition-colors duration-300 hover:bg-[#f4f1ea]"
+        className="w-full flex items-center justify-between px-6 py-4 text-left transition-colors duration-300 hover:bg-ui-canvas"
       >
         <div className="flex-1">
-          <h3 className="text-lg font-semibold text-[#2b2620]">Detailed Comparison</h3>
+          <h3 className="text-lg font-semibold text-ui-text">Detailed Comparison</h3>
         </div>
         {isOpen ? (
-          <ChevronUp size={24} className="text-[#6f665a]" strokeWidth={1.5} />
+          <ChevronUp size={24} className="text-ui-secondary" strokeWidth={1.5} />
         ) : (
-          <ChevronDown size={24} className="text-[#6f665a]" strokeWidth={1.5} />
+          <ChevronDown size={24} className="text-ui-secondary" strokeWidth={1.5} />
         )}
       </button>
 
       {/* Collapsible content */}
       {isOpen && (
-        <div className="border-t border-[#e6e0d4] px-6 py-6 space-y-8">
+        <div className="border-t border-ui-border px-6 py-6 space-y-8">
           {/* Dropdown to select which analysis to compare */}
           <div className="flex flex-col gap-2">
-            <label className="text-sm font-semibold text-[#2b2620]">
+            <label className="text-sm font-semibold text-ui-text">
               Compare Current to:
             </label>
             <select
               value={selectedAnalysisIndex}
               onChange={(e) => setSelectedAnalysisIndex(Number(e.target.value))}
-              className="max-w-md rounded-xl border border-[#d8d2c4] bg-[#fffdf9] px-4 py-2.5 text-sm text-[#2b2620]"
+              className="max-w-md rounded-xl border border-ui-border-strong bg-ui-surface-raised px-4 py-2.5 text-sm text-ui-text"
             >
               {priorAnalyses.map((analysis, idx) => (
                 <option key={idx} value={idx}>
@@ -252,7 +252,7 @@ export default function ComparisonSection({
           </div>
 
           {/* Responsive comparison: stacked on mobile, side-by-side on lg+ (desktop/big screens) */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-6 lg:divide-x lg:divide-[#e6e0d4]">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-6 lg:divide-x lg:divide-ui-border">
             <div className="lg:pr-6">
               <AnalysisColumn
                 title="Current Analysis"
@@ -262,7 +262,7 @@ export default function ComparisonSection({
             </div>
 
             {/* Divider - only shown on mobile between stacked sections */}
-            <div className="border-t border-[#e6e0d4] lg:hidden" />
+            <div className="border-t border-ui-border lg:hidden" />
 
             <div className="lg:pl-6">
               <AnalysisColumn

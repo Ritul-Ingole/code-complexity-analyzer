@@ -66,10 +66,10 @@ export default function SharePage() {
 
   if (loading) {
     return (
-      <div className="app-shell min-h-screen bg-[#f4f1ea] py-12 px-4 flex items-center justify-center">
+      <div className="app-shell min-h-screen bg-ui-canvas py-12 px-4 flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#c1694f] mx-auto mb-4"></div>
-          <p className="text-[#6f665a]">Loading analysis...</p>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-ui-accent mx-auto mb-4"></div>
+          <p className="text-ui-secondary">Loading analysis...</p>
         </div>
       </div>
     )
@@ -77,10 +77,10 @@ export default function SharePage() {
 
   if (error || !analysis) {
     return (
-      <div className="app-shell min-h-screen bg-[#f4f1ea] py-12 px-4 flex items-center justify-center">
+      <div className="app-shell min-h-screen bg-ui-canvas py-12 px-4 flex items-center justify-center">
         <div className="text-center">
-          <h2 className="text-2xl font-bold text-[#2b2620] mb-2">Analysis Not Found</h2>
-          <p className="text-[#6f665a] mb-6">
+          <h2 className="text-2xl font-bold text-ui-text mb-2">Analysis Not Found</h2>
+          <p className="text-ui-secondary mb-6">
             {error || "The analysis you're looking for doesn't exist or has expired."}
           </p>
           <a href="/" className="btn-primary">
@@ -95,11 +95,11 @@ export default function SharePage() {
   }
 
   return (
-    <div className="app-shell min-h-screen bg-[#f4f1ea] py-12 px-4">
+    <div className="app-shell min-h-screen bg-ui-canvas py-12 px-4">
       <div className="w-full">
         {/* Shared link indicator */}
-        <div className="mb-8 p-4 bg-[#f2ead9] border border-[#dfcba2] rounded-lg">
-          <p className="text-sm text-[#51483d]">
+        <div className="mb-8 p-4 bg-ui-sand-warm border border-ui-sand-strong rounded-lg">
+          <p className="text-sm text-ui-text-deep">
             <span className="font-semibold">Shared Analysis</span> — This is a public read-only view
           </p>
         </div>

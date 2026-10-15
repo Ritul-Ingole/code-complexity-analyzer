@@ -981,7 +981,10 @@
   .ui-route-enter { animation: ui-enter var(--ui-motion-enter) var(--ui-ease-enter); }
   .ui-modal-exit { animation: ui-exit var(--ui-motion-fast) var(--ui-ease-feedback) both; }
   .ui-chart-enter { animation: ui-chart-fade var(--ui-motion-enter) var(--ui-ease-enter); }
-  .ui-list-enter > li[data-enter="true"] {
+  /* li covers real lists; > [data-enter] covers the existing card grid rows,
+     per the spec's "use the existing row map with these attributes". */
+  .ui-list-enter > li[data-enter="true"],
+  .ui-list-enter > [data-enter="true"] {
     animation: ui-enter var(--ui-motion-enter) var(--ui-ease-enter) both;
     animation-delay: calc(var(--ui-row-index) * var(--ui-motion-stagger));
   }

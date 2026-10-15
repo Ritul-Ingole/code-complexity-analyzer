@@ -233,7 +233,7 @@ export default function AnalyzeForm({ isAuthenticated }: AnalyzeFormProps) {
                     {error}
                   </div>
                 }
-                <button className="primary-action" type="submit" disabled={(!isAuthenticated&&hasUsedFreeAnalysis)||remaining===0}>
+                <button className="primary-action ui-press" type="submit" disabled={(!isAuthenticated&&hasUsedFreeAnalysis)||remaining===0}>
                   {
                     !isAuthenticated&&hasUsedFreeAnalysis?"Free analysis used":"Analyze repository"
                   }

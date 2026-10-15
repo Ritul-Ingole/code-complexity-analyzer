@@ -74,6 +74,17 @@ export default function AnalysisResults({
 }: AnalysisResultsProps) {
   const { metrics, topComplexFiles, repoUrl, totalCommits } = data
   const [selectedFile, setSelectedFile] = useState<ComplexFile | null>(null)
+  // Bounded exit for the mobile file-detail sheet (motion spec: close on
+  // animationend, timeout fallback <= 400ms).
+  const [sheetClosing, setSheetClosing] = useState(false)
+  const closeFileSheet = () => {
+    if (!selectedFile || sheetClosing) return
+    setSheetClosing(true)
+    setTimeout(() => {
+      setSelectedFile(null)
+      setSheetClosing(false)
+    }, 400)
+  }
   const [priorAnalyses, setPriorAnalyses] = useState<Analysis[]>([])
   const [loadingComparison, setLoadingComparison] = useState(false)
   const [showShareModal, setShowShareModal] = useState(false)
@@ -113,7 +124,7 @@ export default function AnalysisResults({
   const chartHeight = Math.max(300, chartData.length * 45)
 
   return (
-    <div className="analysis-report space-y-8">
+    <div className="analysis-report space-y-8 ui-state-enter">
       {/* Header */}
       <div className="flex flex-wrap gap-4 items-center justify-between">
         <div>
@@ -141,7 +152,7 @@ export default function AnalysisResults({
             </p>
             <a
             href="/api/auth/login"
-            className="primary-action"
+            className="primary-action ui-press"
           >
             Sign in with GitHub
             <span className="action-orb">
@@ -174,7 +185,7 @@ export default function AnalysisResults({
       <FileGraph graph={data.fileGraph} />
       {/* Bar Chart */}
       <div className={REPORT_SHELL}>
-        <div className={`${REPORT_CORE} p-6`}>
+        <div className={`${REPORT_CORE} p-6 ui-chart-enter`}>
           <h3 className="text-lg font-semibold mb-4 text-ui-text">Top 10 Most Complex Files</h3>
           <ResponsiveContainerComponent width="100%" height={chartHeight}>
             <BarChartComponent
@@ -201,7 +212,7 @@ export default function AnalysisResults({
                 }}
                 cursor={{ fill: "rgba(193,105,79,0.08)" }}
               />
-              <Bar dataKey="complexity" fill="#c1694f" name="Complexity Score" radius={[0,4,4,0]}>{chartData.map(file=><Cell key={file.path} fill={riskColor(file.complexity)}/>)}</Bar>
+              <Bar isAnimationActive={false} dataKey="complexity" fill="#c1694f" name="Complexity Score" radius={[0,4,4,0]}>{chartData.map(file=><Cell key={file.path} fill={riskColor(file.complexity)}/>)}</Bar>
             </BarChartComponent>
           </ResponsiveContainerComponent>
         </div>
@@ -275,11 +286,12 @@ export default function AnalysisResults({
       {selectedFile && (
         <div
           className="fixed inset-0 z-50 sm:hidden"
-          onClick={() => setSelectedFile(null)}
+          onClick={closeFileSheet}
         >
           <div className="absolute inset-0 bg-[var(--ui-backdrop)]" />
           <div
-            className="absolute bottom-0 left-0 right-0 bg-ui-surface rounded-t-3xl p-6 pb-8 animate-slide-up"
+            data-lenis-prevent="true"
+            className={`absolute bottom-0 left-0 right-0 bg-ui-surface rounded-t-3xl p-6 pb-8 ui-state-enter ${sheetClosing ? "ui-modal-exit" : ""}`}
             onClick={(e) => e.stopPropagation()}
           >
             <div className="mx-auto mb-4 h-1 w-10 rounded-full bg-ui-border-strong" />
@@ -288,7 +300,7 @@ export default function AnalysisResults({
                 {selectedFile.path}
               </p>
               <button
-                onClick={() => setSelectedFile(null)}
+                onClick={closeFileSheet}
                 className="flex-shrink-0 p-1 text-ui-taupe-soft hover:text-ui-secondary transition-colors"
                 aria-label="Close"
               >
@@ -338,7 +350,7 @@ export default function AnalysisResults({
         <div className="flex justify-center pt-4">
           <button
             onClick={() => setShowShareModal(true)}
-            className="primary-action"
+            className="primary-action ui-press"
           >
             Share Analysis
             <span className="action-orb">

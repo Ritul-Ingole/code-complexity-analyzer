@@ -100,7 +100,7 @@ function AnalysisColumn({
       </div>
 
       {/* Chart */}
-      <div className="bg-ui-canvas rounded-lg p-4">
+      <div className="bg-ui-canvas rounded-lg p-4 ui-chart-enter">
         <p className="text-sm font-semibold text-ui-text-deep mb-3">
           Top Complex Files
         </p>
@@ -130,6 +130,7 @@ function AnalysisColumn({
               cursor={{ fill: "rgba(193,105,79,0.08)" }}
             />
             <Bar
+              isAnimationActive={false}
               dataKey="complexity"
               fill="#c1694f"
               name="Complexity Score"

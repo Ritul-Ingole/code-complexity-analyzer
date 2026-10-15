@@ -1,7 +1,9 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { ChevronDown, ChevronUp, Search, Filter, X, Download, MoreVertical, Share2, ArrowRight, ArrowUpRight } from "lucide-react"
+import { readMotion } from "@/lib/motion"
+import type { CSSProperties } from "react"
 import AppShell from "./AppShell"
 import AnalysisResults from "./AnalysisResult"
 import type { GraphData } from "./FileGraph"
@@ -223,6 +225,14 @@ export default function DashboardClient({ userId }: DashboardClientProps) {
 
   // Filter and search state
   const [searchQuery, setSearchQuery] = useState("")
+  // Entrance stagger: true only until the first search/filter interaction;
+  // the initial successful load animates, later updates never replay.
+  const [initialLoad, setInitialLoad] = useState(true)
+  const listRef = useRef<HTMLDivElement>(null)
+  const [staggerCap, setStaggerCap] = useState(-1)
+  useEffect(() => {
+    if (listRef.current) setStaggerCap(readMotion(listRef.current).staggerCap)
+  }, [])
   const [dateRange, setDateRange] = useState<DateRange>("all")
   const [complexityFilter, setComplexityFilter] = useState<ComplexityLevel>("all")
   const [sortBy, setSortBy] = useState<SortOption>("newest")
@@ -328,7 +338,7 @@ export default function DashboardClient({ userId }: DashboardClientProps) {
   return (
     <AppShell active="history"><div className="history-workspace">
       <div className="history-content">
-        <header className="workspace-heading heading-with-action"><div><p className="eyebrow">YOUR REPOSITORY NOTEBOOK</p><h1>Less guesswork.<br/><span>More perspective.</span></h1><p>Revisit your analyses and decide what deserves attention next.</p></div><a href="/analyze" className="primary-action">Analyze a repository<span className="action-orb" aria-hidden="true"><ArrowUpRight size={13} /></span></a></header>
+        <header className="workspace-heading heading-with-action"><div><p className="eyebrow">YOUR REPOSITORY NOTEBOOK</p><h1>Less guesswork.<br/><span>More perspective.</span></h1><p>Revisit your analyses and decide what deserves attention next.</p></div><a href="/analyze" className="primary-action ui-press">Analyze a repository<span className="action-orb" aria-hidden="true"><ArrowUpRight size={13} /></span></a></header>
         {!loading&&!error&&<div className="history-overview"><div><span>Saved analyses</span><strong>{analyses.length}</strong></div><div><span>Repositories explored</span><strong>{new Set(analyses.map(a=>a.repoUrl)).size}</strong></div><div><span>History retention</span><strong>30 <small>days</small></strong></div></div>}
 
         {loading && (
@@ -336,15 +346,15 @@ export default function DashboardClient({ userId }: DashboardClientProps) {
             {[1, 2, 3].map((i) => (
               <div
                 key={i}
-                className="bg-ui-surface rounded-2xl border border-ui-border shadow-sm p-6 animate-pulse"
+                className="bg-ui-surface rounded-2xl border border-ui-border shadow-sm p-6"
               >
-                <div className="h-6 bg-ui-border rounded w-1/3 mb-4"></div>
-                <div className="h-4 bg-ui-border rounded w-1/4 mb-6"></div>
+                <div className="h-6 ui-skeleton rounded w-1/3 mb-4"></div>
+                <div className="h-4 ui-skeleton rounded w-1/4 mb-6"></div>
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
                   {[1, 2, 3, 4].map((j) => (
                     <div key={j}>
-                      <div className="h-4 bg-ui-border rounded w-2/3 mb-2"></div>
-                      <div className="h-6 bg-ui-border rounded w-1/2"></div>
+                      <div className="h-4 ui-skeleton rounded w-2/3 mb-2"></div>
+                      <div className="h-6 ui-skeleton rounded w-1/2"></div>
                     </div>
                   ))}
                 </div>
@@ -369,7 +379,7 @@ export default function DashboardClient({ userId }: DashboardClientProps) {
                 type="text"
                 placeholder="Search by repository name..."
                 value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
+                onChange={(e) => { setInitialLoad(false); setSearchQuery(e.target.value) }}
                 className="w-full rounded-full border border-ui-border-strong bg-ui-surface-raised pl-10 pr-4 py-2.5 text-sm text-ui-text placeholder:text-ui-taupe-faint"
               />
             </div>
@@ -390,7 +400,7 @@ export default function DashboardClient({ userId }: DashboardClientProps) {
 
             {/* Collapsible Filter Panel */}
             {filterPanelOpen && (
-              <div className="bg-ui-surface border border-ui-border-strong rounded-lg p-6 space-y-6">
+              <div data-lenis-prevent="true" className="bg-ui-surface border border-ui-border-strong rounded-lg p-6 space-y-6 ui-state-enter">
                 {/* Date Range */}
                 <div>
                   <label className="block text-sm font-semibold text-ui-text mb-3">
@@ -400,7 +410,7 @@ export default function DashboardClient({ userId }: DashboardClientProps) {
                     {(["all", "7days", "30days"] as const).map((range) => (
                       <button
                         key={range}
-                        onClick={() => setDateRange(range)}
+                        onClick={() => { setInitialLoad(false); setDateRange(range) }}
                         aria-pressed={dateRange === range}
                         className={`rounded-full px-4 py-2 text-sm font-medium transition-[background-color,color,transform] duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] active:scale-[0.98] ${
                           dateRange === range
@@ -427,7 +437,7 @@ export default function DashboardClient({ userId }: DashboardClientProps) {
                     {(["all", "low", "medium", "high"] as const).map((level) => (
                       <button
                         key={level}
-                        onClick={() => setComplexityFilter(level)}
+                        onClick={() => { setInitialLoad(false); setComplexityFilter(level) }}
                         aria-pressed={complexityFilter === level}
                         className={`rounded-full px-4 py-2 text-sm font-medium transition-[background-color,color,transform] duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] active:scale-[0.98] ${
                           complexityFilter === level
@@ -450,7 +460,7 @@ export default function DashboardClient({ userId }: DashboardClientProps) {
                   </label>
                   <select
                     value={sortBy}
-                    onChange={(e) => setSortBy(e.target.value as SortOption)}
+                    onChange={(e) => { setInitialLoad(false); setSortBy(e.target.value as SortOption) }}
                     className="w-full rounded-xl border border-ui-border-strong bg-ui-surface-raised px-3 py-2.5 text-sm text-ui-text"
                   >
                     <option value="newest">Newest First</option>
@@ -465,6 +475,7 @@ export default function DashboardClient({ userId }: DashboardClientProps) {
                 {hasActiveFilters && (
                   <button
                     onClick={() => {
+                      setInitialLoad(false)
                       setSearchQuery("")
                       setDateRange("all")
                       setComplexityFilter("all")
@@ -482,7 +493,7 @@ export default function DashboardClient({ userId }: DashboardClientProps) {
         )}
 
         {analyses.length === 0 && !loading && !error && (
-          <div className="rounded-2xl border border-ui-border bg-ui-surface p-12 text-center">
+          <div className="ui-state-enter rounded-2xl border border-ui-border bg-ui-surface p-12 text-center">
             <p className="text-ui-secondary mb-4">No analyses yet.</p>
             <a
               href="/analyze"
@@ -505,10 +516,12 @@ export default function DashboardClient({ userId }: DashboardClientProps) {
                 </p>
               </div>
             ) : (
-              <div className="grid gap-6">
-                {filteredAndSortedAnalyses.map((analysis) => (
+              <div ref={listRef} className="grid gap-6 ui-list-enter">
+                {filteredAndSortedAnalyses.map((analysis, index) => (
                   <div
                     key={analysis.analysisId}
+                    data-enter={initialLoad && index <= staggerCap ? "true" : "false"}
+                    style={{ "--ui-row-index": index } as CSSProperties}
                     className="rounded-2xl border border-ui-border bg-ui-surface shadow-[0_1px_2px_rgba(43,38,32,0.04),0_12px_32px_-20px_rgba(43,38,32,0.2)] transition-[box-shadow,transform] duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] hover:-translate-y-0.5 hover:shadow-[0_2px_4px_rgba(43,38,32,0.05),0_20px_44px_-20px_rgba(43,38,32,0.28)] overflow-hidden"
                   >
                     <div className="p-6">
@@ -605,7 +618,7 @@ export default function DashboardClient({ userId }: DashboardClientProps) {
                         </div>
                       </div>
 
-                      <button type="button" className="secondary-action report-explore" onClick={()=>setReport(analysis)}>Explore report &amp; graph <ArrowUpRight size={13} className="inline-block align-[-2px]" aria-hidden="true" /></button>
+                      <button type="button" className="secondary-action report-explore ui-press" onClick={()=>setReport(analysis)}>Explore report &amp; graph <ArrowUpRight size={13} className="inline-block align-[-2px]" aria-hidden="true" /></button>
                       <div className="border-t pt-6">
                         <p className="text-sm font-semibold text-ui-text-deep mb-3">
                           Most Complex Files

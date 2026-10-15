@@ -101,6 +101,20 @@
 
   --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
   --ease-fluid: cubic-bezier(0.32, 0.72, 0, 1);
+
+  /* Motion tokens — the single numeric source; JS reads these via lib/motion.ts. */
+  --ui-motion-fast: 120ms;
+  --ui-motion-base: 200ms;
+  --ui-motion-enter: 280ms;
+  --ui-motion-count: 320ms;
+  --ui-motion-stagger: 40ms;
+  --ui-ease-feedback: cubic-bezier(0.2, 0, 0, 1);
+  --ui-ease-enter: cubic-bezier(0.16, 1, 0.3, 1);
+  --ui-ease-linear: cubic-bezier(0, 0, 1, 1);
+  --ui-motion-lift: -2px;
+  --ui-motion-enter-y: 8px;
+  --ui-motion-press-scale: 0.98;
+  --ui-motion-stagger-cap: 4;
 }
 
 /* Visible keyboard focus everywhere — accessibility requirement, on-brand color */

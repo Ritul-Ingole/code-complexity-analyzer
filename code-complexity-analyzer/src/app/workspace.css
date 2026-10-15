@@ -941,3 +941,62 @@
     transform: none !important;
   }
 }
+/* ============================================================
+   Motion system (05) — scoped to app surfaces, never Orb ancestors.
+   All animation gated behind prefers-reduced-motion: no-preference;
+   the reduce block disables it and keeps final content visible.
+   ============================================================ */
+
+.ui-press { touch-action: manipulation; }
+.ui-link { position: relative; text-decoration: underline; text-underline-offset: 0.2em; }
+.ui-skeleton { position: relative; overflow: hidden; background: var(--ui-raised); }
+.ui-skeleton::after { content: ""; position: absolute; inset: 0; background: var(--ui-border); opacity: 0.4; }
+@keyframes ui-enter {
+  from { opacity: 0; transform: translateY(var(--ui-motion-enter-y)); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes ui-chart-fade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes ui-sheen {
+  from { transform: translateX(-100%); }
+  to { transform: translateX(100%); }
+}
+@keyframes ui-spin {
+  to { transform: rotate(1turn); }
+}
+@keyframes ui-exit {
+  from { opacity: 1; transform: none; }
+  to { opacity: 0; transform: translateY(var(--ui-motion-enter-y)); }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .ui-press { transition: transform var(--ui-motion-fast) var(--ui-ease-feedback); }
+  .ui-press:enabled:active, a.ui-press:active { transform: scale(var(--ui-motion-press-scale)); }
+  @media (hover: hover) {
+    .ui-press:enabled:hover, a.ui-press:hover { transform: translateY(var(--ui-motion-lift)); }
+    .ui-press:enabled:hover:active, a.ui-press:hover:active { transform: scale(var(--ui-motion-press-scale)); }
+  }
+  .ui-state-enter { animation: ui-enter var(--ui-motion-base) var(--ui-ease-enter); }
+  .ui-route-enter { animation: ui-enter var(--ui-motion-enter) var(--ui-ease-enter); }
+  .ui-modal-exit { animation: ui-exit var(--ui-motion-fast) var(--ui-ease-feedback) both; }
+  .ui-chart-enter { animation: ui-chart-fade var(--ui-motion-enter) var(--ui-ease-enter); }
+  .ui-list-enter > li[data-enter="true"] {
+    animation: ui-enter var(--ui-motion-enter) var(--ui-ease-enter) both;
+    animation-delay: calc(var(--ui-row-index) * var(--ui-motion-stagger));
+  }
+  .ui-skeleton::after { animation: ui-sheen var(--ui-motion-count) var(--ui-ease-linear) infinite; }
+  .ui-spinner { animation: ui-spin var(--ui-motion-count) var(--ui-ease-linear) infinite; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .ui-press, .ui-state-enter, .ui-route-enter, .ui-modal-exit, .ui-chart-enter, .ui-list-enter > li, .ui-spinner,
+  .ui-skeleton::after {
+    animation: none !important;
+    transition: none !important;
+    transform: none !important;
+  }
+  .ui-skeleton::after { display: none; }
+}
+
+/* Nested scroll containers under Lenis (see Allowed motion) */
+[data-lenis-prevent] { overscroll-behavior: contain; }

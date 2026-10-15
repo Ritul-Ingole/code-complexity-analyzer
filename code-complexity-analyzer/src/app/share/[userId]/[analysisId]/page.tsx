@@ -83,9 +83,9 @@ export default function SharePage() {
           <p className="text-ui-secondary mb-6">
             {error || "The analysis you're looking for doesn't exist or has expired."}
           </p>
-          <a href="/" className="btn-primary">
+          <a href="/" className="primary-action">
             Go Home
-            <span className="btn-orb">
+            <span className="action-orb">
               <ArrowRight className="h-4 w-4" />
             </span>
           </a>

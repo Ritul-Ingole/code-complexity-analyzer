@@ -40,9 +40,10 @@ interface ComparisonSectionProps {
 }
 
 function getComplexityColor(complexity: number): string {
-  if (complexity > 40) return "bg-red-500"
-  if (complexity > 25) return "bg-yellow-500"
-  return "bg-green-500"
+  // Canonical thresholds (never altered): low <= 25, medium 26-40, high > 40.
+  if (complexity > 40) return "bg-ui-danger"
+  if (complexity > 25) return "bg-ui-warning"
+  return "bg-ui-success"
 }
 
 // Single analysis column - reused for both current and previous, side by side on desktop

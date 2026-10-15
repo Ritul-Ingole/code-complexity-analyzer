@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from "react"
 import { useSearchParams } from "next/navigation"
 import type { GraphData } from "./FileGraph"
+import { ArrowUpRight, Check, Circle } from "lucide-react"
 import AnalysisResults from "./AnalysisResult"
 import AnalyzingScreen from "./AnalyzingScreen"
 import Link from "next/link"
@@ -237,7 +238,7 @@ export default function AnalyzeForm({ isAuthenticated }: AnalyzeFormProps) {
                     !isAuthenticated&&hasUsedFreeAnalysis?"Free analysis used":"Analyze repository"
                   }
                   {isAuthenticated&&remaining!==null&&<span> · {remaining} left</span>}
-                  <span className="action-orb" aria-hidden="true">↗</span>
+                  <span className="action-orb" aria-hidden="true"><ArrowUpRight size={13} /></span>
                   </button>{
                     !isAuthenticated&&<p className="preview-note">One free analysis. No sign-in required. <a href="/api/auth/login">Sign in for unlimited analyses →</a>
                   </p>
@@ -247,8 +248,8 @@ export default function AnalyzeForm({ isAuthenticated }: AnalyzeFormProps) {
                   }
               </form>
                   <div className="form-assurance">
-                    <span><span className="check">✓</span> Source code isn’t stored</span>
-                    <span><span className="check">✓</span> Static analysis, never executed</span>
+                    <span><span className="check" aria-hidden="true"><Check size={12} /></span> Source code isn’t stored</span>
+                    <span><span className="check" aria-hidden="true"><Check size={12} /></span> Static analysis, never executed</span>
                   </div>
             </div>
             </section>
@@ -279,9 +280,9 @@ export default function AnalyzeForm({ isAuthenticated }: AnalyzeFormProps) {
                     </li>
                   </ol>
                   <div className="intake-key">
-                    <span>● Low ≤25</span>
-                    <span>● Medium 26–40</span>
-                    <span>● High &gt;40</span>
+                    <span><Circle size={10} fill="currentColor" className="inline-block align-middle" aria-hidden="true" /> Low ≤25</span>
+                    <span><Circle size={10} fill="currentColor" className="inline-block align-middle" aria-hidden="true" /> Medium 26–40</span>
+                    <span><Circle size={10} fill="currentColor" className="inline-block align-middle" aria-hidden="true" /> High &gt;40</span>
                   </div>
                 </aside>
           </div>

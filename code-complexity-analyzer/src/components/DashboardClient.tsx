@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { ChevronDown, ChevronUp, Search, Filter, X, Download, MoreVertical, Share2, ArrowRight } from "lucide-react"
+import { ChevronDown, ChevronUp, Search, Filter, X, Download, MoreVertical, Share2, ArrowRight, ArrowUpRight } from "lucide-react"
 import AppShell from "./AppShell"
 import AnalysisResults from "./AnalysisResult"
 import type { GraphData } from "./FileGraph"
@@ -328,7 +328,7 @@ export default function DashboardClient({ userId }: DashboardClientProps) {
   return (
     <AppShell active="history"><div className="history-workspace">
       <div className="history-content">
-        <header className="workspace-heading heading-with-action"><div><p className="eyebrow">YOUR REPOSITORY NOTEBOOK</p><h1>Less guesswork.<br/><span>More perspective.</span></h1><p>Revisit your analyses and decide what deserves attention next.</p></div><a href="/analyze" className="primary-action">Analyze a repository<span className="action-orb" aria-hidden="true">↗</span></a></header>
+        <header className="workspace-heading heading-with-action"><div><p className="eyebrow">YOUR REPOSITORY NOTEBOOK</p><h1>Less guesswork.<br/><span>More perspective.</span></h1><p>Revisit your analyses and decide what deserves attention next.</p></div><a href="/analyze" className="primary-action">Analyze a repository<span className="action-orb" aria-hidden="true"><ArrowUpRight size={13} /></span></a></header>
         {!loading&&!error&&<div className="history-overview"><div><span>Saved analyses</span><strong>{analyses.length}</strong></div><div><span>Repositories explored</span><strong>{new Set(analyses.map(a=>a.repoUrl)).size}</strong></div><div><span>History retention</span><strong>30 <small>days</small></strong></div></div>}
 
         {loading && (
@@ -486,10 +486,10 @@ export default function DashboardClient({ userId }: DashboardClientProps) {
             <p className="text-ui-secondary mb-4">No analyses yet.</p>
             <a
               href="/analyze"
-              className="btn-primary"
+              className="primary-action"
             >
               Analyze a Repository
-              <span className="btn-orb">
+              <span className="action-orb">
                 <ArrowRight className="h-4 w-4" />
               </span>
             </a>
@@ -605,7 +605,7 @@ export default function DashboardClient({ userId }: DashboardClientProps) {
                         </div>
                       </div>
 
-                      <button type="button" className="secondary-action report-explore" onClick={()=>setReport(analysis)}>Explore report &amp; graph ↗</button>
+                      <button type="button" className="secondary-action report-explore" onClick={()=>setReport(analysis)}>Explore report &amp; graph <ArrowUpRight size={13} className="inline-block align-[-2px]" aria-hidden="true" /></button>
                       <div className="border-t pt-6">
                         <p className="text-sm font-semibold text-ui-text-deep mb-3">
                           Most Complex Files

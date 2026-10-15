@@ -58,9 +58,10 @@ interface AnalysisResultsProps {
 }
 
 function getComplexityColor(complexity: number): string {
-  if (complexity > 40) return "bg-red-500"
-  if (complexity > 25) return "bg-yellow-500"
-  return "bg-green-500"
+  // Canonical thresholds (never altered): low <= 25, medium 26-40, high > 40.
+  if (complexity > 40) return "bg-ui-danger"
+  if (complexity > 25) return "bg-ui-warning"
+  return "bg-ui-success"
 }
 
 export default function AnalysisResults({
@@ -124,7 +125,7 @@ export default function AnalysisResults({
         {!isShared && !isPreview && (
           <button
             onClick={onBack}
-            className="btn-secondary text-sm"
+            className="secondary-action text-sm"
           >
             Analyze Another
           </button>
@@ -140,10 +141,10 @@ export default function AnalysisResults({
             </p>
             <a
             href="/api/auth/login"
-            className="btn-primary"
+            className="primary-action"
           >
             Sign in with GitHub
-            <span className="btn-orb">
+            <span className="action-orb">
               <ArrowRight className="h-4 w-4" />
             </span>
           </a>
@@ -337,10 +338,10 @@ export default function AnalysisResults({
         <div className="flex justify-center pt-4">
           <button
             onClick={() => setShowShareModal(true)}
-            className="btn-primary"
+            className="primary-action"
           >
             Share Analysis
-            <span className="btn-orb">
+            <span className="action-orb">
               <ArrowRight className="h-4 w-4" />
             </span>
           </button>

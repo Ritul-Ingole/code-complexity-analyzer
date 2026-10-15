@@ -475,18 +475,6 @@
   color: var(--ink-soft) !important;
 }
 
-.analysis-report .bg-red-500 {
-  background: #ad463a;
-}
-
-.analysis-report .bg-green-500 {
-  background: var(--ui-success);
-}
-
-.analysis-report .bg-yellow-500 {
-  background: var(--ui-warning);
-}
-
 .history-workspace input,
 .history-workspace select {
   min-height: 48px;

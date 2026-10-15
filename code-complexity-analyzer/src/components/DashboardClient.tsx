@@ -89,10 +89,10 @@ function ActionMenu({
     <div className="relative">
       <button
         onClick={() => setOpen(!open)}
-        className="p-2 hover:bg-[#eee9de] rounded-lg transition-colors sm:hidden"
+        className="p-2 hover:bg-ui-sand rounded-lg transition-colors sm:hidden"
         aria-label="More actions"
       >
-        <MoreVertical size={20} className="text-[#6f665a]" />
+        <MoreVertical size={20} className="text-ui-secondary" />
       </button>
 
       {open && (
@@ -103,13 +103,13 @@ function ActionMenu({
             onClick={() => setOpen(false)}
           />
           {/* Dropdown menu */}
-          <div className="absolute right-0 mt-2 w-48 rounded-2xl border border-[#e6e0d4] bg-[#faf8f3] shadow-[0_8px_30px_rgba(43,38,32,0.12)] z-50">
+          <div className="absolute right-0 mt-2 w-48 rounded-2xl border border-ui-border bg-ui-surface shadow-[0_8px_30px_rgba(43,38,32,0.12)] z-50">
             <button
               onClick={() => {
                 downloadJSON(analysis)
                 setOpen(false)
               }}
-              className="w-full text-left px-4 py-3 hover:bg-[#f4f1ea] flex items-center gap-2 text-[#51483d] hover:text-[#a05239] transition-colors border-b border-[#e6e0d4]"
+              className="w-full text-left px-4 py-3 hover:bg-ui-canvas flex items-center gap-2 text-ui-text-deep hover:text-ui-clay-deep transition-colors border-b border-ui-border"
             >
               <Download size={16} />
               Download JSON
@@ -119,7 +119,7 @@ function ActionMenu({
                 onShare(analysis)
                 setOpen(false)
               }}
-              className="w-full text-left px-4 py-3 hover:bg-[#f4f1ea] flex items-center gap-2 text-[#51483d] hover:text-[#a05239] transition-colors border-b border-[#e6e0d4]"
+              className="w-full text-left px-4 py-3 hover:bg-ui-canvas flex items-center gap-2 text-ui-text-deep hover:text-ui-clay-deep transition-colors border-b border-ui-border"
             >
               <Share2 size={16} />
               Share
@@ -129,7 +129,7 @@ function ActionMenu({
               target="_blank"
               rel="noopener noreferrer"
               onClick={() => setOpen(false)}
-              className="w-full text-left px-4 py-3 hover:bg-[#f4f1ea] flex items-center gap-2 text-[#51483d] hover:text-[#a05239] transition-colors"
+              className="w-full text-left px-4 py-3 hover:bg-ui-canvas flex items-center gap-2 text-ui-text-deep hover:text-ui-clay-deep transition-colors"
             >
               <svg
                 className="w-4 h-4"
@@ -155,7 +155,7 @@ function FileDetailsExpandable({ files }: { files: TopComplexFile[] }) {
 
   if (files.length === 0) {
     return (
-      <div className="mt-4 p-4 bg-[#f4f1ea] rounded text-[#6f665a] text-sm">
+      <div className="mt-4 p-4 bg-ui-canvas rounded text-ui-secondary text-sm">
         No JavaScript/TypeScript files found in this repository.
       </div>
     )
@@ -167,14 +167,14 @@ function FileDetailsExpandable({ files }: { files: TopComplexFile[] }) {
         {displayFiles.map((file, idx) => (
           <div
             key={idx}
-            className="p-3 bg-[#f4f1ea] rounded border border-[#e6e0d4] hover:border-[#d8d2c4] transition-colors"
+            className="p-3 bg-ui-canvas rounded border border-ui-border hover:border-ui-border-strong transition-colors"
           >
             <div className="flex items-start justify-between gap-2">
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-mono text-[#51483d] truncate">
+                <p className="text-sm font-mono text-ui-text-deep truncate">
                   {file.path}
                 </p>
-                <div className="flex gap-3 mt-2 text-xs text-[#6f665a]">
+                <div className="flex gap-3 mt-2 text-xs text-ui-secondary">
                   <span>LOC: {file.loc}</span>
                   <span>Functions: {file.functions}</span>
                 </div>
@@ -196,7 +196,7 @@ function FileDetailsExpandable({ files }: { files: TopComplexFile[] }) {
       {files.length > 3 && (
         <button
           onClick={() => setExpanded(!expanded)}
-          className="mt-3 flex items-center gap-2 text-sm text-[#a05239] hover:text-[#8c4c36] font-medium"
+          className="mt-3 flex items-center gap-2 text-sm text-ui-clay-deep hover:text-ui-rust-soft font-medium"
         >
           {expanded ? (
             <>
@@ -336,15 +336,15 @@ export default function DashboardClient({ userId }: DashboardClientProps) {
             {[1, 2, 3].map((i) => (
               <div
                 key={i}
-                className="bg-[#faf8f3] rounded-2xl border border-[#e6e0d4] shadow-sm p-6 animate-pulse"
+                className="bg-ui-surface rounded-2xl border border-ui-border shadow-sm p-6 animate-pulse"
               >
-                <div className="h-6 bg-[#e6e0d4] rounded w-1/3 mb-4"></div>
-                <div className="h-4 bg-[#e6e0d4] rounded w-1/4 mb-6"></div>
+                <div className="h-6 bg-ui-border rounded w-1/3 mb-4"></div>
+                <div className="h-4 bg-ui-border rounded w-1/4 mb-6"></div>
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
                   {[1, 2, 3, 4].map((j) => (
                     <div key={j}>
-                      <div className="h-4 bg-[#e6e0d4] rounded w-2/3 mb-2"></div>
-                      <div className="h-6 bg-[#e6e0d4] rounded w-1/2"></div>
+                      <div className="h-4 bg-ui-border rounded w-2/3 mb-2"></div>
+                      <div className="h-6 bg-ui-border rounded w-1/2"></div>
                     </div>
                   ))}
                 </div>
@@ -364,13 +364,13 @@ export default function DashboardClient({ userId }: DashboardClientProps) {
           <div className="mb-8 space-y-4">
             {/* Search Bar */}
             <div className="relative">
-              <Search className="absolute left-3 top-3 text-[#766c5e]" size={20} />
+              <Search className="absolute left-3 top-3 text-ui-taupe-soft" size={20} />
               <input
                 type="text"
                 placeholder="Search by repository name..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full rounded-full border border-[#d8d2c4] bg-[#fffdf9] pl-10 pr-4 py-2.5 text-sm text-[#2b2620] placeholder:text-[#a89f8c]"
+                className="w-full rounded-full border border-ui-border-strong bg-ui-surface-raised pl-10 pr-4 py-2.5 text-sm text-ui-text placeholder:text-ui-taupe-faint"
               />
             </div>
 
@@ -380,8 +380,8 @@ export default function DashboardClient({ userId }: DashboardClientProps) {
               aria-expanded={filterPanelOpen}
               className={`flex items-center gap-2 px-4 py-2 rounded-full border transition-[background-color,border-color,color,transform] duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] active:scale-[0.98] ${
                 hasActiveFilters
-                  ? "bg-[#f2ead9] border-[#dfcba2] text-[#8c4c36]"
-                  : "bg-[#faf8f3] border-[#d8d2c4] text-[#51483d] hover:bg-[#f4f1ea]"
+                  ? "bg-ui-sand-warm border-ui-sand-strong text-ui-rust-soft"
+                  : "bg-ui-surface border-ui-border-strong text-ui-text-deep hover:bg-ui-canvas"
               }`}
             >
               <Filter size={18} strokeWidth={1.5} />
@@ -390,10 +390,10 @@ export default function DashboardClient({ userId }: DashboardClientProps) {
 
             {/* Collapsible Filter Panel */}
             {filterPanelOpen && (
-              <div className="bg-[#faf8f3] border border-[#d8d2c4] rounded-lg p-6 space-y-6">
+              <div className="bg-ui-surface border border-ui-border-strong rounded-lg p-6 space-y-6">
                 {/* Date Range */}
                 <div>
-                  <label className="block text-sm font-semibold text-[#2b2620] mb-3">
+                  <label className="block text-sm font-semibold text-ui-text mb-3">
                     Date Range
                   </label>
                   <div className="flex flex-wrap gap-2">
@@ -404,8 +404,8 @@ export default function DashboardClient({ userId }: DashboardClientProps) {
                         aria-pressed={dateRange === range}
                         className={`rounded-full px-4 py-2 text-sm font-medium transition-[background-color,color,transform] duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] active:scale-[0.98] ${
                           dateRange === range
-                            ? "bg-[#c1694f] text-[#faf8f3]"
-                            : "bg-[#eee9de] text-[#51483d] hover:bg-[#e6e0d4]"
+                            ? "bg-ui-accent text-ui-surface"
+                            : "bg-ui-sand text-ui-text-deep hover:bg-ui-border"
                         }`}
                       >
                         {range === "all"
@@ -420,7 +420,7 @@ export default function DashboardClient({ userId }: DashboardClientProps) {
 
                 {/* Complexity Level */}
                 <div>
-                  <label className="block text-sm font-semibold text-[#2b2620] mb-3">
+                  <label className="block text-sm font-semibold text-ui-text mb-3">
                     Complexity Level
                   </label>
                   <div className="flex flex-wrap gap-2">
@@ -431,8 +431,8 @@ export default function DashboardClient({ userId }: DashboardClientProps) {
                         aria-pressed={complexityFilter === level}
                         className={`rounded-full px-4 py-2 text-sm font-medium transition-[background-color,color,transform] duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] active:scale-[0.98] ${
                           complexityFilter === level
-                            ? "bg-[#c1694f] text-[#faf8f3]"
-                            : "bg-[#eee9de] text-[#51483d] hover:bg-[#e6e0d4]"
+                            ? "bg-ui-accent text-ui-surface"
+                            : "bg-ui-sand text-ui-text-deep hover:bg-ui-border"
                         }`}
                       >
                         {level === "all"
@@ -445,13 +445,13 @@ export default function DashboardClient({ userId }: DashboardClientProps) {
 
                 {/* Sorting */}
                 <div>
-                  <label className="block text-sm font-semibold text-[#2b2620] mb-3">
+                  <label className="block text-sm font-semibold text-ui-text mb-3">
                     Sort By
                   </label>
                   <select
                     value={sortBy}
                     onChange={(e) => setSortBy(e.target.value as SortOption)}
-                    className="w-full rounded-xl border border-[#d8d2c4] bg-[#fffdf9] px-3 py-2.5 text-sm text-[#2b2620]"
+                    className="w-full rounded-xl border border-ui-border-strong bg-ui-surface-raised px-3 py-2.5 text-sm text-ui-text"
                   >
                     <option value="newest">Newest First</option>
                     <option value="oldest">Oldest First</option>
@@ -470,7 +470,7 @@ export default function DashboardClient({ userId }: DashboardClientProps) {
                       setComplexityFilter("all")
                       setSortBy("newest")
                     }}
-                    className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-[#b4493d] hover:bg-[#f7e8e5] rounded-lg transition-colors"
+                    className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-ui-danger hover:bg-[#f7e8e5] rounded-lg transition-colors"
                   >
                     <X size={16} />
                     Clear All Filters
@@ -482,8 +482,8 @@ export default function DashboardClient({ userId }: DashboardClientProps) {
         )}
 
         {analyses.length === 0 && !loading && !error && (
-          <div className="rounded-2xl border border-[#e6e0d4] bg-[#faf8f3] p-12 text-center">
-            <p className="text-[#6f665a] mb-4">No analyses yet.</p>
+          <div className="rounded-2xl border border-ui-border bg-ui-surface p-12 text-center">
+            <p className="text-ui-secondary mb-4">No analyses yet.</p>
             <a
               href="/analyze"
               className="btn-primary"
@@ -499,8 +499,8 @@ export default function DashboardClient({ userId }: DashboardClientProps) {
         {!loading && !error && analyses.length > 0 && (
           <div>
             {filteredAndSortedAnalyses.length === 0 ? (
-              <div className="bg-[#faf8f3] rounded-2xl border border-[#e6e0d4] shadow-sm p-12 text-center">
-                <p className="text-[#6f665a]">
+              <div className="bg-ui-surface rounded-2xl border border-ui-border shadow-sm p-12 text-center">
+                <p className="text-ui-secondary">
                   No analyses match your filters. Try adjusting your search or filters.
                 </p>
               </div>
@@ -509,15 +509,15 @@ export default function DashboardClient({ userId }: DashboardClientProps) {
                 {filteredAndSortedAnalyses.map((analysis) => (
                   <div
                     key={analysis.analysisId}
-                    className="rounded-2xl border border-[#e6e0d4] bg-[#faf8f3] shadow-[0_1px_2px_rgba(43,38,32,0.04),0_12px_32px_-20px_rgba(43,38,32,0.2)] transition-[box-shadow,transform] duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] hover:-translate-y-0.5 hover:shadow-[0_2px_4px_rgba(43,38,32,0.05),0_20px_44px_-20px_rgba(43,38,32,0.28)] overflow-hidden"
+                    className="rounded-2xl border border-ui-border bg-ui-surface shadow-[0_1px_2px_rgba(43,38,32,0.04),0_12px_32px_-20px_rgba(43,38,32,0.2)] transition-[box-shadow,transform] duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] hover:-translate-y-0.5 hover:shadow-[0_2px_4px_rgba(43,38,32,0.05),0_20px_44px_-20px_rgba(43,38,32,0.28)] overflow-hidden"
                   >
                     <div className="p-6">
                       <div className="flex items-start justify-between mb-4 flex-wrap gap-4">
                         <div className="flex-1 min-w-0">
-                          <h3 className="text-xl font-semibold text-[#2b2620] truncate">
+                          <h3 className="text-xl font-semibold text-ui-text truncate">
                             {analysis.repoUrl.split("/").pop()}
                           </h3>
-                          <p className="text-sm text-[#6f665a] mt-1">
+                          <p className="text-sm text-ui-secondary mt-1">
                             {new Date(analysis.timestamp).toLocaleDateString(
                               "en-US",
                               {
@@ -529,7 +529,7 @@ export default function DashboardClient({ userId }: DashboardClientProps) {
                               }
                             )}
                           </p>
-                          <p className="text-xs text-[#766c5e] mt-1 font-mono">
+                          <p className="text-xs text-ui-taupe-soft mt-1 font-mono">
                             {analysis.headSha.slice(0, 7)} •{" "}
                             {analysis.totalCommits}{" "}
                             {analysis.totalCommits === 1 ? "commit" : "commits"}
@@ -539,13 +539,13 @@ export default function DashboardClient({ userId }: DashboardClientProps) {
                           {/* Desktop buttons - hidden on mobile */}
                           <button
                             onClick={() => downloadJSON(analysis)}
-                            className="hidden sm:flex text-sm text-[#a05239] hover:text-[#8c4c36] hover:underline items-center gap-1 flex-shrink-0"
+                            className="hidden sm:flex text-sm text-ui-clay-deep hover:text-ui-rust-soft hover:underline items-center gap-1 flex-shrink-0"
                           >
                             Download JSON <Download size={16} />
                           </button>
                           <button
                             onClick={() => handleShare(analysis)}
-                            className="hidden sm:flex text-sm text-[#a05239] hover:text-[#8c4c36] hover:underline items-center gap-1 flex-shrink-0"
+                            className="hidden sm:flex text-sm text-ui-clay-deep hover:text-ui-rust-soft hover:underline items-center gap-1 flex-shrink-0"
                           >
                             Share <Share2 size={16} />
                           </button>
@@ -553,7 +553,7 @@ export default function DashboardClient({ userId }: DashboardClientProps) {
                             href={analysis.repoUrl}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="hidden sm:flex text-sm text-[#a05239] hover:text-[#8c4c36] hover:underline items-center gap-1 flex-shrink-0"
+                            className="hidden sm:flex text-sm text-ui-clay-deep hover:text-ui-rust-soft hover:underline items-center gap-1 flex-shrink-0"
                           >
                             <svg
                               className="w-4 h-4"
@@ -572,34 +572,34 @@ export default function DashboardClient({ userId }: DashboardClientProps) {
 
                       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
                         <div>
-                          <p className="text-xs font-semibold text-[#6f665a] uppercase tracking-wide">
+                          <p className="text-xs font-semibold text-ui-secondary uppercase tracking-wide">
                             LOC
                           </p>
-                          <p className="font-display text-2xl font-semibold text-[#2b2620] mt-1 tabular-nums">
+                          <p className="font-display text-2xl font-semibold text-ui-text mt-1 tabular-nums">
                             {analysis.metrics.totalLoc.toLocaleString()}
                           </p>
                         </div>
                         <div>
-                          <p className="text-xs font-semibold text-[#6f665a] uppercase tracking-wide">
+                          <p className="text-xs font-semibold text-ui-secondary uppercase tracking-wide">
                             Functions
                           </p>
-                          <p className="font-display text-2xl font-semibold text-[#2b2620] mt-1 tabular-nums">
+                          <p className="font-display text-2xl font-semibold text-ui-text mt-1 tabular-nums">
                             {analysis.metrics.totalFunctions.toLocaleString()}
                           </p>
                         </div>
                         <div>
-                          <p className="text-xs font-semibold text-[#6f665a] uppercase tracking-wide">
+                          <p className="text-xs font-semibold text-ui-secondary uppercase tracking-wide">
                             Avg Complexity
                           </p>
-                          <p className="font-display text-2xl font-semibold text-[#2b2620] mt-1 tabular-nums">
+                          <p className="font-display text-2xl font-semibold text-ui-text mt-1 tabular-nums">
                             {analysis.metrics.averageComplexity.toFixed(1)}
                           </p>
                         </div>
                         <div>
-                          <p className="text-xs font-semibold text-[#6f665a] uppercase tracking-wide">
+                          <p className="text-xs font-semibold text-ui-secondary uppercase tracking-wide">
                             Files Analyzed
                           </p>
-                          <p className="font-display text-2xl font-semibold text-[#2b2620] mt-1 tabular-nums">
+                          <p className="font-display text-2xl font-semibold text-ui-text mt-1 tabular-nums">
                             {analysis.metrics.fileCount}
                           </p>
                         </div>
@@ -607,7 +607,7 @@ export default function DashboardClient({ userId }: DashboardClientProps) {
 
                       <button type="button" className="secondary-action report-explore" onClick={()=>setReport(analysis)}>Explore report &amp; graph ↗</button>
                       <div className="border-t pt-6">
-                        <p className="text-sm font-semibold text-[#51483d] mb-3">
+                        <p className="text-sm font-semibold text-ui-text-deep mb-3">
                           Most Complex Files
                         </p>
                         <FileDetailsExpandable

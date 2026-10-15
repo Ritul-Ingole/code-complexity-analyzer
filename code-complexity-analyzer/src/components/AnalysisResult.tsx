@@ -116,8 +116,8 @@ export default function AnalysisResults({
       {/* Header */}
       <div className="flex flex-wrap gap-4 items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold text-[#2b2620]">{repoUrl.split("/").pop()}</h2>
-          <p className="text-sm text-[#6f665a]">
+          <h2 className="text-2xl font-bold text-ui-text">{repoUrl.split("/").pop()}</h2>
+          <p className="text-sm text-ui-secondary">
             {totalCommits} commits • Analyzed {new Date(data.timestamp).toLocaleDateString()}
           </p>
         </div>
@@ -174,7 +174,7 @@ export default function AnalysisResults({
       {/* Bar Chart */}
       <div className={REPORT_SHELL}>
         <div className={`${REPORT_CORE} p-6`}>
-          <h3 className="text-lg font-semibold mb-4 text-[#2b2620]">Top 10 Most Complex Files</h3>
+          <h3 className="text-lg font-semibold mb-4 text-ui-text">Top 10 Most Complex Files</h3>
           <ResponsiveContainerComponent width="100%" height={chartHeight}>
             <BarChartComponent
               data={chartData}
@@ -191,12 +191,12 @@ export default function AnalysisResults({
               />
               <Tooltip
                 contentStyle={{
-                  background: "#faf8f3",
-                  border: "1px solid #e6e0d4",
+                  background: "var(--ui-surface)",
+                  border: "1px solid var(--ui-border)",
                   borderRadius: 12,
                   boxShadow: "0 8px 24px -12px rgba(43,38,32,0.25)",
                   fontSize: 12,
-                  color: "#2b2620",
+                  color: "var(--ui-text)",
                 }}
                 cursor={{ fill: "rgba(193,105,79,0.08)" }}
               />
@@ -209,27 +209,27 @@ export default function AnalysisResults({
       {/* File Table - Desktop */}
       <div className={REPORT_SHELL}>
         <div className={`${REPORT_CORE} overflow-hidden`}>
-          <div className="px-6 py-4 border-b border-[#e6e0d4]">
-            <h3 className="text-lg font-semibold text-[#2b2620]">File Details</h3>
+          <div className="px-6 py-4 border-b border-ui-border">
+            <h3 className="text-lg font-semibold text-ui-text">File Details</h3>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
-              <thead className="bg-[#f4f1ea] border-b border-[#e6e0d4]">
+              <thead className="bg-ui-canvas border-b border-ui-border">
                 <tr>
-                  <th className="px-6 py-3 text-left font-semibold text-[#51483d]">File</th>
-                  <th className="px-6 py-3 text-right font-semibold text-[#51483d]">LOC</th>
-                  <th className="px-6 py-3 text-right font-semibold text-[#51483d]">Functions</th>
-                  <th className="px-6 py-3 text-right font-semibold text-[#51483d]">Complexity</th>
+                  <th className="px-6 py-3 text-left font-semibold text-ui-text-deep">File</th>
+                  <th className="px-6 py-3 text-right font-semibold text-ui-text-deep">LOC</th>
+                  <th className="px-6 py-3 text-right font-semibold text-ui-text-deep">Functions</th>
+                  <th className="px-6 py-3 text-right font-semibold text-ui-text-deep">Complexity</th>
                 </tr>
               </thead>
               <tbody>
                 {topComplexFiles.map((file, idx) => (
-                  <tr key={idx} className="border-b border-[#e6e0d4] transition-colors duration-200 last:border-b-0 hover:bg-[#f4f1ea]">
-                    <td className="px-6 py-4 text-[#2b2620]">{file.path}</td>
-                    <td className="px-6 py-4 text-right text-[#6f665a] tabular-nums">{file.loc}</td>
-                    <td className="px-6 py-4 text-right text-[#6f665a] tabular-nums">{file.functions}</td>
+                  <tr key={idx} className="border-b border-ui-border transition-colors duration-200 last:border-b-0 hover:bg-ui-canvas">
+                    <td className="px-6 py-4 text-ui-text">{file.path}</td>
+                    <td className="px-6 py-4 text-right text-ui-secondary tabular-nums">{file.loc}</td>
+                    <td className="px-6 py-4 text-right text-ui-secondary tabular-nums">{file.functions}</td>
                     <td className="px-6 py-4 text-right">
-                      <span className={`px-3 py-1 rounded-full text-[#faf8f3] text-xs font-semibold tabular-nums ${getComplexityColor(file.complexity)}`}>
+                      <span className={`px-3 py-1 rounded-full text-ui-surface text-xs font-semibold tabular-nums ${getComplexityColor(file.complexity)}`}>
                         {file.complexity}
                       </span>
                     </td>
@@ -245,21 +245,21 @@ export default function AnalysisResults({
       <div className="sm:hidden">
         <div className={REPORT_SHELL}>
           <div className={`${REPORT_CORE} overflow-hidden`}>
-            <div className="px-4 py-4 border-b border-[#e6e0d4]">
-              <h3 className="text-lg font-semibold text-[#2b2620]">File Details</h3>
+            <div className="px-4 py-4 border-b border-ui-border">
+              <h3 className="text-lg font-semibold text-ui-text">File Details</h3>
             </div>
             <div>
               {topComplexFiles.map((file, idx) => (
                 <button
                   key={idx}
                   onClick={() => setSelectedFile(file)}
-                  className="w-full flex items-center justify-between px-4 py-4 border-b border-[#e6e0d4] last:border-b-0 hover:bg-[#f4f1ea] active:bg-[#eee9de] text-left transition-colors duration-200"
+                  className="w-full flex items-center justify-between px-4 py-4 border-b border-ui-border last:border-b-0 hover:bg-ui-canvas active:bg-ui-sand text-left transition-colors duration-200"
                 >
-                  <span className="text-[#2b2620] truncate pr-3">
+                  <span className="text-ui-text truncate pr-3">
                     {file.path.split("/").pop()}
                   </span>
                   <span
-                    className={`flex-shrink-0 px-3 py-1 rounded-full text-[#faf8f3] text-xs font-semibold tabular-nums ${getComplexityColor(file.complexity)}`}
+                    className={`flex-shrink-0 px-3 py-1 rounded-full text-ui-surface text-xs font-semibold tabular-nums ${getComplexityColor(file.complexity)}`}
                   >
                     {file.complexity}
                   </span>
@@ -276,19 +276,19 @@ export default function AnalysisResults({
           className="fixed inset-0 z-50 sm:hidden"
           onClick={() => setSelectedFile(null)}
         >
-          <div className="absolute inset-0 bg-[#2b2620]/45" />
+          <div className="absolute inset-0 bg-[var(--ui-backdrop)]" />
           <div
-            className="absolute bottom-0 left-0 right-0 bg-[#faf8f3] rounded-t-3xl p-6 pb-8 animate-slide-up"
+            className="absolute bottom-0 left-0 right-0 bg-ui-surface rounded-t-3xl p-6 pb-8 animate-slide-up"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="mx-auto mb-4 h-1 w-10 rounded-full bg-[#d8d2c4]" />
+            <div className="mx-auto mb-4 h-1 w-10 rounded-full bg-ui-border-strong" />
             <div className="flex items-start justify-between mb-4">
-              <p className="text-sm font-mono text-[#51483d] break-all pr-4">
+              <p className="text-sm font-mono text-ui-text-deep break-all pr-4">
                 {selectedFile.path}
               </p>
               <button
                 onClick={() => setSelectedFile(null)}
-                className="flex-shrink-0 p-1 text-[#766c5e] hover:text-[#6f665a] transition-colors"
+                className="flex-shrink-0 p-1 text-ui-taupe-soft hover:text-ui-secondary transition-colors"
                 aria-label="Close"
               >
                 <X size={22} />
@@ -297,17 +297,17 @@ export default function AnalysisResults({
 
             <div className="grid grid-cols-3 gap-4 mt-2">
               <div>
-                <p className="text-xs font-semibold text-[#6f665a] uppercase tracking-wide">LOC</p>
-                <p className="text-xl font-semibold text-[#2b2620] mt-1 tabular-nums">{selectedFile.loc}</p>
+                <p className="text-xs font-semibold text-ui-secondary uppercase tracking-wide">LOC</p>
+                <p className="text-xl font-semibold text-ui-text mt-1 tabular-nums">{selectedFile.loc}</p>
               </div>
               <div>
-                <p className="text-xs font-semibold text-[#6f665a] uppercase tracking-wide">Functions</p>
-                <p className="text-xl font-semibold text-[#2b2620] mt-1 tabular-nums">{selectedFile.functions}</p>
+                <p className="text-xs font-semibold text-ui-secondary uppercase tracking-wide">Functions</p>
+                <p className="text-xl font-semibold text-ui-text mt-1 tabular-nums">{selectedFile.functions}</p>
               </div>
               <div>
-                <p className="text-xs font-semibold text-[#6f665a] uppercase tracking-wide">Complexity</p>
+                <p className="text-xs font-semibold text-ui-secondary uppercase tracking-wide">Complexity</p>
                 <span
-                  className={`inline-block mt-1 px-3 py-1 rounded-full text-[#faf8f3] text-sm font-semibold tabular-nums ${getComplexityColor(selectedFile.complexity)}`}
+                  className={`inline-block mt-1 px-3 py-1 rounded-full text-ui-surface text-sm font-semibold tabular-nums ${getComplexityColor(selectedFile.complexity)}`}
                 >
                   {selectedFile.complexity}
                 </span>
@@ -352,9 +352,9 @@ export default function AnalysisResults({
 
 function MetricCard({ label, value, decimals = 0 }: { label: string; value: number; decimals?: number }) {
   return (
-    <div className="rounded-xl border border-[#e6e0d4]/80 bg-white/70 p-4 transition-[transform,border-color] duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] hover:-translate-y-0.5 hover:border-[#c1694f]/30">
-      <p className="text-sm text-[#6f665a] mb-1">{label}</p>
-      <p className="font-display text-2xl font-semibold text-[#2b2620] tabular-nums">
+    <div className="rounded-xl border border-[color-mix(in_srgb,var(--ui-border)_80%,transparent)] bg-white/70 p-4 transition-[transform,border-color] duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] hover:-translate-y-0.5 hover:border-[color-mix(in_srgb,var(--ui-accent)_30%,transparent)]">
+      <p className="text-sm text-ui-secondary mb-1">{label}</p>
+      <p className="font-display text-2xl font-semibold text-ui-text tabular-nums">
         <AnimatedCounter value={value} decimals={decimals} />
       </p>
     </div>

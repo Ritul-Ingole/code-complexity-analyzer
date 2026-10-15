@@ -181,7 +181,7 @@
 
 .secondary-action:hover {
   background: #fffdf8;
-  border-color: #a89f8c;
+  border-color: var(--ui-taupe-faint);
 }
 
 .text-action {
@@ -251,7 +251,7 @@
   font: 14px/1.4 var(--font-sans), Arial, sans-serif;
   min-height: 48px;
   border: 1px solid var(--line-strong);
-  background: #fffdf9;
+  background: var(--ui-surface-raised);
   border-radius: 10px;
   padding: 12px 14px;
   color: var(--ink);
@@ -379,15 +379,15 @@
 }
 
 .intake-key span:first-child {
-  color: #4d7142;
+  color: var(--ui-success);
 }
 
 .intake-key span:nth-child(2) {
-  color: #947011;
+  color: var(--ui-warning);
 }
 
 .intake-key span:last-child {
-  color: #b4493d;
+  color: var(--ui-danger);
 }
 
 .app-footer {
@@ -405,7 +405,7 @@
 }
 
 .history-overview {
-  border-block: 1px solid #d8d2c4;
+  border-block: 1px solid var(--ui-border-strong);
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   padding: 28px 0;
@@ -480,18 +480,18 @@
 }
 
 .analysis-report .bg-green-500 {
-  background: #4d7142;
+  background: var(--ui-success);
 }
 
 .analysis-report .bg-yellow-500 {
-  background: #947011;
+  background: var(--ui-warning);
 }
 
 .history-workspace input,
 .history-workspace select {
   min-height: 48px;
   color: var(--ink);
-  background: #fffdf9;
+  background: var(--ui-surface-raised);
 }
 
 .history-workspace .text-xs {
@@ -541,7 +541,7 @@
   gap: 12px;
   padding: 16px 28px;
   border-block: 1px solid var(--line);
-  background: #f4f1ea;
+  background: var(--ui-canvas);
 }
 
 .graph-search {
@@ -564,7 +564,7 @@
 }
 
 .graph-toggle input {
-  accent-color: #a85c42;
+  accent-color: var(--ui-clay);
   width: 16px;
   height: 16px;
 }
@@ -702,7 +702,7 @@
 }
 
 .graph-file-list button:hover {
-  background: #eee9de;
+  background: var(--ui-sand);
 }
 
 .graph-file-list button:focus-visible {

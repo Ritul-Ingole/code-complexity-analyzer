@@ -919,6 +919,53 @@
   transform: none;
 }
 
+/* Arc entrances: cards swoop in from out of view along a curved path
+   (side offset + vertical rise mid-flight = arc). Scoped to no-preference
+   so reduced-motion users get static, fully visible cards. */
+@media (prefers-reduced-motion: no-preference) {
+  .arc-left,
+  .arc-right {
+    opacity: 0;
+    pointer-events: none;
+  }
+  .arc-left.reveal-visible {
+    animation: arc-in-left 1.8s cubic-bezier(.16, 1, .3, 1) both;
+  }
+  .arc-right.reveal-visible {
+    animation: arc-in-right 1.8s cubic-bezier(.16, 1, .3, 1) both;
+  }
+}
+
+@keyframes arc-in-left {
+  0% {
+    opacity: 0;
+    transform: translate(-70vw, 70px);
+  }
+  50% {
+    opacity: .6;
+    transform: translate(-36vw, -90px);
+  }
+  100% {
+    opacity: 1;
+    transform: translate(0, 0);
+  }
+}
+
+@keyframes arc-in-right {
+  0% {
+    opacity: 0;
+    transform: translate(70vw, 70px);
+  }
+  50% {
+    opacity: .6;
+    transform: translate(36vw, -90px);
+  }
+  100% {
+    opacity: 1;
+    transform: translate(0, 0);
+  }
+}
+
 .magnetic-wrap {
   display: inline-flex;
 }

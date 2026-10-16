@@ -96,7 +96,7 @@ export function ProductPreview() {
         <div className="relative mt-16 grid grid-cols-1 items-center gap-8 lg:grid-cols-[1fr_minmax(200px,320px)_1fr]">
           <div className="spine-line hidden lg:block" />
 
-          <ScrollReveal delay={0}>
+          <ScrollReveal delay={0} direction="left">
             <div className={`${SHELL} lg:-rotate-1`}>
               <div className={CORE}>
                 <div className="flex items-center justify-between">
@@ -118,7 +118,7 @@ export function ProductPreview() {
             className="pointer-events-none hidden h-[420px] w-full lg:block"
           />
 
-          <ScrollReveal delay={100}>
+          <ScrollReveal delay={0} direction="right">
             <div className={`${SHELL} lg:rotate-1`}>
               <div className={CORE}>
                 <div className="flex items-center justify-between">
@@ -236,6 +236,8 @@ export function TrustFaq({ isAuthenticated }: { isAuthenticated: boolean }) {
             </ScrollReveal>
           ))}
         </div>
+
+// ===================== 06 — Start Now =====================
 
         {/* Closing band — a slightly deeper shade of the same palette, not a theme swap */}
         <ScrollReveal delay={160}>

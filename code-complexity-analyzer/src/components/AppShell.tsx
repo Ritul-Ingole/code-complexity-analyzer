@@ -14,7 +14,7 @@ export default function AppShell({
     <div className="app-shell">
       <NavBar active={active} isAuthenticated={authenticated} />
 
-      <main className="app-main">
+      <main className="app-main ui-route-enter">
         {children}
       </main>
 

@@ -64,7 +64,7 @@ export default function AnalyzingScreen({ ready }: AnalyzingScreenProps) {
               <li
                 key={label}
                 style={{ animationDelay: `${i * 400}ms`, animationFillMode: "both" }}
-                className="flex items-center gap-2.5 text-sm text-ui-muted animate-fade-in"
+                className="flex items-center gap-2.5 text-sm text-ui-muted ui-state-enter"
               >
                 <span className="w-[15px] h-[15px] rounded-full border border-ui-border-strong shrink-0" />
                 {label}
@@ -74,14 +74,14 @@ export default function AnalyzingScreen({ ready }: AnalyzingScreenProps) {
           <div className="min-h-[72px] flex items-center justify-center px-4">
             <p
               key={factIndex}
-              className="text-ui-text-deep leading-relaxed animate-fade-in"
+              className="text-ui-text-deep leading-relaxed ui-state-enter"
             >
               {FACTS[factIndex]}
             </p>
           </div>
         </>
       ) : (
-        <div className="animate-fade-in">
+        <div className="ui-state-enter">
           <div className="flex justify-center mb-4">
             <CheckCircle2 className="text-ui-success" size={40} strokeWidth={1.5} />
           </div>

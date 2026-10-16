@@ -13,6 +13,9 @@ import AuthLink from "@/components/AuthLink"
 const SHELL =
   "rounded-[1.625rem] bg-white/40 p-1.5 ring-1 ring-[#e6e0d4] shadow-[0_1px_2px_rgba(43,38,32,0.04),0_16px_40px_-24px_rgba(43,38,32,0.2)] transition-transform duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] hover:-translate-y-1"
 const CORE = "rounded-[1.25rem] bg-[#faf8f3] p-7 shadow-[inset_0_1px_0_rgba(255,255,255,0.7)]"
+// Same card visuals without the hover-lift — used by step cards that deliberately have no hover state
+const SHELL_STATIC =
+  "rounded-[1.625rem] bg-white/40 p-1.5 ring-1 ring-[#e6e0d4] shadow-[0_1px_2px_rgba(43,38,32,0.04),0_16px_40px_-24px_rgba(43,38,32,0.2)]"
 
 const MOCK_METRICS: Array<{ label: string; value: number; decimals: number }> = [
   { label: "Total LOC", value: 48213, decimals: 0 },
@@ -92,8 +95,8 @@ const StepCard = ({
   title: string
   children: React.ReactNode
 }) => (
-  <div className={SHELL}>
-    <div className={CORE}>
+  <div className={`${SHELL_STATIC} h-full`}>
+    <div className={`${CORE} h-full flex flex-col`}>
       <div className="flex items-start justify-between">
         <span className="font-display text-5xl font-semibold leading-none text-[#c1694f]">
           {step}
@@ -135,7 +138,12 @@ export function HowItWorks() {
 
           {/* Left Column */}
           <div className="flex flex-col gap-6">
-            <ScrollReveal delay={0}>
+            <ScrollReveal
+              delay={0}
+              direction="left"
+              className="h-[17rem]"
+              rootMargin="0px 0px 15% 0px"
+            >
               <StepCard
                 icon={<Link2 className="h-4 w-4" strokeWidth={1.5} />}
                 step="01"
@@ -146,14 +154,19 @@ export function HowItWorks() {
               </StepCard>
             </ScrollReveal>
 
-            <ScrollReveal delay={100}>
+            <ScrollReveal
+              delay={500}
+              direction="left"
+              className="h-[17rem]"
+              rootMargin="0px 0px 15% 0px"
+            >
               <StepCard
-                icon={<Gauge className="h-4 w-4" strokeWidth={1.5} />}
-                step="02"
-                title="Condense into core metrics"
+                icon={<TrendingUp className="h-4 w-4" strokeWidth={1.5} />}
+                step="03"
+                title="Surface the hotspots"
               >
-                AST parsing condenses thousands of lines into cyclomatic complexity, Halstead
-                volume, and maintainability indices in seconds.
+                Watch the complexity field burst open into prioritized file ranks, warning
+                indicators, and concrete refactoring opportunities.
               </StepCard>
             </ScrollReveal>
           </div>
@@ -168,20 +181,30 @@ export function HowItWorks() {
 
           {/* Right Column */}
           <div className="flex flex-col gap-6">
-            <ScrollReveal delay={0}>
+            <ScrollReveal
+              delay={300}
+              direction="right"
+              className="h-[17rem]"
+              rootMargin="0px 0px 15% 0px"
+            >
               <StepCard
-                icon={<TrendingUp className="h-4 w-4" strokeWidth={1.5} />}
-                step="03"
-                title="Surface the hotspots"
+                icon={<Gauge className="h-4 w-4" strokeWidth={1.5} />}
+                step="02"
+                title="Condense into core metrics"
               >
-                Watch the complexity field burst open into prioritized file ranks, warning
-                indicators, and concrete refactoring opportunities.
+                AST parsing condenses thousands of lines into cyclomatic complexity, Halstead
+                volume, and maintainability indices in seconds.
               </StepCard>
             </ScrollReveal>
 
-            <ScrollReveal delay={100}>
-              <div className={SHELL}>
-                <div className={CORE}>
+            <ScrollReveal
+              delay={800}
+              direction="right"
+              className="h-[17rem]"
+              rootMargin="0px 0px 15% 0px"
+            >
+              <div className={`${SHELL_STATIC} h-full`}>
+                <div className={`${CORE} h-full flex flex-col`}>
                   <div className="flex items-center justify-between">
                     <span className="font-mono text-xs font-semibold text-[#c1694f]">FAST &amp; SECURE</span>
                     <span className="font-mono text-xs text-[#8a8172]">STATS</span>

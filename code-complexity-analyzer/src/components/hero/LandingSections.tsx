@@ -218,14 +218,19 @@ export function ProductPreview() {
         <div className="relative mt-16 grid grid-cols-1 items-center gap-8 lg:grid-cols-[1fr_minmax(200px,320px)_1fr]">
           <div className="spine-line hidden lg:block" />
 
-          <ScrollReveal delay={0} direction="left">
-            <div className={`${SHELL} lg:-rotate-1`}>
-              <div className={CORE}>
+          <ScrollReveal
+            delay={0}
+            direction="left"
+            className="h-80"
+            rootMargin="0px 0px 15% 0px"
+          >
+            <div className={`${SHELL} h-full lg:-rotate-3 lg:hover:rotate-0`}>
+              <div className={`${CORE} h-full flex flex-col`}>
                 <div className="flex items-center justify-between">
                   <span className="font-mono text-xs text-[#8a8172]">ANALYSIS SUMMARY</span>
                   <Sparkles className="h-4 w-4 text-[#c1694f]" strokeWidth={1.5} />
                 </div>
-                <div className="mt-5 grid grid-cols-2 gap-3">
+                <div className="mt-5 grid flex-1 grid-cols-2 grid-rows-2 gap-3">
                 {MOCK_METRICS.map((m) => (
                   <MetricTile key={m.label} m={m} />
                 ))}
@@ -240,14 +245,19 @@ export function ProductPreview() {
             className="pointer-events-none hidden h-[420px] w-full lg:block"
           />
 
-          <ScrollReveal delay={0} direction="right">
-            <div className={`${SHELL} lg:rotate-1`}>
-              <div className={CORE}>
+          <ScrollReveal
+            delay={0}
+            direction="right"
+            className="h-80"
+            rootMargin="0px 0px 15% 0px"
+          >
+            <div className={`${SHELL} h-full lg:rotate-3 lg:hover:rotate-0`}>
+              <div className={`${CORE} h-full flex flex-col`}>
                 <div className="flex items-center justify-between">
                   <span className="font-mono text-xs text-[#8a8172]">TREND VS. LAST RUN</span>
                   <ShieldCheck className="h-4 w-4 text-[#4d7142]" strokeWidth={1.5} />
                 </div>
-                <div className="mt-5 space-y-3">
+                <div className="mt-5 flex flex-1 flex-col justify-between gap-3">
                   {TREND_ROWS.map((row) => (
                     <div
                       key={row.label}

@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from "react"
 import FileGraph, { riskColor } from "./FileGraph"
-import ScrollReveal from "./ScrollReveal"
 import AnimatedCounter from "./AnimatedCounter"
 import type { GraphData } from "./FileGraph"
 import { X, ArrowRight } from "lucide-react"
@@ -164,14 +163,12 @@ export default function AnalysisResults({
       )}
 
       {/* Metrics Grid */}
-      <ScrollReveal>
-        <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
-          <MetricCard label="Total LOC" value={metrics.totalLoc} />
-          <MetricCard label="Functions" value={metrics.totalFunctions} />
-          <MetricCard label="Avg Complexity" value={metrics.averageComplexity} decimals={1} />
-          <MetricCard label="Files" value={metrics.fileCount} />
-        </div>
-      </ScrollReveal>
+      <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
+        <MetricCard label="Total LOC" value={metrics.totalLoc} />
+        <MetricCard label="Functions" value={metrics.totalFunctions} />
+        <MetricCard label="Avg Complexity" value={metrics.averageComplexity} decimals={1} />
+        <MetricCard label="Files" value={metrics.fileCount} />
+      </div>
 
       {/* Trend Card */}
       {!isShared && !isPreview && !loadingComparison && priorAnalyses.length > 0 && (
@@ -365,7 +362,7 @@ export default function AnalysisResults({
 
 function MetricCard({ label, value, decimals = 0 }: { label: string; value: number; decimals?: number }) {
   return (
-    <div className="rounded-xl border border-[color-mix(in_srgb,var(--ui-border)_80%,transparent)] bg-white/70 p-4 transition-[transform,border-color] duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] hover:-translate-y-0.5 hover:border-[color-mix(in_srgb,var(--ui-accent)_30%,transparent)]">
+    <div className="rounded-xl border border-ui-border p-4">
       <p className="text-sm text-ui-secondary mb-1">{label}</p>
       <p className="font-display text-2xl font-semibold text-ui-text tabular-nums">
         <AnimatedCounter value={value} decimals={decimals} />

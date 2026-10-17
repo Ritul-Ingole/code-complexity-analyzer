@@ -56,10 +56,14 @@ export default function AnalyzingScreen({ ready }: AnalyzingScreenProps) {
           <div className="flex justify-center mb-6">
             <div className="w-10 h-10 border-4 border-ui-sand-strong border-t-ui-clay rounded-full animate-spin" />
           </div>
-          <p className="text-sm font-semibold text-ui-secondary uppercase tracking-wide mb-6">
-            Analyzing Repository · {elapsed}s
+          {/* Single polite live region: announced once per state, never per tick.
+              Elapsed time and fact rotation stay outside it. */}
+          <p role="status" aria-live="polite" aria-atomic="true" className="text-sm font-semibold text-ui-secondary uppercase tracking-wide mb-2">
+            Analyzing repository. Please wait.
           </p>
-          <ul className="max-w-[260px] mx-auto mb-6 space-y-2 text-left">
+          <p className="text-xs text-ui-muted tabular-nums mb-6">{elapsed}s elapsed</p>
+          <p className="text-xs font-semibold text-ui-secondary uppercase tracking-wide mb-2">Analysis steps</p>
+          <ul className="max-w-[260px] mx-auto mb-4 space-y-2 text-left">
             {STAGES.map((label, i) => (
               <li
                 key={label}
@@ -71,11 +75,9 @@ export default function AnalyzingScreen({ ready }: AnalyzingScreenProps) {
               </li>
             ))}
           </ul>
+          <p className="text-xs text-ui-muted mb-6">Progress is estimated while the server processes the repository.</p>
           <div className="min-h-[72px] flex items-center justify-center px-4">
-            <p
-              key={factIndex}
-              className="text-ui-text-deep leading-relaxed ui-state-enter"
-            >
+            <p className="text-ui-text-deep leading-relaxed">
               {FACTS[factIndex]}
             </p>
           </div>
@@ -85,8 +87,8 @@ export default function AnalyzingScreen({ ready }: AnalyzingScreenProps) {
           <div className="flex justify-center mb-4">
             <CheckCircle2 className="text-ui-success" size={40} strokeWidth={1.5} />
           </div>
-          <p className="text-lg font-semibold text-ui-text">
-            Analysis ready
+          <p role="status" aria-live="polite" aria-atomic="true" className="text-lg font-semibold text-ui-text">
+            Analysis ready. Opening results.
           </p>
           <ul className="max-w-[260px] mx-auto mt-4 space-y-2 text-left">
             {STAGES.map((label) => (

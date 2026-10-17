@@ -2,9 +2,10 @@
 
 import { useEffect, useState } from "react"
 import FileGraph, { riskColor } from "./FileGraph"
+import FileDetailDialog from "./FileDetailDialog"
 import AnimatedCounter from "./AnimatedCounter"
 import type { GraphData } from "./FileGraph"
-import { X, ArrowRight } from "lucide-react"
+import { ArrowRight } from "lucide-react"
 import dynamic from "next/dynamic"
 import TrendCard from "./TrendCard"
 import ComparisonSection from "./ComparisonSection"
@@ -73,17 +74,6 @@ export default function AnalysisResults({
 }: AnalysisResultsProps) {
   const { metrics, topComplexFiles, repoUrl, totalCommits } = data
   const [selectedFile, setSelectedFile] = useState<ComplexFile | null>(null)
-  // Bounded exit for the mobile file-detail sheet (motion spec: close on
-  // animationend, timeout fallback <= 400ms).
-  const [sheetClosing, setSheetClosing] = useState(false)
-  const closeFileSheet = () => {
-    if (!selectedFile || sheetClosing) return
-    setSheetClosing(true)
-    setTimeout(() => {
-      setSelectedFile(null)
-      setSheetClosing(false)
-    }, 400)
-  }
   const [priorAnalyses, setPriorAnalyses] = useState<Analysis[]>([])
   const [loadingComparison, setLoadingComparison] = useState(false)
   const [showShareModal, setShowShareModal] = useState(false)
@@ -235,16 +225,16 @@ export default function AnalysisResults({
             <table className="w-full text-sm">
               <thead className="bg-ui-canvas border-b border-ui-border">
                 <tr>
-                  <th className="px-6 py-3 text-left font-semibold text-ui-text-deep">File</th>
-                  <th className="px-6 py-3 text-right font-semibold text-ui-text-deep">LOC</th>
-                  <th className="px-6 py-3 text-right font-semibold text-ui-text-deep">Functions</th>
-                  <th className="px-6 py-3 text-right font-semibold text-ui-text-deep">Complexity</th>
+                  <th scope="col" className="px-6 py-3 text-left font-semibold text-ui-text-deep">File</th>
+                  <th scope="col" className="px-6 py-3 text-right font-semibold text-ui-text-deep">LOC</th>
+                  <th scope="col" className="px-6 py-3 text-right font-semibold text-ui-text-deep">Functions</th>
+                  <th scope="col" className="px-6 py-3 text-right font-semibold text-ui-text-deep">Complexity</th>
                 </tr>
               </thead>
               <tbody>
-                {topComplexFiles.map((file, idx) => (
-                  <tr key={idx} className="border-b border-ui-border transition-colors duration-200 last:border-b-0 hover:bg-ui-canvas">
-                    <td className="px-6 py-4 text-ui-text">{file.path}</td>
+                {topComplexFiles.map((file) => (
+                  <tr key={file.path} className="border-b border-ui-border transition-colors duration-200 last:border-b-0 hover:bg-ui-canvas">
+                    <td className="px-6 py-4 text-ui-text break-all">{file.path}</td>
                     <td className="px-6 py-4 text-right text-ui-secondary tabular-nums">{file.loc}</td>
                     <td className="px-6 py-4 text-right text-ui-secondary tabular-nums">{file.functions}</td>
                     <td className="px-6 py-4 text-right">
@@ -268,19 +258,27 @@ export default function AnalysisResults({
               <h3 className="text-lg font-semibold text-ui-text">File Details</h3>
             </div>
             <div>
-              {topComplexFiles.map((file, idx) => (
+              {topComplexFiles.map((file) => (
                 <button
-                  key={idx}
+                  key={file.path}
                   onClick={() => setSelectedFile(file)}
-                  className="w-full flex items-center justify-between px-4 py-4 border-b border-ui-border last:border-b-0 hover:bg-ui-canvas active:bg-ui-sand text-left transition-colors duration-200"
+                  className="w-full px-4 py-4 border-b border-ui-border last:border-b-0 hover:bg-ui-canvas active:bg-ui-sand text-left transition-colors duration-200"
                 >
-                  <span className="text-ui-text truncate pr-3">
-                    {file.path.split("/").pop()}
+                  <span className="flex items-center justify-between gap-3">
+                    {/* flex-1 basis-0: takes the full width left of the badge;
+                        without it flexbox shrinks the box to min-content (1 char,
+                        because break-all makes every char a break point). */}
+                    <span className="flex-1 min-w-0 text-sm font-semibold text-ui-text break-all">
+                      {file.path.split("/").pop()}
+                    </span>
+                    <span
+                      className={`flex-shrink-0 px-3 py-1 rounded-full text-ui-surface text-xs font-semibold tabular-nums ${getComplexityColor(file.complexity)}`}
+                    >
+                      {file.complexity}
+                    </span>
                   </span>
-                  <span
-                    className={`flex-shrink-0 px-3 py-1 rounded-full text-ui-surface text-xs font-semibold tabular-nums ${getComplexityColor(file.complexity)}`}
-                  >
-                    {file.complexity}
+                  <span className="mt-1 block text-xs text-ui-secondary break-all">
+                    {file.path}
                   </span>
                 </button>
               ))}
@@ -289,52 +287,9 @@ export default function AnalysisResults({
         </div>
       </div>
 
-      {/* Mobile detail sheet */}
+      {/* Mobile file detail — native dialog (focus trap + Escape) */}
       {selectedFile && (
-        <div
-          className="fixed inset-0 z-50 sm:hidden"
-          onClick={closeFileSheet}
-        >
-          <div className="absolute inset-0 bg-[var(--ui-backdrop)]" />
-          <div
-            data-lenis-prevent="true"
-            className={`absolute bottom-0 left-0 right-0 bg-ui-surface rounded-t-3xl p-6 pb-8 ui-state-enter ${sheetClosing ? "ui-modal-exit" : ""}`}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="mx-auto mb-4 h-1 w-10 rounded-full bg-ui-border-strong" />
-            <div className="flex items-start justify-between mb-4">
-              <p className="text-sm font-mono text-ui-text-deep break-all pr-4">
-                {selectedFile.path}
-              </p>
-              <button
-                onClick={closeFileSheet}
-                className="flex-shrink-0 p-1 text-ui-taupe-soft hover:text-ui-secondary transition-colors"
-                aria-label="Close"
-              >
-                <X size={22} />
-              </button>
-            </div>
-
-            <div className="grid grid-cols-3 gap-4 mt-2">
-              <div>
-                <p className="text-xs font-semibold text-ui-secondary uppercase tracking-wide">LOC</p>
-                <p className="text-xl font-semibold text-ui-text mt-1 tabular-nums">{selectedFile.loc}</p>
-              </div>
-              <div>
-                <p className="text-xs font-semibold text-ui-secondary uppercase tracking-wide">Functions</p>
-                <p className="text-xl font-semibold text-ui-text mt-1 tabular-nums">{selectedFile.functions}</p>
-              </div>
-              <div>
-                <p className="text-xs font-semibold text-ui-secondary uppercase tracking-wide">Complexity</p>
-                <span
-                  className={`inline-block mt-1 px-3 py-1 rounded-full text-ui-surface text-sm font-semibold tabular-nums ${getComplexityColor(selectedFile.complexity)}`}
-                >
-                  {selectedFile.complexity}
-                </span>
-              </div>
-            </div>
-          </div>
-        </div>
+        <FileDetailDialog file={selectedFile} onClose={() => setSelectedFile(null)} />
       )}
 
       {/* Comparison Section */}

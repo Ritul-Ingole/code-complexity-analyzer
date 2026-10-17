@@ -9,5 +9,5 @@ export default async function HistoryPage() {
     redirect("/")
   }
 
-  return <DashboardClient userId={String(session.userId)} />
+  return <DashboardClient userId={String(session.userId)} login={session.login} />
 }

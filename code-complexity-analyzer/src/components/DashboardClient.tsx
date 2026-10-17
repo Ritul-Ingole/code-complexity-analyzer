@@ -35,6 +35,7 @@ interface Analysis {
 
 interface DashboardClientProps {
   userId: string
+  login?: string | null
 }
 
 type DateRange = "7days" | "30days" | "all"
@@ -217,7 +218,7 @@ function FileDetailsExpandable({ files }: { files: TopComplexFile[] }) {
   )
 }
 
-export default function DashboardClient({ userId }: DashboardClientProps) {
+export default function DashboardClient({ userId, login }: DashboardClientProps) {
   const [report, setReport] = useState<Analysis | null>(null)
   const [analyses, setAnalyses] = useState<Analysis[]>([])
   const [loading, setLoading] = useState(true)
@@ -334,9 +335,9 @@ export default function DashboardClient({ userId }: DashboardClientProps) {
     complexityFilter !== "all" ||
     sortBy !== "newest"
 
-  if (report) return <AppShell active="history"><button type="button" className="text-action" onClick={()=>setReport(null)}>← Back to history</button><AnalysisResults data={report} userId={userId} analysisId={report.analysisId} onBack={()=>{window.location.href="/analyze"}}/></AppShell>
+  if (report) return <AppShell active="history" login={login}><button type="button" className="text-action" onClick={()=>setReport(null)}>← Back to history</button><AnalysisResults data={report} userId={userId} analysisId={report.analysisId} onBack={()=>{window.location.href="/analyze"}}/></AppShell>
   return (
-    <AppShell active="history"><div className="history-workspace">
+    <AppShell active="history" login={login}><div className="history-workspace">
       <div className="history-content">
         <header className="workspace-heading heading-with-action"><div><p className="eyebrow">YOUR REPOSITORY NOTEBOOK</p><h1>Less guesswork.<br/><span>More perspective.</span></h1><p>Revisit your analyses and decide what deserves attention next.</p></div><a href="/analyze" className="primary-action ui-press">Analyze a repository<span className="action-orb" aria-hidden="true"><ArrowUpRight size={13} /></span></a></header>
         {!loading&&!error&&<div className="history-overview"><div><span>Saved analyses</span><strong>{analyses.length}</strong></div><div><span>Repositories explored</span><strong>{new Set(analyses.map(a=>a.repoUrl)).size}</strong></div><div><span>History retention</span><strong>30 <small>days</small></strong></div></div>}

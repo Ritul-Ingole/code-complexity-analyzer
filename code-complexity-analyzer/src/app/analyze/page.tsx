@@ -4,7 +4,7 @@ import AnalyzeForm from "@/components/AnalyzeForm"
 import AppShell from "@/components/AppShell"
 export default async function AnalyzePage(){
   const session=await getSession();
-  return <AppShell active="analyze" authenticated={!!session}>
+  return <AppShell active="analyze" authenticated={!!session} login={session?.login}>
             <header className="workspace-heading">
             <p className="eyebrow">THE ANALYSIS WORKSPACE</p>
             <h1>Know where to <span>look first.</span></h1>

@@ -357,7 +357,7 @@ export function TrendsTeaser({ isAuthenticated }: { isAuthenticated: boolean }) 
                 Sign in with GitHub to start tracking your repositories&apos; trends.
               </p>
               <Magnetic>
-                <AuthLink className="inline-flex items-center gap-2 whitespace-nowrap rounded-lg border border-[#d8d2c4] bg-white px-5 py-2.5 text-sm font-semibold text-[#2b2620] transition-colors hover:border-[#a89f8c]">
+                <AuthLink next="/" className="inline-flex items-center gap-2 whitespace-nowrap rounded-lg border border-[#d8d2c4] bg-white px-5 py-2.5 text-sm font-semibold text-[#2b2620] transition-colors hover:border-[#a89f8c]">
                   Sign in
                   <ArrowRight className="h-4 w-4" />
                 </AuthLink>
@@ -412,8 +412,8 @@ export function TrustFaq({ isAuthenticated }: { isAuthenticated: boolean }) {
                 </Link>
               </Magnetic>
               {!isAuthenticated && (
-                <AuthLink className="text-sm font-medium text-[#6f665a] underline underline-offset-4 transition-colors hover:text-[#2b2620]">
-                  or sign in for unlimited analyses
+                <AuthLink next="/" className="text-sm font-medium text-[#6f665a] underline underline-offset-4 transition-colors hover:text-[#2b2620]">
+                  or sign in to save your analyses
                 </AuthLink>
               )}
             </div>

@@ -4,7 +4,7 @@ import { Lock } from "lucide-react"
 
 interface NavBarProps {
   isAuthenticated: boolean
-  login?: string
+  login?: string | null
   /** Marks the current page with aria-current + a subtle active pill (app pages). */
   active?: "analyze" | "history"
 }
@@ -53,7 +53,7 @@ export default function NavBar({ isAuthenticated, login, active }: NavBarProps) 
               </form>
             </>
           ) : (
-            <AuthLink className="inline-flex items-center gap-1.5 rounded-full border border-ui-border-strong bg-ui-surface px-4 py-1.5 text-xs font-medium text-ui-text transition-[border-color,transform] duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] hover:border-ui-taupe-faint active:scale-95">
+            <AuthLink next={active === "analyze" ? "/analyze" : active === "history" ? "/history" : "/"} className="inline-flex items-center gap-1.5 rounded-full border border-ui-border-strong bg-ui-surface px-4 py-1.5 text-xs font-medium text-ui-text transition-[border-color,transform] duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] hover:border-ui-taupe-faint active:scale-95">
               <Lock className="h-3 w-3" />
               Sign in
             </AuthLink>

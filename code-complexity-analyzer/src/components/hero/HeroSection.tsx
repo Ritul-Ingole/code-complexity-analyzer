@@ -183,9 +183,9 @@ export default function HeroSection({ isAuthenticated, login }: HeroSectionProps
                   </Link>
                 </Magnetic>
                 <Magnetic>
-                  <a href="/api/auth/login" className="btn-secondary">
+                  <a href="/api/auth/login?next=%2F" className="btn-secondary">
                     <Lock className="h-4 w-4" />
-                    Sign in for Unlimited
+                    Sign in to save reports
                   </a>
                 </Magnetic>
               </div>

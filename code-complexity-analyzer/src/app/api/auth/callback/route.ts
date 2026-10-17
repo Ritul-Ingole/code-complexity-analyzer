@@ -39,8 +39,11 @@ export async function GET(req: Request) {
       maxAge: 60 * 60 * 24 * 7 // 7 days
     })
 
-    // Redirect to /analyze with migrate flag if there's a pending preview analysis
-    redirect("/analyze?migrate=true")
+    // Land where the login link started (e.g. stay on / after hero sign-in);
+    // default remains /analyze?migrate=true so a pending preview still migrates.
+    const oauthNext = cookieStore.get("oauth_next")?.value
+    cookieStore.delete("oauth_next")
+    redirect(oauthNext && /^\/(?!\/)/.test(oauthNext) ? oauthNext : "/analyze?migrate=true")
   } catch (error) {
     // NEXT_REDIRECT is not a real error, it's how Next.js handles redirects
     if (error instanceof Error && error.message === "NEXT_REDIRECT") {

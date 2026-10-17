@@ -4,15 +4,17 @@ import NavBar from "./NavBar"
 export default function AppShell({
   children,
   active,
-  authenticated = true
+  authenticated = true,
+  login
 }: {
   children: ReactNode;
   active: "analyze" | "history";
-  authenticated?: boolean
+  authenticated?: boolean;
+  login?: string | null
 }) {
   return (
     <div className="app-shell">
-      <NavBar active={active} isAuthenticated={authenticated} />
+      <NavBar active={active} isAuthenticated={authenticated} login={login} />
 
       <main className="app-main ui-route-enter">
         {children}

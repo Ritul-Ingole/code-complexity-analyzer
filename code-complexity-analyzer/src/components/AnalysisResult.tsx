@@ -180,10 +180,19 @@ export default function AnalysisResults({
       )}
 
       <FileGraph graph={data.fileGraph} />
-      {/* Bar Chart */}
+      {/* Bar Chart — explicit readable state when no JS/TS files were found */}
+      {chartData.length === 0 ? (
+        <div className={REPORT_SHELL}>
+          <div className={`${REPORT_CORE} p-6`}>
+            <h3 className="text-lg font-semibold mb-2 text-ui-text">Top 10 Most Complex Files</h3>
+            <p className="text-sm text-ui-secondary">No JavaScript or TypeScript files were analyzed.</p>
+          </div>
+        </div>
+      ) : (
       <div className={REPORT_SHELL}>
         <div className={`${REPORT_CORE} p-6 ui-chart-enter`}>
           <h3 className="text-lg font-semibold mb-4 text-ui-text">Top 10 Most Complex Files</h3>
+          <div role="img" aria-label="Bar chart of the ten highest-complexity files by cyclomatic score; full values are in the file details table below.">
           <ResponsiveContainerComponent width="100%" height={chartHeight}>
             <BarChartComponent
               data={chartData}
@@ -200,20 +209,21 @@ export default function AnalysisResults({
               />
               <Tooltip
                 contentStyle={{
-                  background: "var(--ui-surface)",
-                  border: "1px solid var(--ui-border)",
-                  borderRadius: 12,
-                  boxShadow: "0 8px 24px -12px rgba(43,38,32,0.25)",
-                  fontSize: 12,
+                  background: "var(--ui-raised)",
                   color: "var(--ui-text)",
+                  border: "1px solid var(--ui-control-border)",
+                  borderRadius: "var(--ui-radius-control)",
+                  boxShadow: "none",
+                  fontFamily: "var(--font-mono)",
                 }}
-                cursor={{ fill: "rgba(193,105,79,0.08)" }}
               />
               <Bar isAnimationActive={false} dataKey="complexity" fill="#c1694f" name="Complexity Score" radius={[0,4,4,0]}>{chartData.map(file=><Cell key={file.path} fill={riskColor(file.complexity)}/>)}</Bar>
             </BarChartComponent>
           </ResponsiveContainerComponent>
+          </div>
         </div>
       </div>
+      )}
 
       {/* File Table - Desktop */}
       <div className={REPORT_SHELL}>

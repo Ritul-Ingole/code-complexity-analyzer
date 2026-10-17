@@ -145,7 +145,7 @@ export default function AnalyzeForm({ isAuthenticated }: AnalyzeFormProps) {
 
     // For unauthenticated users, check if they've already used their free analysis
     if (!isAuthenticated && hasUsedFreeAnalysis) {
-      setError("You've already used your free analysis. Sign in to unlock unlimited analyses.")
+      setError("You've already used your free analysis. Sign in to run more analyses and save your reports.")
       return
     }
 
@@ -225,13 +225,13 @@ export default function AnalyzeForm({ isAuthenticated }: AnalyzeFormProps) {
             <p className="form-intro">Paste a public GitHub URL. We’ll map the connections and bring the most complex files to the surface.</p>
               <form onSubmit={handleAnalyze} className="repo-form">
                 <label htmlFor="repository-url">GitHub repository URL</label>
-                <input id="repository-url" type="url" placeholder="https://github.com/owner/repository" value={repoUrl} onChange={e=>setRepoUrl(e.target.value)} required disabled={!isAuthenticated&&hasUsedFreeAnalysis} aria-describedby="repository-help" aria-invalid={!!error}/>
+                <input id="repository-url" type="url" placeholder="https://github.com/owner/repository" value={repoUrl} onChange={e=>setRepoUrl(e.target.value)} required disabled={!isAuthenticated&&hasUsedFreeAnalysis} aria-describedby={error ? "repository-help repository-error" : "repository-help"} aria-invalid={!!error}/>
                 <p id="repository-help">Public repositories · .js, .jsx, .ts and .tsx · up to 500 files / 25 MB of source</p>
                 {
                   error && 
-                  <div className="form-error" role="alert">
+                  <p id="repository-error" className="form-error" role="alert">
                     {error}
-                  </div>
+                  </p>
                 }
                 <button className="primary-action ui-press" type="submit" disabled={(!isAuthenticated&&hasUsedFreeAnalysis)||remaining===0}>
                   {
@@ -240,7 +240,7 @@ export default function AnalyzeForm({ isAuthenticated }: AnalyzeFormProps) {
                   {isAuthenticated&&remaining!==null&&<span> · {remaining} left</span>}
                   <span className="action-orb" aria-hidden="true"><ArrowUpRight size={13} /></span>
                   </button>{
-                    !isAuthenticated&&<p className="preview-note">One free analysis. No sign-in required. <a href="/api/auth/login">Sign in for unlimited analyses →</a>
+                    !isAuthenticated&&<p className="preview-note">One free analysis. No sign-in required. <a href="/api/auth/login">Sign in to run more analyses and save your reports</a>
                   </p>
                   }
                   {

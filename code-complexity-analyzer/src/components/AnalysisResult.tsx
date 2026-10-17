@@ -215,8 +215,9 @@ export default function AnalysisResults({
       </div>
       )}
 
-      {/* File Table - Desktop */}
-      <div className={REPORT_SHELL}>
+      {/* File Table - Desktop (hidden below sm — mobile uses the list below; without
+          this the 4-column table squeezes the File column to ~1 char per line) */}
+      <div className={`hidden sm:block ${REPORT_SHELL}`}>
         <div className={`${REPORT_CORE} overflow-hidden`}>
           <div className="px-6 py-4 border-b border-ui-border">
             <h3 className="text-lg font-semibold text-ui-text">File Details</h3>

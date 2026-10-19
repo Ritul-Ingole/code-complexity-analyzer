@@ -17,7 +17,11 @@ export interface GraphData {
 
 // Cream theme keeps these muted tones across the report and the 3D stage.
 const riskLevel = (score: number) => (score > 40 ? "high" : score > 25 ? "medium" : "low")
-export const riskColor = (score: number) => (score > 40 ? "#b4493d" : score > 25 ? "#947011" : "#4d7142")
+// DOM-facing risk color is a CSS variable string (inline styles and SVG can
+// consume var()); canvas/WebGL cannot, so the graph effect resolves these
+// tokens to concrete values at mount via getComputedStyle.
+const riskToken = (score: number) => (score > 40 ? "--ui-danger" : score > 25 ? "--ui-warning" : "--ui-success")
+export const riskColor = (score: number) => `var(${riskToken(score)})`
 
 interface V3 { x: number; y: number; z: number }
 
@@ -135,7 +139,8 @@ function layout3D(nodes: GraphNode[], edges: GraphData["edges"]): Map<string, V3
   return new Map(nodes.map((node, i) => [node.path, pos[i]]))
 }
 
-function makeLabelSprite(text: string): THREE.Sprite {
+// Label colors arrive pre-resolved: canvas-2D cannot consume CSS var().
+function makeLabelSprite(text: string, colors: { fill: string; stroke: string; ink: string }): THREE.Sprite {
   const canvas = document.createElement("canvas")
   canvas.width = 512
   canvas.height = 96
@@ -143,14 +148,14 @@ function makeLabelSprite(text: string): THREE.Sprite {
   if (ctx) {
     ctx.font = "500 40px ui-monospace, SFMono-Regular, Menlo, monospace"
     const w = Math.min(ctx.measureText(text).width + 48, 500)
-    ctx.fillStyle = "rgba(250, 248, 243, 0.94)"
+    ctx.fillStyle = colors.fill
     ctx.beginPath()
     ctx.roundRect((512 - w) / 2, 12, w, 72, 14)
     ctx.fill()
-    ctx.strokeStyle = "rgba(43, 38, 32, 0.16)"
+    ctx.strokeStyle = colors.stroke
     ctx.lineWidth = 2
     ctx.stroke()
-    ctx.fillStyle = "#2b2620"
+    ctx.fillStyle = colors.ink
     ctx.textAlign = "center"
     ctx.textBaseline = "middle"
     ctx.fillText(text, 256, 48, 460)
@@ -204,6 +209,21 @@ export default function FileGraph({ graph }: { graph?: GraphData }) {
     const host = hostRef.current
     if (!host || !nodes.length) return
 
+    // Token resolver: Three.js/canvas cannot consume CSS var() — resolve the
+    // 04 tokens against the host's computed style once at mount. A missing
+    // token is a build error we want loud, not a silently wrong render.
+    const graphStyles = getComputedStyle(host)
+    const resolveGraphColor = (token: string) => {
+      const value = graphStyles.getPropertyValue(token).trim()
+      if (!value) throw new Error(`Missing graph color token: ${token}`)
+      return value
+    }
+    const labelColors = {
+      fill: `${resolveGraphColor("--ui-surface")}F0`,   // paper pill at ≈0.94 alpha
+      stroke: `${resolveGraphColor("--ui-text")}29`,   // hairline ink at ≈0.16 alpha
+      ink: resolveGraphColor("--ui-text"),
+    }
+
     let renderer: THREE.WebGLRenderer
     try {
       renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true })
@@ -242,13 +262,13 @@ export default function FileGraph({ graph }: { graph?: GraphData }) {
     for (const node of nodes) {
       const p = positions.get(node.path)!
       const radius = NODE_BASE_SIZE + Math.min(node.complexity, 80) / NODE_COMPLEXITY_SCALE
-      const mesh = new THREE.Mesh(sphereGeo, new THREE.MeshBasicMaterial({ color: riskColor(node.complexity) }))
+      const mesh = new THREE.Mesh(sphereGeo, new THREE.MeshBasicMaterial({ color: resolveGraphColor(riskToken(node.complexity)) }))
       mesh.position.set(p.x, p.y, p.z)
       mesh.scale.setScalar(radius)
       mesh.userData.path = node.path
       scene.add(mesh)
       meshes.set(node.path, mesh)
-      const halo = new THREE.Sprite(new THREE.SpriteMaterial({ map: haloTex, color: riskColor(node.complexity), transparent: true, opacity: 0.32, depthWrite: false }))
+      const halo = new THREE.Sprite(new THREE.SpriteMaterial({ map: haloTex, color: resolveGraphColor(riskToken(node.complexity)), transparent: true, opacity: 0.32, depthWrite: false }))
       halo.position.set(p.x, p.y, p.z)
       halo.scale.setScalar(radius * 3.4)
       scene.add(halo)
@@ -263,8 +283,10 @@ export default function FileGraph({ graph }: { graph?: GraphData }) {
       new LineMaterial({ vertexColors: true, linewidth: 2, transparent: true, opacity, depthWrite: false })
     const edgeMats = { call: fatMat(0.75), import: fatMat(0.45), ret: fatMat(0.38) }
     const edgeColors = {
+      // No exact canonical token for the call/ret tints (near --ui-accent /
+      // --ui-moss-bright) — kept literal so nothing shifts silently.
       call: new THREE.Color(0xc06a48).convertSRGBToLinear(),
-      import: new THREE.Color(0x8a8172).convertSRGBToLinear(),
+      import: new THREE.Color(resolveGraphColor("--ui-graph-muted")).convertSRGBToLinear(),
       ret: new THREE.Color(0x7f8670).convertSRGBToLinear(),
     }
     const SEGMENTS_PER_EDGE = 8
@@ -344,7 +366,7 @@ export default function FileGraph({ graph }: { graph?: GraphData }) {
     const getLabelSprite = (path: string) => {
       let s = labelCache.get(path)
       if (!s) {
-        s = makeLabelSprite(path.split("/").pop() || path)
+        s = makeLabelSprite(path.split("/").pop() || path, labelColors)
         const mesh = meshes.get(path)
         if (mesh) s.position.copy(mesh.position).add(new THREE.Vector3(0, 3.4, 0))
         s.visible = false
@@ -563,7 +585,8 @@ export default function FileGraph({ graph }: { graph?: GraphData }) {
         halos.get(path)!.visible = inFilter
         if (!inFilter) return
         const dimmed = !!focus && path !== focus && !neighbors.has(path)
-        ;(mesh.material as THREE.MeshBasicMaterial).color.set(dimmed ? "#c9c1b2" : riskColor(nodes.find((n) => n.path === path)!.complexity))
+        // #c9c1b2 dim fill has no canonical token — declared D03-06 exception.
+        ;(mesh.material as THREE.MeshBasicMaterial).color.set(dimmed ? "#c9c1b2" : resolveGraphColor(riskToken(nodes.find((n) => n.path === path)!.complexity)))
         const base = NODE_BASE_SIZE + Math.min(nodes.find((n) => n.path === path)!.complexity, 80) / NODE_COMPLEXITY_SCALE
         mesh.scale.setScalar(path === focus ? base * 1.6 : base)
       })

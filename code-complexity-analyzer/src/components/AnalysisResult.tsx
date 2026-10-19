@@ -76,6 +76,9 @@ export default function AnalysisResults({
   const [selectedFile, setSelectedFile] = useState<ComplexFile | null>(null)
   const [priorAnalyses, setPriorAnalyses] = useState<Analysis[]>([])
   const [loadingComparison, setLoadingComparison] = useState(false)
+  // A failed prior-analysis fetch must stay distinct from "no history":
+  // silently empty would read as a first analysis and hide the outage.
+  const [comparisonError, setComparisonError] = useState(false)
   const [showShareModal, setShowShareModal] = useState(false)
 
   // Fetch prior analyses on mount (skip if shared or preview)
@@ -85,6 +88,7 @@ export default function AnalysisResults({
     const fetchPriorAnalyses = async () => {
       try {
         setLoadingComparison(true)
+        setComparisonError(false)
         const res = await fetch(`/api/analyses-for-repo?url=${encodeURIComponent(repoUrl)}`)
         if (!res.ok) throw new Error("Failed to fetch prior analyses")
         const result = await res.json()
@@ -97,6 +101,7 @@ export default function AnalysisResults({
         setPriorAnalyses(filtered)
       } catch (err) {
         console.error("Error fetching prior analyses:", err)
+        setComparisonError(true)
       } finally {
         setLoadingComparison(false)
       }
@@ -134,9 +139,9 @@ export default function AnalysisResults({
 
       {/* Preview banner */}
       {isPreview && (
-        <div className="rounded-lg border border-[#e0d3b4] bg-[#f3ead6] p-4">
+        <div className="rounded-lg border border-ui-border bg-[var(--ui-warning-surface)] p-4">
           <div className="flex flex-wrap items-center justify-between gap-4">
-            <p className="text-sm text-[#6e5410]">
+            <p className="text-sm text-ui-warning">
               <span className="font-semibold">Preview analysis:</span> Sign in to save this result to your history and unlock trends & comparisons.
             </p>
             <a
@@ -296,6 +301,9 @@ export default function AnalysisResults({
       {/* Comparison Section */}
       {!isShared && !isPreview && !loadingComparison && priorAnalyses.length > 0 && (
         <ComparisonSection current={data} priorAnalyses={priorAnalyses} />
+      )}
+      {comparisonError && !isShared && !isPreview && !loadingComparison && (
+        <p className="text-sm text-ui-secondary">Previous analyses could not be loaded, so trends and comparisons are unavailable right now.</p>
       )}
 
       {/* Share Modal */}

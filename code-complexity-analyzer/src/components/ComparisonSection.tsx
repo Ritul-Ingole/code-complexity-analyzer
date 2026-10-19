@@ -171,7 +171,7 @@ function AnalysisColumn({
                 </td>
                 <td className="px-4 py-2 text-right">
                   <span
-                    className={`px-2 py-1 rounded-full text-white text-xs font-semibold ${getComplexityColor(file.complexity)}`}
+                    className={`px-2 py-1 rounded-full text-ui-surface text-xs font-semibold ${getComplexityColor(file.complexity)}`}
                   >
                     {file.complexity}
                   </span>

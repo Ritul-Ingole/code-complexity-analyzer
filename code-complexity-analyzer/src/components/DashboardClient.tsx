@@ -119,7 +119,7 @@ function ActionMenu({
             onClick={() => setOpen(false)}
           />
           {/* Dropdown menu */}
-          <div className="absolute right-0 mt-2 w-48 rounded-2xl border border-ui-border bg-ui-surface shadow-[0_8px_30px_rgba(43,38,32,0.12)] z-50">
+          <div className="absolute right-0 mt-2 w-48 rounded-panel border border-ui-border bg-ui-surface z-50">
             <button
               onClick={() => {
                 downloadJSON(analysis)
@@ -254,7 +254,7 @@ export default function DashboardClient({ userId, login }: DashboardClientProps)
   // Entrance stagger: true only until the first search/filter interaction;
   // the initial successful load animates, later updates never replay.
   const [initialLoad, setInitialLoad] = useState(true)
-  const listRef = useRef<HTMLDivElement>(null)
+  const listRef = useRef<HTMLUListElement>(null)
   const [staggerCap, setStaggerCap] = useState(-1)
   useEffect(() => {
     if (listRef.current) setStaggerCap(readMotion(listRef.current).staggerCap)
@@ -369,7 +369,7 @@ export default function DashboardClient({ userId, login }: DashboardClientProps)
             {[1, 2, 3].map((i) => (
               <div
                 key={i}
-                className="bg-ui-surface rounded-2xl border border-ui-border shadow-sm p-6"
+                className="bg-ui-surface rounded-panel border border-ui-border p-6"
               >
                 <div className="h-6 ui-skeleton rounded w-1/3 mb-4"></div>
                 <div className="h-4 ui-skeleton rounded w-1/4 mb-6"></div>
@@ -387,7 +387,7 @@ export default function DashboardClient({ userId, login }: DashboardClientProps)
         )}
 
         {error && (
-          <div className="rounded-lg border border-[#e4c0ba] bg-[#f7e8e5] p-4 text-[#8f372e]">
+          <div className="rounded-panel border border-ui-border bg-[var(--ui-danger-surface)] p-4 text-ui-danger">
             <p className="font-semibold">Error loading analyses</p>
             <p className="text-sm mt-1">{error}</p>
           </div>
@@ -396,21 +396,28 @@ export default function DashboardClient({ userId, login }: DashboardClientProps)
         {!loading && !error && analyses.length > 0 && (
           <div className="mb-8 space-y-4">
             {/* Search Bar */}
-            <div className="relative">
-              <Search className="absolute left-3 top-3 text-ui-taupe-soft" size={20} />
-              <input
-                type="text"
-                placeholder="Search by repository name..."
-                value={searchQuery}
-                onChange={(e) => { setInitialLoad(false); setSearchQuery(e.target.value) }}
-                className="w-full rounded-full border border-ui-border-strong bg-ui-surface-raised pl-10 pr-4 py-2.5 text-sm text-ui-text placeholder:text-ui-taupe-faint"
-              />
+            <div>
+              <label htmlFor="history-search" className="block text-sm font-semibold text-ui-text mb-2">
+                Search repository
+              </label>
+              <div className="relative">
+                <Search className="absolute left-3 top-3 text-ui-taupe-soft" size={20} />
+                <input
+                  id="history-search"
+                  type="text"
+                  placeholder="Search by repository name..."
+                  value={searchQuery}
+                  onChange={(e) => { setInitialLoad(false); setSearchQuery(e.target.value) }}
+                  className="w-full rounded-full border border-ui-border-strong bg-ui-surface-raised pl-10 pr-4 py-2.5 text-sm text-ui-text placeholder:text-ui-taupe-faint"
+                />
+              </div>
             </div>
 
             {/* Filter Panel Toggle */}
             <button
               onClick={() => setFilterPanelOpen(!filterPanelOpen)}
               aria-expanded={filterPanelOpen}
+              aria-controls="history-filter-panel"
               className={`flex items-center gap-2 px-4 py-2 rounded-full border transition-[background-color,border-color,color,transform] duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] active:scale-[0.98] ${
                 hasActiveFilters
                   ? "bg-ui-sand-warm border-ui-sand-strong text-ui-rust-soft"
@@ -423,12 +430,12 @@ export default function DashboardClient({ userId, login }: DashboardClientProps)
 
             {/* Collapsible Filter Panel */}
             {filterPanelOpen && (
-              <div data-lenis-prevent="true" className="bg-ui-surface border border-ui-border-strong rounded-lg p-6 space-y-6 ui-state-enter">
+              <div id="history-filter-panel" data-lenis-prevent="true" className="bg-ui-surface border border-ui-border-strong rounded-panel p-6 space-y-6 ui-state-enter">
                 {/* Date Range */}
-                <div>
-                  <label className="block text-sm font-semibold text-ui-text mb-3">
+                <fieldset>
+                  <legend className="block text-sm font-semibold text-ui-text mb-3">
                     Date Range
-                  </label>
+                  </legend>
                   <div className="flex flex-wrap gap-2">
                     {(["all", "7days", "30days"] as const).map((range) => (
                       <button
@@ -449,13 +456,13 @@ export default function DashboardClient({ userId, login }: DashboardClientProps)
                       </button>
                     ))}
                   </div>
-                </div>
+                </fieldset>
 
                 {/* Complexity Level */}
-                <div>
-                  <label className="block text-sm font-semibold text-ui-text mb-3">
+                <fieldset>
+                  <legend className="block text-sm font-semibold text-ui-text mb-3">
                     Complexity Level
-                  </label>
+                  </legend>
                   <div className="flex flex-wrap gap-2">
                     {(["all", "low", "medium", "high"] as const).map((level) => (
                       <button
@@ -474,14 +481,15 @@ export default function DashboardClient({ userId, login }: DashboardClientProps)
                       </button>
                     ))}
                   </div>
-                </div>
+                </fieldset>
 
                 {/* Sorting */}
                 <div>
-                  <label className="block text-sm font-semibold text-ui-text mb-3">
+                  <label htmlFor="history-sort" className="block text-sm font-semibold text-ui-text mb-3">
                     Sort By
                   </label>
                   <select
+                    id="history-sort"
                     value={sortBy}
                     onChange={(e) => { setInitialLoad(false); setSortBy(e.target.value as SortOption) }}
                     className="w-full rounded-xl border border-ui-border-strong bg-ui-surface-raised px-3 py-2.5 text-sm text-ui-text"
@@ -504,7 +512,7 @@ export default function DashboardClient({ userId, login }: DashboardClientProps)
                       setComplexityFilter("all")
                       setSortBy("newest")
                     }}
-                    className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-ui-danger hover:bg-[#f7e8e5] rounded-lg transition-colors"
+                    className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-ui-danger hover:bg-[var(--ui-danger-surface)] rounded-control transition-colors"
                   >
                     <X size={16} />
                     Clear All Filters
@@ -516,8 +524,9 @@ export default function DashboardClient({ userId, login }: DashboardClientProps)
         )}
 
         {analyses.length === 0 && !loading && !error && (
-          <div className="ui-state-enter rounded-2xl border border-ui-border bg-ui-surface p-12 text-center">
-            <p className="text-ui-secondary mb-4">No analyses yet.</p>
+          <div className="ui-state-enter rounded-panel border border-ui-border bg-ui-surface p-8 sm:p-12 text-left">
+            <p className="text-ui-text text-lg font-semibold mb-2">No analyses yet.</p>
+            <p className="text-ui-secondary mb-4">Your analyses expire after 30 days. Analyze a repository to start your history.</p>
             <a
               href="/analyze"
               className="primary-action"
@@ -533,24 +542,25 @@ export default function DashboardClient({ userId, login }: DashboardClientProps)
         {!loading && !error && analyses.length > 0 && (
           <div>
             {filteredAndSortedAnalyses.length === 0 ? (
-              <div className="bg-ui-surface rounded-2xl border border-ui-border shadow-sm p-12 text-center">
+              <div className="bg-ui-surface rounded-panel border border-ui-border p-8 sm:p-12 text-left">
+                <p className="text-ui-text text-lg font-semibold mb-2">No matching analyses</p>
                 <p className="text-ui-secondary">
                   No analyses match your filters. Try adjusting your search or filters.
                 </p>
               </div>
             ) : (
-              <div ref={listRef} className="grid gap-6 ui-list-enter">
+              <ul ref={listRef} className="grid gap-6 ui-list-enter">
                 {filteredAndSortedAnalyses.map((analysis, index) => (
-                  <div
+                  <li
                     key={analysis.analysisId}
                     data-enter={initialLoad && index <= staggerCap ? "true" : "false"}
                     style={{ "--ui-row-index": index } as CSSProperties}
-                    className="rounded-2xl border border-ui-border bg-ui-surface shadow-[0_1px_2px_rgba(43,38,32,0.04),0_12px_32px_-20px_rgba(43,38,32,0.2)] transition-[box-shadow,transform] duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] hover:-translate-y-0.5 hover:shadow-[0_2px_4px_rgba(43,38,32,0.05),0_20px_44px_-20px_rgba(43,38,32,0.28)] overflow-hidden"
+                    className="rounded-panel border border-ui-border bg-ui-surface overflow-hidden"
                   >
                     <div className="p-6">
                       <div className="flex items-start justify-between mb-4 flex-wrap gap-4">
                         <div className="flex-1 min-w-0">
-                          <h3 className="text-xl font-semibold text-ui-text truncate">
+                          <h3 className="text-xl font-semibold text-ui-text truncate" aria-label={analysis.repoUrl}>
                             {analysis.repoUrl.split("/").pop()}
                           </h3>
                           <p className="text-sm text-ui-secondary mt-1">
@@ -565,7 +575,7 @@ export default function DashboardClient({ userId, login }: DashboardClientProps)
                               }
                             )}
                           </p>
-                          <p className="text-xs text-ui-taupe-soft mt-1 font-mono">
+                          <p className="text-xs text-ui-taupe-soft mt-1 font-mono" title={analysis.headSha}>
                             {analysis.headSha.slice(0, 7)} •{" "}
                             {analysis.totalCommits}{" "}
                             {analysis.totalCommits === 1 ? "commit" : "commits"}
@@ -651,9 +661,9 @@ export default function DashboardClient({ userId, login }: DashboardClientProps)
                         />
                       </div>
                     </div>
-                  </div>
+                  </li>
                 ))}
-              </div>
+              </ul>
             )}
           </div>
         )}

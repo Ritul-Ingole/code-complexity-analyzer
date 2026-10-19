@@ -38,6 +38,19 @@ interface DashboardClientProps {
   login?: string | null
 }
 
+// Newest-first with a deterministic tie-break: equal timestamps order by
+// analysisId and invalid dates always sort last, so the list never depends
+// on backend arrival order (audit A-3 fix, spec-authorized comparator).
+function newestFirst(a: { timestamp: string; analysisId: string }, b: { timestamp: string; analysisId: string }) {
+  const left = Date.parse(a.timestamp)
+  const right = Date.parse(b.timestamp)
+  const leftValid = Number.isFinite(left)
+  const rightValid = Number.isFinite(right)
+  if (leftValid !== rightValid) return leftValid ? -1 : 1
+  if (leftValid && rightValid && left !== right) return right - left
+  return a.analysisId < b.analysisId ? -1 : a.analysisId > b.analysisId ? 1 : 0
+}
+
 type DateRange = "7days" | "30days" | "all"
 type ComplexityLevel = "all" | "low" | "medium" | "high"
 type SortOption = "newest" | "oldest" | "mostComplex" | "leastComplex" | "mostLOC"
@@ -315,10 +328,7 @@ export default function DashboardClient({ userId, login }: DashboardClientProps)
 
     // 4. Sort
     if (sortBy === "newest") {
-      result.sort(
-        (a, b) =>
-          new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
-      )
+      result.sort(newestFirst)
     } else if (sortBy === "oldest") {
       result.sort(
         (a, b) =>

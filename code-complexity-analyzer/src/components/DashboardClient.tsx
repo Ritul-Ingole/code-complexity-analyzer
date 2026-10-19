@@ -224,6 +224,18 @@ export default function DashboardClient({ userId, login }: DashboardClientProps)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState("")
 
+  // Opening a report from history is a view swap, not a navigation — without
+  // this the page keeps the /history scroll offset and lands mid-report.
+  // Lenis (if smoothing) must be told directly, else its RAF re-writes the
+  // old position (same pattern as SmoothScroll's pathname reset); plain
+  // window.scrollTo covers the reduced-motion case where Lenis is absent.
+  useEffect(() => {
+    if (!report) return
+    const lenis = (window as unknown as { __lenis?: { scrollTo: (target: number, options?: { immediate?: boolean }) => void } }).__lenis
+    if (lenis) lenis.scrollTo(0, { immediate: true })
+    else window.scrollTo(0, 0)
+  }, [report])
+
   // Filter and search state
   const [searchQuery, setSearchQuery] = useState("")
   // Entrance stagger: true only until the first search/filter interaction;

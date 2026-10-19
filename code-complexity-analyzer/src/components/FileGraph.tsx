@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useMemo, useRef, useState } from "react"
+import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import * as THREE from "three"
 import { LineSegments2 } from "three/examples/jsm/lines/LineSegments2.js"
 import { LineSegmentsGeometry } from "three/examples/jsm/lines/LineSegmentsGeometry.js"
@@ -38,6 +38,40 @@ const REPULSION = 320
 // Bigger = larger labels. They stay this size at every zoom level.
 const LABEL_SCREEN_SIZE = 0.075
 // ─────────────────────────────────────────────────────────────────────────
+
+// ─── WHEEL ARMING — the 3D stage and the file-explorer list must not hijack the
+// page scroll: when the cursor merely passes over them mid-scroll, the wheel
+// belongs to the page. They take over only after the user has stopped (a gap
+// in wheel ticks) or is already mid-interaction with them.
+const WHEEL_ARM_GAP = 500 // ms without a wheel tick before graph interaction arms
+let lastWheelAt = 0
+let wheelTaken = false
+const GRAPH_WHEEL_SELECTOR = ".graph-stage-3d, .graph-file-list"
+
+// Timestamps every wheel tick on the page; a tick outside the graph hands the
+// wheel back to the page (ends an interaction session).
+const trackGraphWheel = (e: WheelEvent) => {
+  lastWheelAt = e.timeStamp
+  if (!(e.target as Element | null)?.closest?.(GRAPH_WHEEL_SELECTOR)) wheelTaken = false
+}
+
+// True when this tick starts or continues a deliberate interaction with the graph.
+const graphWheelArmed = (e: WheelEvent) =>
+  e.timeStamp - lastWheelAt > WHEEL_ARM_GAP || wheelTaken
+
+// File-explorer list: consumes only when it can actually scroll in the tick's
+// direction, so it never traps the wheel at its ends or when fully collapsed.
+const onGraphListWheel = (e: WheelEvent) => {
+  const list = e.currentTarget as HTMLDivElement
+  if (!graphWheelArmed(e)) return
+  if (list.scrollHeight <= list.clientHeight + 1) return
+  if (e.deltaY > 0 && list.scrollTop + list.clientHeight >= list.scrollHeight - 1) return
+  if (e.deltaY < 0 && list.scrollTop <= 1) return
+  wheelTaken = true
+  e.preventDefault()
+  e.stopPropagation()
+  list.scrollTop += e.deltaY
+}
 
 
 const hash = (text: string, seed: number) => {
@@ -139,6 +173,15 @@ export default function FileGraph({ graph }: { graph?: GraphData }) {
   const [imports, setImports] = useState(true)
   const [returns, setReturns] = useState(true)
   const hostRef = useRef<HTMLDivElement>(null)
+  // Native (non-passive) wheel listener on whichever file list is mounted —
+  // React's synthetic wheel events are passive at the root, so they can't
+  // preventDefault. Cleanup runs because React 18 calls this back with null.
+  const graphListRef = useRef<HTMLDivElement | null>(null)
+  const attachGraphList = useCallback((node: HTMLDivElement | null) => {
+    graphListRef.current?.removeEventListener("wheel", onGraphListWheel)
+    graphListRef.current = node
+    node?.addEventListener("wheel", onGraphListWheel, { passive: false })
+  }, [])
   const stateRef = useRef<{ hover: string | null; select: (path: string | null) => void }>({ hover: null, select: () => {} })
   stateRef.current.select = setSelected
 
@@ -448,7 +491,11 @@ export default function FileGraph({ graph }: { graph?: GraphData }) {
       if (el.hasPointerCapture(e.pointerId)) el.releasePointerCapture(e.pointerId)
     }
     const onWheel = (e: WheelEvent) => {
+      // Not armed = the user is still scrolling the page: pass through untouched.
+      if (!graphWheelArmed(e)) return
+      wheelTaken = true
       e.preventDefault()
+      e.stopPropagation()
       cam.r = Math.max(graphRadius * 0.15, Math.min(graphRadius * 4, cam.r * (1 + e.deltaY * 0.0012)))
       applyCam()
     }
@@ -460,6 +507,11 @@ export default function FileGraph({ graph }: { graph?: GraphData }) {
     el.addEventListener("wheel", onWheel, { passive: false })
     el.addEventListener("pointerleave", onLeave)
     el.addEventListener("contextmenu", (e) => e.preventDefault())
+    // Fresh mount counts as "recent activity": a tick right at load passes to
+    // the page until the user deliberately interacts with the graph.
+    lastWheelAt = performance.now()
+    wheelTaken = false
+    window.addEventListener("wheel", trackGraphWheel, { passive: true })
 
     const ro = new ResizeObserver((entries) => {
       const { width, height } = entries[0].contentRect
@@ -529,6 +581,7 @@ export default function FileGraph({ graph }: { graph?: GraphData }) {
       el.removeEventListener("pointercancel", onUp)
       el.removeEventListener("wheel", onWheel)
       el.removeEventListener("pointerleave", onLeave)
+      window.removeEventListener("wheel", trackGraphWheel)
       scene.traverse((obj) => {
         const o = obj as THREE.Mesh | THREE.Sprite | THREE.Points | THREE.Line
         if (o.geometry && o.geometry !== sphereGeo) o.geometry.dispose()
@@ -598,7 +651,7 @@ export default function FileGraph({ graph }: { graph?: GraphData }) {
 
       <div className="graph-body">
         <div className="graph-visual">
-          <div ref={hostRef} className="graph-stage-3d" data-lenis-prevent="true" role="img" aria-label="Interactive 3D file graph. Use the adjacent file list for keyboard exploration." />
+          <div ref={hostRef} className="graph-stage-3d" role="img" aria-label="Interactive 3D file graph. Use the adjacent file list for keyboard exploration." />
           {!shown.length && <p className="graph-message">No files match these filters.</p>}
           <div className="graph-legend">
             {[[10, "Low ≤25"], [30, "Medium 26–40"], [50, "High >40"]].map(([score, label]) => (
@@ -613,7 +666,7 @@ export default function FileGraph({ graph }: { graph?: GraphData }) {
               <h4>{chosen.path}</h4>
               <p style={{ color: riskColor(chosen.complexity) }}>{riskLevel(chosen.complexity)} · {chosen.complexity}</p>
               <p>{chosen.loc} lines · {chosen.functions} functions</p>
-              <div className="graph-file-list" data-lenis-prevent="true">
+              <div className="graph-file-list" ref={attachGraphList}>
                 {connections.length ? connections.map((e, i) => (
                   <button type="button" key={i} onClick={() => focusNode(e.source === selected ? e.target : e.source)}>
                     <span>{e.source === selected ? "→" : "←"} {e.kind} · {e.count} site{e.count !== 1 ? "s" : ""}</span>
@@ -628,7 +681,7 @@ export default function FileGraph({ graph }: { graph?: GraphData }) {
               <p className="eyebrow">FILE EXPLORER</p>
               <h4>{shown.length} files in view</h4>
               <p>Select a node or file to inspect its connections.</p>
-              <div className="graph-file-list" data-lenis-prevent="true">
+              <div className="graph-file-list" ref={attachGraphList}>
                 {shown.map((n) => (
                   <button type="button" key={n.path} onClick={() => focusNode(n.path)}>
                     <strong>{n.path}</strong>

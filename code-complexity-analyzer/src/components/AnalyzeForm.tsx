@@ -161,12 +161,27 @@ export default function AnalyzeForm({ isAuthenticated }: AnalyzeFormProps) {
         body: JSON.stringify({ repoUrl: repoUrl.trim().replace(/\/$/, "") })
       })
 
-      const response: AnalysisResponse = await res.json()
-
+      // Distinct, user-facing outcomes only: quota vs everything else. Raw
+      // internals (a proxy's HTML error page, a JSON SyntaxError, "Failed to
+      // fetch") must never reach the UI.
       if (!res.ok) {
-        if (res.status === 429) setRemaining(0)
-        throw new Error((response as any).message || (response as any).error || "Analysis failed")
+        if (res.status === 429) {
+          setRemaining(0)
+          const resetsRaw: unknown = (await res.json().catch(() => null))?.resetsAt
+          if (typeof resetsRaw === "string" && !isNaN(new Date(resetsRaw).getTime())) {
+            setResetsAt(resetsRaw)
+            setError(`Daily analysis limit reached. Resets at ${new Date(resetsRaw).toLocaleTimeString()}.`)
+          } else {
+            setError("Daily analysis limit reached. Try again after your daily limit resets.")
+          }
+        } else {
+          setError("Analysis could not be completed. Please try again.")
+        }
+        setLoading(false)
+        return
       }
+
+      const response: AnalysisResponse = await res.json()
 
       setReady(true)
       readyTimerRef.current = setTimeout(() => {
@@ -184,10 +199,10 @@ export default function AnalyzeForm({ isAuthenticated }: AnalyzeFormProps) {
         }
         setLoading(false)
       }, READY_GRACE_PERIOD_MS)
-    } catch (err) {
-      setError(
-        err instanceof Error ? err.message : "Something went wrong"
-      )
+    } catch {
+      // Network failure or a non-JSON response (e.g. a proxy error page) — one
+      // generic, retry-by-resubmit message; no internals leaked.
+      setError("Analysis could not be completed. Please try again.")
       setLoading(false)
     }
   }

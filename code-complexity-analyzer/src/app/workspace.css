@@ -1043,6 +1043,7 @@
   .ui-spinner { animation: ui-spin var(--ui-motion-count) var(--ui-ease-linear) infinite; }
 }
 @media (prefers-reduced-motion: reduce) {
+  .ui-collapse,
   .ui-press, .ui-state-enter, .ui-route-enter, .ui-modal-exit, .ui-chart-enter, .ui-list-enter > li, .ui-spinner,
   .ui-skeleton::after {
     animation: none !important;
@@ -1051,6 +1052,16 @@
   }
   .ui-skeleton::after { display: none; }
 }
+
+/* Accordion collapse (history filter panel): the 0fr→1fr grid-row transition
+   animates smoothly in both directions without measuring heights, pushing the
+   content below down in real time. visibility flips late when collapsing
+   (content stays focusable while visible) and instantly when expanding. */
+.ui-collapse { display: grid; grid-template-rows: 0fr; visibility: hidden;
+  transition: grid-template-rows var(--ui-motion-enter) var(--ui-ease-enter), visibility 0s var(--ui-motion-enter); }
+.ui-collapse[data-open="true"] { grid-template-rows: 1fr; visibility: visible;
+  transition: grid-template-rows var(--ui-motion-enter) var(--ui-ease-enter), visibility 0s 0s; }
+.ui-collapse > * { overflow: hidden; }
 
 /* Nested scroll containers under Lenis (see Allowed motion) */
 [data-lenis-prevent] { overscroll-behavior: contain; }

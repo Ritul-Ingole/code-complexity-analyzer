@@ -428,9 +428,12 @@ export default function DashboardClient({ userId, login }: DashboardClientProps)
               Filters {hasActiveFilters && <span className="text-xs font-bold">(active)</span>}
             </button>
 
-            {/* Collapsible Filter Panel */}
-            {filterPanelOpen && (
-              <div id="history-filter-panel" data-lenis-prevent="true" className="bg-ui-surface border border-ui-border-strong rounded-panel p-6 space-y-6 ui-state-enter">
+            {/* Collapsible Filter Panel — always mounted; the ui-collapse wrapper
+                animates its grid row so opening pushes the content below down
+                smoothly and closing collapses it the same way. */}
+            <div className="ui-collapse !mt-0" data-open={filterPanelOpen ? "true" : "false"}>
+              <div className="overflow-hidden">
+                <div id="history-filter-panel" data-lenis-prevent="true" className="mt-4 bg-ui-surface border border-ui-border-strong rounded-panel p-6 space-y-6">
                 {/* Date Range */}
                 <fieldset>
                   <legend className="block text-sm font-semibold text-ui-text mb-3">
@@ -518,8 +521,9 @@ export default function DashboardClient({ userId, login }: DashboardClientProps)
                     Clear All Filters
                   </button>
                 )}
+                </div>
               </div>
-            )}
+            </div>
           </div>
         )}
 

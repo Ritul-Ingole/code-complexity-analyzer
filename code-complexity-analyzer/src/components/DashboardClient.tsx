@@ -273,6 +273,10 @@ export default function DashboardClient({ userId, login }: DashboardClientProps)
   }, [])
 
   const fetchAnalyses = async () => {
+    // Reset at start so a retry can't inherit a stale failure message or
+    // loading state (H03 safe-retry precondition).
+    setError("")
+    setLoading(true)
     try {
       const res = await fetch("/api/analyses")
       if (!res.ok) throw new Error("Failed to fetch analyses")
@@ -283,6 +287,15 @@ export default function DashboardClient({ userId, login }: DashboardClientProps)
     } finally {
       setLoading(false)
     }
+  }
+
+  // Shared by the filter-panel control and the no-match state's action.
+  const clearAllFilters = () => {
+    setInitialLoad(false)
+    setSearchQuery("")
+    setDateRange("all")
+    setComplexityFilter("all")
+    setSortBy("newest")
   }
 
   const handleShare = (analysis: Analysis) => {
@@ -365,31 +378,46 @@ export default function DashboardClient({ userId, login }: DashboardClientProps)
         {!loading&&!error&&<div className="history-overview"><div><span>Saved analyses</span><strong>{analyses.length}</strong></div><div><span>Repositories explored</span><strong>{new Set(analyses.map(a=>a.repoUrl)).size}</strong></div><div><span>History retention</span><strong>30 <small>days</small></strong></div></div>}
 
         {loading && (
-          <div className="space-y-4">
-            {[1, 2, 3].map((i) => (
-              <div
-                key={i}
-                className="bg-ui-surface rounded-panel border border-ui-border p-6"
-              >
-                <div className="h-6 ui-skeleton rounded w-1/3 mb-4"></div>
-                <div className="h-4 ui-skeleton rounded w-1/4 mb-6"></div>
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-                  {[1, 2, 3, 4].map((j) => (
-                    <div key={j}>
-                      <div className="h-4 ui-skeleton rounded w-2/3 mb-2"></div>
-                      <div className="h-6 ui-skeleton rounded w-1/2"></div>
-                    </div>
-                  ))}
+          <>
+            {/* Single loading announcement; the skeleton itself is decorative. */}
+            <p role="status" className="sr-only">Loading your history.</p>
+            <div className="space-y-4" aria-hidden="true">
+              {[1, 2, 3].map((i) => (
+                <div
+                  key={i}
+                  className="bg-ui-surface rounded-panel border border-ui-border p-6"
+                >
+                  <div className="h-6 ui-skeleton rounded w-1/3 mb-4"></div>
+                  <div className="h-4 ui-skeleton rounded w-1/4 mb-6"></div>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
+                    {[1, 2, 3, 4].map((j) => (
+                      <div key={j}>
+                        <div className="h-4 ui-skeleton rounded w-2/3 mb-2"></div>
+                        <div className="h-6 ui-skeleton rounded w-1/2"></div>
+                      </div>
+                    ))}
+                  </div>
+                  {/* Explore-button and file-detail blocks: skeleton mirrors the
+                      final row geometry. */}
+                  <div className="h-9 ui-skeleton rounded w-48 mb-6"></div>
+                  <div className="space-y-3">
+                    <div className="h-12 ui-skeleton rounded"></div>
+                    <div className="h-12 ui-skeleton rounded"></div>
+                    <div className="h-12 ui-skeleton rounded"></div>
+                  </div>
                 </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          </>
         )}
 
         {error && (
-          <div className="rounded-panel border border-ui-border bg-[var(--ui-danger-surface)] p-4 text-ui-danger">
+          <div role="alert" className="rounded-panel border border-ui-border bg-[var(--ui-danger-surface)] p-4 text-ui-danger">
             <p className="font-semibold">Error loading analyses</p>
             <p className="text-sm mt-1">{error}</p>
+            <button type="button" className="secondary-action ui-press mt-4" disabled={loading} onClick={() => { void fetchAnalyses() }}>
+              {loading ? "Loading analyses" : "Retry loading history"}
+            </button>
           </div>
         )}
 
@@ -508,13 +536,7 @@ export default function DashboardClient({ userId, login }: DashboardClientProps)
                 {/* Clear Filters Button */}
                 {hasActiveFilters && (
                   <button
-                    onClick={() => {
-                      setInitialLoad(false)
-                      setSearchQuery("")
-                      setDateRange("all")
-                      setComplexityFilter("all")
-                      setSortBy("newest")
-                    }}
+                    onClick={clearAllFilters}
                     className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-ui-danger hover:bg-[var(--ui-danger-surface)] rounded-control transition-colors"
                   >
                     <X size={16} />
@@ -548,9 +570,10 @@ export default function DashboardClient({ userId, login }: DashboardClientProps)
             {filteredAndSortedAnalyses.length === 0 ? (
               <div className="bg-ui-surface rounded-panel border border-ui-border p-8 sm:p-12 text-left">
                 <p className="text-ui-text text-lg font-semibold mb-2">No matching analyses</p>
-                <p className="text-ui-secondary">
-                  No analyses match your filters. Try adjusting your search or filters.
-                </p>
+                <p className="text-ui-secondary mb-4">No analyses match these filters.</p>
+                <button type="button" className="secondary-action ui-press" onClick={clearAllFilters}>
+                  Clear all filters
+                </button>
               </div>
             ) : (
               <ul ref={listRef} className="grid gap-6 ui-list-enter">

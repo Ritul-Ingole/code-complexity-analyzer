@@ -31,20 +31,18 @@ const jetbrainsMono = JetBrains_Mono({
 })
 
 export const metadata: Metadata = {
-  title: "Code Complexity Analyzer — find your worst file",
-  description:
-    "Paste a public GitHub repository and get cyclomatic complexity, LOC and hotspot rankings in seconds. Zero install, nothing stored.",
+  title: { default: "Code Complexity Analyzer", template: "%s | Code Complexity Analyzer" },
+  description: "Analyze cyclomatic complexity, lines of code and function counts in public JavaScript and TypeScript GitHub repositories.",
   openGraph: {
     title: "Code Complexity Analyzer",
-    description:
-      "Every repo has a worst file. Find yours — complexity, LOC and hotspot rankings in seconds.",
+    description: "Find complex files in public JavaScript and TypeScript repositories.",
     type: "website",
+    // served automatically from the static src/app/opengraph-image.png file convention
   },
   twitter: {
-    card: "summary_large_image",
+    card: "summary",
     title: "Code Complexity Analyzer",
-    description:
-      "Every repo has a worst file. Find yours — complexity, LOC and hotspot rankings in seconds.",
+    description: "Find complex files in public JavaScript and TypeScript repositories.",
   },
 }
 

@@ -2,6 +2,9 @@ import { Suspense } from "react"
 import { getSession } from "@/lib/session"
 import AnalyzeForm from "@/components/AnalyzeForm"
 import AppShell from "@/components/AppShell"
+
+export const metadata = { title: "Analyze" }
+
 export default async function AnalyzePage(){
   const session=await getSession();
   return <AppShell active="analyze" authenticated={!!session} login={session?.login}>

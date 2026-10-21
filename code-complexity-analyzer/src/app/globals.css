@@ -259,32 +259,52 @@ html.intro-active body {
   pointer-events: none;
 }
 
-/* Sits just under the parked 3D panel.
-   Panel centre is 50% - 34px (INTRO_LIFT) and its half-height is
-   min(34vh, 310px) — so this lands 28px below the panel's bottom edge. */
-.intro-bar-wrap {
+/* No-WebGL fallback for the intro loader. The real loader (12 clock dots + a
+   clockwise arc) lives in HeroScene; IntroLoader only mounts this when no
+   renderer ever came up, so it can never flash over a working scene.
+   Centred on the parked 3D panel: same -34px lift as INTRO_LIFT, and sized to
+   the scanner disc's share of that panel (~87% of its height). */
+.intro-fallback {
   position: absolute;
   left: 50%;
-  top: calc(50% + min(34vh, 310px) - 6px);
-  width: min(320px, 60vw);
-  transform: translateX(-50%);
+  top: calc(50% - 34px);
+  width: min(59vh, 539px, 78vw);
+  aspect-ratio: 1;
+  transform: translate(-50%, -50%);
+  border-radius: 9999px;
+  border: 2px solid #e6e0d4;
 }
 
-.intro-bar {
-  height: 3px;
-  border-radius: 999px;
-  background: #e6e0d4;
-  overflow: hidden;
+/* One wrapper per clock position; the dot sits at 12 o'clock inside it. */
+.intro-fallback > span {
+  position: absolute;
+  inset: 0;
 }
 
-.intro-bar-fill {
-  height: 100%;
-  width: 100%;
-  border-radius: 999px;
-  background: linear-gradient(90deg, #a85c42 0%, #c1694f 100%);
-  transform: scaleX(0);
-  transform-origin: left center;
-  will-change: transform;
+.intro-fallback > span > span {
+  position: absolute;
+  left: 50%;
+  top: 0;
+  width: 8px;
+  height: 8px;
+  margin: -4px 0 0 -4px;
+  border-radius: 9999px;
+  background: #d8d2c4;
+}
+
+/* Something is still happening: a single accent arc sweeping the ring. */
+.intro-fallback::after {
+  content: "";
+  position: absolute;
+  inset: -2px;
+  border-radius: 9999px;
+  border: 2px solid transparent;
+  border-top-color: #c1694f;
+  animation: intro-fallback-spin 900ms linear infinite;
+}
+
+@keyframes intro-fallback-spin {
+  to { transform: rotate(1turn); }
 }
 
 /* Navbar drops in from the top, hero copy slides in from the left.

@@ -32,8 +32,11 @@ export default function IntroLoader() {
   })
 
   const [mounted, setMounted] = useState(true)
+  // Plain-CSS loader, shown only when HeroScene never got a WebGL renderer.
+  // The 400ms grace period below means a working scene never flashes it.
+  const [fallback, setFallback] = useState(false)
+  const fallbackShown = useRef(false)
   const overlayRef = useRef<HTMLDivElement>(null)
-  const fillRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     const root = document.documentElement
@@ -92,6 +95,14 @@ export default function IntroLoader() {
     const tick = () => {
       const now = performance.now()
 
+      if (fallbackShown.current && (introState.scene || introState.phase !== "loading")) {
+        fallbackShown.current = false
+        setFallback(false)
+      } else if (!fallbackShown.current && !introState.scene && introState.phase === "loading" && now - start > 400) {
+        fallbackShown.current = true
+        setFallback(true)
+      }
+
       if (introState.phase === "loading") {
         const elapsed = now - start
         const timeFraction = Math.min(elapsed / MIN_LOAD_MS, 1)
@@ -114,15 +125,11 @@ export default function IntroLoader() {
           target = 1
         }
 
+        // Read every frame by HeroScene, which draws the arc + clock dots.
         introState.progress += (target - introState.progress) * 0.12
-
-        if (fillRef.current) {
-          fillRef.current.style.transform = `scaleX(${introState.progress.toFixed(4)})`
-        }
 
         if (timeFraction >= 1 && isAssetsReady && introState.progress > 0.992) {
           introState.progress = 1
-          if (fillRef.current) fillRef.current.style.transform = "scaleX(1)"
           if (holdStart === 0) {
             holdStart = now
           } else if (now - holdStart >= 120) {
@@ -171,11 +178,13 @@ export default function IntroLoader() {
 
   return (
     <div ref={overlayRef} className="intro-overlay" aria-hidden="true">
-      <div className="intro-bar-wrap">
-        <div className="intro-bar">
-          <div ref={fillRef} className="intro-bar-fill" />
+      {fallback && (
+        <div className="intro-fallback">
+          {Array.from({ length: 12 }, (_, i) => (
+            <span key={i} style={{ transform: `rotate(${i * 30}deg)` }}><span /></span>
+          ))}
         </div>
-      </div>
+      )}
     </div>
   )
 }

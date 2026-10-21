@@ -23,6 +23,13 @@ export const introState = {
   /** 0 → 1 multiplier for the file-name sprites + scanner ring. */
   labels: 1,
   phase: "done" as IntroPhase,
+  /**
+   * True once HeroScene actually owns a WebGL renderer. Deliberately NOT part
+   * of the READY_KEYS set: that one must still resolve when WebGL is missing
+   * (HeroScene marks "hero-scene" in its catch), whereas this flag is how
+   * IntroLoader knows to show the plain-CSS loader fallback instead.
+   */
+  scene: false,
 }
 
 /**

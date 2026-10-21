@@ -168,6 +168,9 @@ export default function HeroScene({
     renderer.toneMapping = THREE.ACESFilmicToneMapping
     renderer.outputColorSpace = THREE.SRGBColorSpace
     host.appendChild(renderer.domElement)
+    // Tells IntroLoader a real scene exists (its CSS loader fallback is only
+    // for browsers where this line never runs).
+    introState.scene = true
 
     const scene = new THREE.Scene()
     const fog = new THREE.Fog(0xf4f1ea, 10, 26)
@@ -256,10 +259,11 @@ export default function HeroScene({
     // ===== Scanner ring sweeping up and down through the structure =====
     // The hole clears the node sphere (3.6 radius + largest node), so the
     // ring encircles it and the scan reads as passing over the files
+    const ringTex = makeRingTexture()
     const ring = new THREE.Mesh(
       new THREE.RingGeometry(DISC_INNER, DISC_OUTER, 96),
       new THREE.MeshBasicMaterial({
-        map: makeRingTexture(),
+        map: ringTex,
         transparent: true,
         depthWrite: false,
         side: THREE.DoubleSide,
@@ -268,6 +272,53 @@ export default function HeroScene({
     )
     ring.rotation.x = -Math.PI / 2
     scene.add(ring)
+
+    // ===== Intro loader: a clock face that flips down into the scanner disc =====
+    // It shares the disc's band and gradient texture, so when the flip lands the
+    // arc *is* the disc and the hand-off to `ring` is invisible. The dots are the
+    // path the fill travels; each lights up as the head passes it.
+    const LOADER_RADIUS = (DISC_INNER + DISC_OUTER) / 2
+    const LOADER_DOTS = 12
+    const loaderGroup = new THREE.Group()
+    scene.add(loaderGroup)
+
+    // Fills clockwise from 12 o'clock: atan2(x, y) is 0 at the top and grows
+    // towards +X (right). +0.07 head overshoot keeps the last few degrees from
+    // fading out when progress reaches exactly 1.
+    const arcMat = new THREE.ShaderMaterial({
+      uniforms: { uMap: { value: ringTex }, uProgress: { value: 0 }, uOpacity: { value: 0 } },
+      vertexShader: `varying vec2 vUv; varying float vAngle;
+        void main(){ vUv = uv; vAngle = atan(position.x, position.y);
+          gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }`,
+      fragmentShader: `uniform sampler2D uMap; uniform float uProgress; uniform float uOpacity;
+        varying vec2 vUv; varying float vAngle;
+        void main(){
+          float a = vAngle < 0.0 ? vAngle + 6.2831853 : vAngle;
+          float head = uProgress * 6.3531853;
+          float m = smoothstep(0.0, 0.07, head - a);
+          vec4 t = texture2D(uMap, vUv);
+          gl_FragColor = vec4(t.rgb, t.a * m * uOpacity);
+        }`,
+      transparent: true,
+      depthWrite: false,
+      side: THREE.DoubleSide,
+    })
+    loaderGroup.add(new THREE.Mesh(new THREE.RingGeometry(DISC_INNER, DISC_OUTER, 96), arcMat))
+
+    const DOT_LIT = new THREE.Color(0xfaf8f3)
+    const DOT_UNLIT = new THREE.Color(0xd8d2c4)
+    const dotGeo = new THREE.CircleGeometry(0.1, 20)
+    const loaderDots = Array.from({ length: LOADER_DOTS }, (_, i) => {
+      const a = (i / LOADER_DOTS) * Math.PI * 2
+      const dot = new THREE.Mesh(
+        dotGeo,
+        new THREE.MeshBasicMaterial({ color: DOT_UNLIT, transparent: true, opacity: 0, depthWrite: false })
+      )
+      dot.position.set(Math.sin(a) * LOADER_RADIUS, Math.cos(a) * LOADER_RADIUS, 0)
+      dot.renderOrder = 4 // above the arc so a lit dot reads on top of the fill
+      loaderGroup.add(dot)
+      return dot
+    })
 
     // Fresnel membrane, never an opaque replacement for the file nodes.
     const shellMat = new THREE.ShaderMaterial({
@@ -740,6 +791,24 @@ export default function HeroScene({
         orreryNodeScale *
         introState.labels *
         Math.max(0, Math.min((introPop - 0.5) / 0.15, 1))
+
+      // Intro loader. `flip` rides the panel glide: vertical clock face while the
+      // arc fills, horizontal disc a little over halfway through the slide home,
+      // then it cross-fades into `ring` (same radius, texture and sweep position).
+      const flip = smoothstep(0, 0.6, introState.panelT)
+      const dotFade = 1 - smoothstep(0, 0.55, flip)
+      loaderGroup.visible = introState.labels < 1
+      loaderGroup.rotation.x = -Math.PI / 2 * flip
+      // Centred while vertical, then rides the scanner's own sweep — no jump at hand-off.
+      loaderGroup.position.y = ring.position.y * flip
+      loaderGroup.scale.setScalar(orreryNodeScale)
+      arcMat.uniforms.uProgress.value = introState.progress
+      arcMat.uniforms.uOpacity.value = 1 - introState.labels
+      for (let i = 0; i < loaderDots.length; i++) {
+        const mat = loaderDots[i].material as THREE.MeshBasicMaterial
+        mat.color.copy(introState.progress >= i / LOADER_DOTS ? DOT_LIT : DOT_UNLIT)
+        mat.opacity = dotFade
+      }
 
       // Labels fade. Each label rides its own node's spring: hidden inside the
       // core, smoothly appearing as the node arrives and settles at home.

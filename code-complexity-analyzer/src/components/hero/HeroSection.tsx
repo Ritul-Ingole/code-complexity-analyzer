@@ -28,8 +28,9 @@ const ease = (t: number) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 
 // expands into the background, cropping past the viewport edges
 const BLEED_ZOOM = 1.4
 // Intro parking slot — where the 3D panel sits while the preloader runs.
-// Centred, slightly lifted so the progress bar has room underneath it.
-// These MUST stay in sync with `.intro-bar-wrap` in globals.css.
+// Centred, slightly lifted; HeroScene draws the loader ring around it at this
+// rect. `.intro-fallback` in globals.css mirrors the same lift/size for the
+// no-WebGL case.
 const INTRO_MAX_W = 760
 const INTRO_MAX_H = 620
 const INTRO_LIFT = 34

@@ -15,13 +15,16 @@ export default function NavBar({ isAuthenticated, login, active }: NavBarProps) 
   const linkCls = (isActive: boolean) =>
     `inline-flex items-center rounded-full px-3 py-1.5 text-sm transition-colors ${
       isActive
-        ? "bg-white/70 text-ui-text"
-        : "text-ui-secondary hover:bg-white/60 hover:text-ui-text"
+        ? "bg-ui-surface-raised text-ui-text"
+        : "text-ui-secondary hover:bg-ui-sand hover:text-ui-text"
     }`
 
   return (
     <div className="intro-nav sticky top-0 z-30 px-4 pt-4 sm:px-6 md:px-10">
-      <nav className="mx-auto flex w-full max-w-7xl items-center justify-between rounded-full border border-ui-border bg-[color-mix(in_srgb,var(--ui-canvas)_50%,transparent)] py-2.5 pl-6 pr-3 shadow-[0_8px_30px_rgba(43,38,32,0.06)] backdrop-blur-md">
+      {/* Translucent pill: backdrop-blur kept per 04's explicit shipped-identity
+          decision; only the decorative box shadow was removed (04: no decorative
+          shadows). Surface/border come from tokens. */}
+      <nav className="mx-auto flex w-full max-w-7xl items-center justify-between rounded-full border border-ui-border bg-[color-mix(in_srgb,var(--ui-canvas)_50%,transparent)] py-2.5 pl-6 pr-3 backdrop-blur-md">
         <Link href="/" className="inline-flex items-center font-mono text-sm tracking-tight text-ui-text">
           code<span className="text-ui-accent">·</span>complexity
         </Link>

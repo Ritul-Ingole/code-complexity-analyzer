@@ -26,6 +26,14 @@ export default function ShareModal({
     if (closing) return
     setClosing(true)
   }
+
+  // Reopening must reset the exit flag: the component stays mounted while
+  // closed, so a stale closing=true would re-render the opened modal still
+  // wearing ui-modal-exit, whose animationend/fallback immediately closes it
+  // again (the reopen-then-instant-close flash).
+  useEffect(() => {
+    if (isOpen) setClosing(false)
+  }, [isOpen])
   useEffect(() => {
     if (!closing) return
     const el = dialogRef.current

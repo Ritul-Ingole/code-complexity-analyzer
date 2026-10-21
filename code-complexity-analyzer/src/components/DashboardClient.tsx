@@ -99,8 +99,21 @@ function ActionMenu({
   analysis: Analysis
   onShare: (analysis: Analysis) => void
 }) {
+  const detailsRef = useRef<HTMLDetailsElement>(null)
+
+  // Native details has no outside-click dismiss — close the menu when a click
+  // lands anywhere outside it (also closes this one when another row's menu opens).
+  useEffect(() => {
+    const onDocClick = (e: MouseEvent) => {
+      const el = detailsRef.current
+      if (el?.open && !el.contains(e.target as Node)) el.removeAttribute("open")
+    }
+    document.addEventListener("click", onDocClick)
+    return () => document.removeEventListener("click", onDocClick)
+  }, [])
+
   return (
-    <details className="history-actions relative sm:hidden">
+    <details ref={detailsRef} className="history-actions relative sm:hidden">
       {/* Native disclosure: focusable/operable trigger without custom menu ARIA;
           content is hidden natively while closed. No animated height (05 rule). */}
       <summary

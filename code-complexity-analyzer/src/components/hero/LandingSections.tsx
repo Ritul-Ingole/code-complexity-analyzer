@@ -155,7 +155,7 @@ export function HowItWorks() {
             </ScrollReveal>
 
             <ScrollReveal
-              delay={500}
+              delay={300}
               direction="left"
               className="h-[17rem]"
               rootMargin="0px 0px 15% 0px"
@@ -182,7 +182,7 @@ export function HowItWorks() {
           {/* Right Column */}
           <div className="flex flex-col gap-6">
             <ScrollReveal
-              delay={300}
+              delay={150}
               direction="right"
               className="h-[17rem]"
               rootMargin="0px 0px 15% 0px"
@@ -198,7 +198,7 @@ export function HowItWorks() {
             </ScrollReveal>
 
             <ScrollReveal
-              delay={800}
+              delay={450}
               direction="right"
               className="h-[17rem]"
               rootMargin="0px 0px 15% 0px"

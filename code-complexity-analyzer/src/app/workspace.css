@@ -1065,3 +1065,28 @@
 
 /* Nested scroll containers under Lenis (see Allowed motion) */
 [data-lenis-prevent] { overscroll-behavior: contain; }
+
+/* Native-dialog backdrop (04 Dialog contract: token backdrop). The page behind
+   a modal is dimmed and blurred so the dialog card sits on its own surface.
+   Scoped to dialog.polish-ui, which is the shared island class (U05) — the
+   FileDetailDialog keeps the plain UA backdrop until it adopts that class.
+   Not motion: no animation, so prefers-reduced-motion needs no branch. */
+dialog.polish-ui::backdrop {
+  background: var(--ui-backdrop);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+}
+
+/* Centre the dialog with the engine's own mechanism: pin all four sides and
+   let auto margins do the centring. No left/top/transform, so nothing (a
+   transformed ancestor, a reduced-motion rule, a translate override) can
+   knock the card off-centre — auto margins on an over-constrained-free box
+   are symmetric in every engine. max-height keeps a tall card scrollable
+   inside the centred box instead of pinning it to the top edge. */
+dialog.polish-ui {
+  position: fixed;
+  inset: 0;
+  margin: auto;
+  max-height: calc(100dvh - var(--ui-space-6));
+  overflow: auto;
+}

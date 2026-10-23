@@ -1,7 +1,6 @@
 "use client"
 
 import { useEffect, useRef, useState } from "react"
-import { X, Copy, Check } from "lucide-react"
 
 interface ShareModalProps {
   isOpen: boolean
@@ -10,139 +9,98 @@ interface ShareModalProps {
   analysisId: string
 }
 
+// Native <dialog>, same pattern as FileDetailDialog: showModal() traps tab
+// focus, Escape/backdrop fire `cancel` (prevented and routed through onClose so
+// React owns the close), and effect cleanup returns focus to the Share button.
+// The URL is built in the effect, never during render, so the server render and
+// the first client render agree (no window access at module scope).
 export default function ShareModal({
   isOpen,
   onClose,
   userId,
   analysisId,
 }: ShareModalProps) {
-  const [copied, setCopied] = useState(false)
-  const [closing, setClosing] = useState(false)
-  const dialogRef = useRef<HTMLDivElement>(null)
+  const ref = useRef<HTMLDialogElement>(null)
+  const [shareUrl, setShareUrl] = useState("")
+  const [status, setStatus] = useState("")
 
-  // Bounded exit: apply ui-modal-exit, then unmount on animationend
-  // (timeout fallback per the motion spec, <= 400ms).
-  const requestClose = () => {
-    if (closing) return
-    setClosing(true)
-  }
-
-  // Reopening must reset the exit flag: the component stays mounted while
-  // closed, so a stale closing=true would re-render the opened modal still
-  // wearing ui-modal-exit, whose animationend/fallback immediately closes it
-  // again (the reopen-then-instant-close flash).
   useEffect(() => {
-    if (isOpen) setClosing(false)
-  }, [isOpen])
-  useEffect(() => {
-    if (!closing) return
-    const el = dialogRef.current
-    let done = false
-    const finish = () => {
-      if (done) return
-      done = true
-      onClose()
-    }
-    el?.addEventListener("animationend", finish, { once: true })
-    const fallback = setTimeout(finish, 400)
+    if (!isOpen) return
+    const previous = document.activeElement
+    const dialog = ref.current
+    setShareUrl(
+      `${window.location.origin}/share/${encodeURIComponent(userId)}/${encodeURIComponent(analysisId)}`
+    )
+    setStatus("")
+    dialog?.showModal()
     return () => {
-      clearTimeout(fallback)
-      el?.removeEventListener("animationend", finish)
+      dialog?.close()
+      if (previous instanceof HTMLElement && previous.isConnected) previous.focus()
     }
-  }, [closing, onClose])
-
-  // Escape closes too
-  useEffect(() => {
-    if (!isOpen || closing) return
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setClosing(true)
-    }
-    window.addEventListener("keydown", onKey)
-    return () => window.removeEventListener("keydown", onKey)
-  }, [isOpen, closing])
-
-  if (!isOpen) return null
-
-  const shareUrl = `${typeof window !== "undefined" ? window.location.origin : ""}/share/${userId}/${analysisId}`
+  }, [isOpen, userId, analysisId])
 
   const handleCopy = async () => {
     try {
       await navigator.clipboard.writeText(shareUrl)
-      setCopied(true)
-      setTimeout(() => setCopied(false), 2000)
-    } catch (err) {
-      console.error("Failed to copy:", err)
+      setStatus("Link copied.")
+    } catch {
+      // Denied permission or an insecure context: say so and point at the input
+      // instead of failing silently. No timer — the message stays until reopen.
+      setStatus("Copy failed. Select and copy the link below.")
     }
   }
 
-  return (
-    <div className="fixed inset-0 z-50 bg-[var(--ui-backdrop)] backdrop-blur-sm flex items-center justify-center p-4" onClick={requestClose}>
-      <div ref={dialogRef} data-lenis-prevent="true" onClick={(e) => e.stopPropagation()} className={`ui-state-enter ${closing ? "ui-modal-exit" : ""} w-full max-w-md rounded-[2rem] bg-white/40 p-1.5 ring-1 ring-ui-border shadow-[0_24px_60px_-24px_rgba(43,38,32,0.35)]`}>
-        <div className="bg-ui-surface rounded-[1.625rem] shadow-[inset_0_1px_0_rgba(255,255,255,0.7)] overflow-hidden">
-        {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-ui-border">
-          <h2 className="text-lg font-semibold text-ui-text">Share Analysis</h2>
-          <button
-            onClick={requestClose}
-            className="p-1 text-ui-taupe-soft hover:text-ui-secondary transition-colors"
-            aria-label="Close"
-          >
-            <X size={20} />
-          </button>
-        </div>
+  if (!isOpen) return null
 
-        {/* Content */}
-        <div className="p-6 space-y-4">
-          <p className="text-sm text-ui-secondary">
-            Share this link with others to let them view this analysis:
+  return (
+    <dialog
+      ref={ref}
+      data-lenis-prevent
+      className="polish-ui border-0 bg-transparent p-0 text-left"
+      style={{ maxWidth: "var(--ui-width-form)", width: "calc(100% - var(--ui-space-6))" }}
+      aria-labelledby="share-title"
+      onCancel={event => { event.preventDefault(); onClose() }}
+    >
+      {/* Landing-card shell: translucent halo + hairline ring, same recipe as
+          the section 02/03 cards, so the modal reads as one of those panels. */}
+      <div className="rounded-[var(--ui-radius-shell)] bg-white/40 p-1.5 ring-1 ring-ui-border">
+        <div className="rounded-panel bg-ui-surface p-6">
+          <h2 id="share-title" className="text-lg font-semibold text-ui-text">Share analysis</h2>
+          <p className="mt-2 text-sm text-ui-secondary">
+            This link is public — anyone with the URL can view this analysis.
           </p>
 
-          {/* URL Display */}
-          <div className="bg-ui-canvas rounded-lg p-4 border border-ui-border break-all">
-            <p className="text-xs font-mono text-ui-text-deep">{shareUrl}</p>
+          <label htmlFor="share-url" className="mt-4 block text-xs uppercase tracking-wide text-ui-secondary">
+            Public analysis link
+          </label>
+          <input
+            id="share-url"
+            value={shareUrl}
+            readOnly
+            className="mt-1 w-full rounded-control border border-ui-control bg-ui-canvas px-3 py-2 font-mono text-sm break-all text-ui-text-deep"
+            onFocus={event => event.currentTarget.select()}
+          />
+
+          {/* Reserved height so the success/failure message cannot shift the buttons. */}
+          <p role="status" aria-live="polite" className="mt-2 min-h-5 text-sm text-ui-text-deep">
+            {status}
+          </p>
+
+          <div className="mt-4 flex flex-wrap gap-3">
+            <button
+              type="button"
+              className="primary-action ui-press"
+              disabled={!shareUrl}
+              onClick={() => { void handleCopy() }}
+            >
+              Copy link
+            </button>
+            <button type="button" className="secondary-action" onClick={onClose}>
+              Close
+            </button>
           </div>
-
-          {/* Copy Button */}
-          <button
-            onClick={handleCopy}
-            className={`ui-press w-full flex items-center justify-center gap-2 px-4 py-2 rounded-full font-medium transition-[background-color,transform] duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] active:scale-[0.98] ${
-              copied
-                ? "badge-good"
-                : "bg-ui-accent text-ui-accent-ink hover:bg-ui-accent-hover"
-            }`}
-          >
-            {copied ? (
-              <>
-                <Check size={18} />
-                Copied
-              </>
-            ) : (
-              <>
-                <Copy size={18} />
-                Copy Link
-              </>
-            )}
-          </button>
-
-          {/* Info */}
-          <div className="bg-ui-sand-warm rounded-xl p-3 border border-ui-sand-strong">
-            <p className="text-xs text-ui-text-deep">
-              This link is public — anyone with the URL can view this analysis.
-            </p>
-          </div>
-        </div>
-
-        {/* Footer */}
-        <div className="px-6 py-4 border-t border-ui-border flex justify-end">
-          <button
-            onClick={requestClose}
-            className="ui-press rounded-full px-5 py-2 text-ui-text-deep hover:bg-ui-sand transition-[background-color,transform] duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] active:scale-[0.98] font-medium"
-          >
-            Done
-          </button>
-        </div>
         </div>
       </div>
-    </div>
+    </dialog>
   )
 }

@@ -130,31 +130,18 @@
   font-weight: 600;
   border: 1px solid transparent;
   line-height: 1.4;
-  transition:
-    background-color 300ms cubic-bezier(0.32, 0.72, 0, 1),
-    border-color 300ms cubic-bezier(0.32, 0.72, 0, 1),
-    box-shadow 300ms cubic-bezier(0.32, 0.72, 0, 1),
-    transform 200ms cubic-bezier(0.32, 0.72, 0, 1);
+  /* No transition here: 04 says a button's hover changes fill immediately and
+     05 allows press motion only through .ui-press (fast/feedback tokens). The
+     old declaration also animated box-shadow, which 05 does not allow. */
 }
 
 .primary-action {
   background: var(--terracotta);
   color: var(--surface);
-  box-shadow:
-    0 1px 2px rgba(43, 38, 32, 0.08),
-    0 8px 24px -8px rgba(193, 105, 79, 0.35);
 }
 
 .primary-action:hover {
   background: var(--terracotta-deep);
-  box-shadow:
-    0 2px 4px rgba(43, 38, 32, 0.08),
-    0 12px 32px -8px rgba(193, 105, 79, 0.45);
-}
-
-.primary-action:active,
-.secondary-action:active {
-  transform: scale(0.98);
 }
 
 /* Trailing icon never sits naked — nested circular orb (button-in-button) */
@@ -166,11 +153,8 @@
   height: 28px;
   border-radius: 9999px;
   background: rgba(250, 248, 243, 0.18);
-  transition: transform 300ms cubic-bezier(0.32, 0.72, 0, 1);
-}
-
-.primary-action:hover .action-orb {
-  transform: translate(2px, -1px) scale(1.06);
+  /* Static badge: the old hover translate/scale was decorative motion that 05
+     does not allow (press motion belongs to .ui-press on the button itself). */
 }
 
 .secondary-action {
@@ -257,7 +241,8 @@
   color: var(--ink);
   width: 100%;
   max-width: 100%;
-  transition: border-color 300ms cubic-bezier(0.32, 0.72, 0, 1);
+  /* Focus/hover border colour changes immediately (04 input contract); the
+     old 300ms border transition was raw non-token timing outside 05. */
 }
 
 .repo-form input:hover,
@@ -978,7 +963,9 @@
 .intake-guide li,
 .history-overview,
 .paper-card {
-  transition: border-color .3s ease, box-shadow .3s ease;
+  /* Row/card hover is an immediate state change with no motion (04 table row
+     hover, 05 Allowed motion); the old .3s border/box-shadow transition was
+     raw timing and animated a property 05 does not allow. */
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -1066,12 +1053,30 @@
 /* Nested scroll containers under Lenis (see Allowed motion) */
 [data-lenis-prevent] { overscroll-behavior: contain; }
 
+/* .polish-ui: the approved island for chrome that must not rely on .app-shell
+   (native dialogs in the top layer, portalled surfaces). It repeats the base
+   control rules of .app-shell, scoped to the island, so no root, canvas or
+   scene selector is touched. Tokens only. */
+.polish-ui {
+  color-scheme: light;
+  color: var(--ink);
+  font: 16px/1.5 var(--font-sans), Arial, Helvetica, sans-serif;
+}
+.polish-ui :is(button, a, input, select):focus-visible {
+  outline: 2px solid var(--clay);
+  outline-offset: 4px;
+}
+.polish-ui button { cursor: pointer; }
+.polish-ui button:disabled { cursor: not-allowed; opacity: .5; }
+
 /* Native-dialog backdrop (04 Dialog contract: token backdrop). The page behind
    a modal is dimmed and blurred so the dialog card sits on its own surface.
-   Scoped to dialog.polish-ui, which is the shared island class (U05) — the
-   FileDetailDialog keeps the plain UA backdrop until it adopts that class.
-   Not motion: no animation, so prefers-reduced-motion needs no branch. */
-dialog.polish-ui::backdrop {
+   Scoped to the two house dialogs only — the shared .polish-ui island (U05)
+   and FileDetailDialog's own class — so no other dialog or root element is
+   affected. Not motion: no animation, so prefers-reduced-motion needs no
+   branch. */
+dialog.polish-ui::backdrop,
+dialog.file-detail-dialog::backdrop {
   background: var(--ui-backdrop);
   backdrop-filter: blur(6px);
   -webkit-backdrop-filter: blur(6px);

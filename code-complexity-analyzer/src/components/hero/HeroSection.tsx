@@ -155,19 +155,19 @@ export default function HeroSection({ isAuthenticated, login }: HeroSectionProps
       {/* Hero copy (scrolls away naturally) + spacer holding the panel's home slot */}
       <section className="relative z-10 grid min-h-[calc(100vh-72px)] max-w-none grid-cols-1 items-center gap-10 px-6 py-16 md:grid-cols-[1.05fr_0.95fr] md:gap-12 md:px-12">
         <div className="intro-copy max-w-xl md:justify-self-center">
-          <p className="mb-6 font-mono text-xs tracking-wide text-[#a85c42]">
+          <p className="mb-6 font-mono text-xs tracking-wide text-ui-clay">
             01 — STATIC ANALYSIS, NO SETUP
           </p>
 
-          <h1 className="mb-6 font-display text-4xl font-semibold leading-[1.08] text-[#2b2620] md:text-6xl">
+          <h1 className="mb-6 font-display text-4xl font-semibold leading-[1.08] text-ui-text md:text-6xl">
             Every repo has a
             <br />
             worst file.
             <br />
-            <span className="text-[#c1694f]">Find yours.</span>
+            <span className="text-ui-accent">Find yours.</span>
           </h1>
 
-          <p className="mb-8 max-w-md text-lg leading-relaxed text-[#6f665a]">
+          <p className="mb-8 max-w-md text-lg leading-relaxed text-ui-secondary">
             Paste a public GitHub link and get complexity, LOC and hotspot
             rankings in seconds.
           </p>
@@ -190,14 +190,14 @@ export default function HeroSection({ isAuthenticated, login }: HeroSectionProps
                   </a>
                 </Magnetic>
               </div>
-              <p className="text-xs text-[#8a8172]">
+              <p className="text-xs text-ui-text-muted">
                 Free: one analysis per session, no login required.
               </p>
             </div>
           ) : (
             <div className="space-y-5">
-              <p className="text-sm text-[#6f665a]">
-                Welcome back, <span className="font-medium text-[#c1694f]">{login}</span>
+              <p className="text-sm text-ui-secondary">
+                Welcome back, <span className="font-medium text-ui-accent">{login}</span>
               </p>
               <div className="flex flex-col gap-3 sm:flex-row">
                 <Magnetic>
@@ -218,11 +218,11 @@ export default function HeroSection({ isAuthenticated, login }: HeroSectionProps
             </div>
           )}
 
-          <div className="mt-8 flex flex-wrap items-center gap-x-4 gap-y-1 font-mono text-xs text-[#8a8172]">
-            <span>&lt;10s per analysis</span>
-            <span className="text-[#d8d2c4]">/</span>
+          <div className="mt-8 flex flex-wrap items-center gap-x-4 gap-y-1 font-mono text-xs text-ui-text-muted">
+            <span>per-file complexity</span>
+            <span className="text-ui-border-strong">/</span>
             <span>top-10 hotspots</span>
-            <span className="text-[#d8d2c4]">/</span>
+            <span className="text-ui-border-strong">/</span>
             <span>trends &amp; compare</span>
           </div>
         </div>

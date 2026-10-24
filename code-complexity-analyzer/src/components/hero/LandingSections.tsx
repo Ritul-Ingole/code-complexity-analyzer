@@ -3,7 +3,6 @@
 import Link from "next/link"
 import { Check, ShieldCheck, Sparkles, ArrowRight, Link2, Gauge, TrendingUp } from "lucide-react"
 import ScrollReveal from "@/components/ScrollReveal"
-import Magnetic from "@/components/Magnetic"
 import AnimatedCounter from "@/components/AnimatedCounter"
 import AuthLink from "@/components/AuthLink"
 
@@ -33,7 +32,7 @@ const TREND_ROWS = [
 const FAQS = [
   {
     q: "Which languages are supported?",
-    a: "JavaScript and TypeScript today, including JSX/TSX. Support for additional AST-parseable languages is on the roadmap.",
+    a: "JavaScript and TypeScript today, including JSX/TSX. Support for other AST-parseable languages is not available yet.",
   },
   {
     q: "Do you store my source code?",
@@ -45,7 +44,7 @@ const FAQS = [
   },
   {
     q: "Can I analyze private repositories?",
-    a: "Public GitHub repositories only for now. Private repo support with scoped tokens is planned for a future release.",
+    a: "Public GitHub repositories only for now. Private repo support with scoped access tokens is not available yet.",
   },
 ]
 
@@ -322,23 +321,28 @@ export function TrendsTeaser({ isAuthenticated }: { isAuthenticated: boolean }) 
             <div className={CORE}>
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div className="flex items-center gap-2">
-                  <span className="h-2 w-2 rounded-full bg-[#4d7142]" />
-                  <span className="text-sm font-medium text-[#2b2620]">
+                  <span className="h-2 w-2 rounded-full bg-ui-success" />
+                  <span className="text-sm font-medium text-ui-text">
                     Improving over last 3 analyses
                   </span>
                 </div>
-                <span className="font-mono text-xs text-[#8a8172]">acme/web-client</span>
+                <span className="font-mono text-xs text-ui-text-muted">example/repo</span>
               </div>
-              <div className="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-3">
+              {/* The deltas below are fixture data, not a live trend: the label sits
+                  with the numbers (not only in the card header) and its 16px line is
+                  paid for by the grid losing mt-6 → mt-1, so the section height — and
+                  therefore the Orb's scroll progress — stays identical. */}
+              <p className="mt-1 text-xs text-ui-text-muted">Illustrative example, not live data</p>
+              <div className="mt-1 grid grid-cols-1 gap-3 sm:grid-cols-3">
                 {TREND_ROWS.map((row) => (
                   <div
                     key={row.label}
-                    className="rounded-xl border border-[#e6e0d4]/80 bg-white/70 p-4 transition-[transform,border-color] duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] hover:-translate-y-0.5 hover:border-[#c1694f]/30"
+                    className="rounded-xl border border-ui-border bg-white/70 p-4 hover:border-ui-accent"
                   >
-                    <p className="text-xs text-[#8a8172]">{row.label}</p>
+                    <p className="text-xs text-ui-text-muted">{row.label}</p>
                     <p
                       className={`mt-1 font-mono text-sm font-semibold tabular-nums ${
-                        row.positive ? "text-[#4d7142]" : "text-[#b4493d]"
+                        row.positive ? "text-ui-success" : "text-ui-danger"
                       }`}
                     >
                       {row.delta}
@@ -352,16 +356,14 @@ export function TrendsTeaser({ isAuthenticated }: { isAuthenticated: boolean }) 
 
         {!isAuthenticated && (
           <ScrollReveal delay={160}>
-            <div className="mt-8 flex flex-col items-center justify-center gap-4 rounded-2xl border border-[#e6e0d4]/80 bg-[#faf8f3]/70 p-8 text-center sm:flex-row">
-              <p className="text-sm text-[#6f665a]">
+            <div className="mt-8 flex flex-col items-center justify-center gap-4 rounded-2xl border border-ui-border bg-ui-surface p-8 text-center sm:flex-row">
+              <p className="text-sm text-ui-secondary">
                 Sign in with GitHub to start tracking your repositories&apos; trends.
               </p>
-              <Magnetic>
-                <AuthLink next="/" className="inline-flex items-center gap-2 whitespace-nowrap rounded-lg border border-[#d8d2c4] bg-white px-5 py-2.5 text-sm font-semibold text-[#2b2620] transition-colors hover:border-[#a89f8c]">
-                  Sign in
-                  <ArrowRight className="h-4 w-4" />
-                </AuthLink>
-              </Magnetic>
+              <AuthLink next="/" className="inline-flex items-center gap-2 whitespace-nowrap rounded-lg border border-ui-border-strong bg-ui-surface-raised px-5 py-2.5 text-sm font-semibold text-ui-text hover:border-ui-taupe-faint">
+                Sign in
+                <ArrowRight className="h-4 w-4" />
+              </AuthLink>
             </div>
           </ScrollReveal>
         )}
@@ -381,12 +383,12 @@ export function TrustFaq({ isAuthenticated }: { isAuthenticated: boolean }) {
         <div className="mt-12 grid grid-cols-1 gap-x-16 sm:grid-cols-2">
           {FAQS.map((faq, idx) => (
             <ScrollReveal key={faq.q} delay={idx * 80}>
-              <div className="border-t border-[#e6e0d4] py-6">
+              <div className="border-t border-ui-border py-6">
                 <div className="flex items-start gap-2">
-                  <Check className="mt-1 h-4 w-4 flex-shrink-0 text-[#c1694f]" strokeWidth={1.75} />
-                  <h3 className="text-base font-semibold text-[#2b2620]">{faq.q}</h3>
+                  <Check className="mt-1 h-4 w-4 flex-shrink-0 text-ui-accent" strokeWidth={1.75} />
+                  <h3 className="text-base font-semibold text-ui-text">{faq.q}</h3>
                 </div>
-                <p className="mt-2 pl-6 text-sm leading-relaxed text-[#6f665a]">{faq.a}</p>
+                <p className="mt-2 pl-6 text-sm leading-relaxed text-ui-secondary">{faq.a}</p>
               </div>
             </ScrollReveal>
           ))}
@@ -394,25 +396,23 @@ export function TrustFaq({ isAuthenticated }: { isAuthenticated: boolean }) {
 
         {/* Closing band — a slightly deeper shade of the same palette, not a theme swap */}
         <ScrollReveal delay={160}>
-          <div className="mt-16 rounded-[2.5rem] bg-[#ece5d6] px-6 py-20 text-center ring-1 ring-[#e6e0d4]">
-            <p className="font-mono text-xs tracking-wider text-[#a85c42]">06 — START NOW</p>
-            <h2 className="mx-auto mt-4 max-w-xl font-display text-3xl font-semibold tracking-tight text-[#2b2620] text-balance md:text-4xl">
+          <div className="mt-16 rounded-[2.5rem] bg-[#ece5d6] px-6 py-20 text-center ring-1 ring-ui-border">
+            <p className="font-mono text-xs tracking-wider text-ui-clay">06 — START NOW</p>
+            <h2 className="mx-auto mt-4 max-w-xl font-display text-3xl font-semibold tracking-tight text-ui-text text-balance md:text-4xl">
               Your worst file is one paste away.
             </h2>
-            <p className="mx-auto mt-4 max-w-md text-sm text-[#6f665a] text-pretty">
-              Free analysis runs in seconds — no login, no install, nothing stored.
+            <p className="mx-auto mt-4 max-w-md text-sm text-ui-secondary text-pretty">
+              Free analysis — no login, no install, and source code is never stored.
             </p>
             <div className="mt-10 flex flex-col items-center justify-center gap-4">
-              <Magnetic>
-                <Link href="/analyze" className="btn-primary">
-                  Analyze your first repo
-                  <span className="btn-orb">
-                    <ArrowRight className="h-4 w-4" />
-                  </span>
-                </Link>
-              </Magnetic>
+              <Link href="/analyze" className="btn-primary">
+                Analyze your first repo
+                <span className="btn-orb">
+                  <ArrowRight className="h-4 w-4" />
+                </span>
+              </Link>
               {!isAuthenticated && (
-                <AuthLink next="/" className="text-sm font-medium text-[#6f665a] underline underline-offset-4 transition-colors hover:text-[#2b2620]">
+                <AuthLink next="/" className="text-sm font-medium text-ui-secondary underline underline-offset-4 hover:text-ui-text">
                   or sign in to save your analyses
                 </AuthLink>
               )}

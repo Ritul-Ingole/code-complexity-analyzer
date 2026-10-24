@@ -385,7 +385,7 @@ export function TrustFaq({ isAuthenticated }: { isAuthenticated: boolean }) {
             <ScrollReveal key={faq.q} delay={idx * 80}>
               <div className="border-t border-ui-border py-6">
                 <div className="flex items-start gap-2">
-                  <Check className="mt-1 h-4 w-4 flex-shrink-0 text-ui-accent" strokeWidth={1.75} />
+                  <Check className="mt-1 h-4 w-4 flex-shrink-0 text-ui-clay-deep" strokeWidth={1.75} />
                   <h3 className="text-base font-semibold text-ui-text">{faq.q}</h3>
                 </div>
                 <p className="mt-2 pl-6 text-sm leading-relaxed text-ui-secondary">{faq.a}</p>
@@ -397,7 +397,7 @@ export function TrustFaq({ isAuthenticated }: { isAuthenticated: boolean }) {
         {/* Closing band — a slightly deeper shade of the same palette, not a theme swap */}
         <ScrollReveal delay={160}>
           <div className="mt-16 rounded-[2.5rem] bg-[#ece5d6] px-6 py-20 text-center ring-1 ring-ui-border">
-            <p className="font-mono text-xs tracking-wider text-ui-clay">06 — START NOW</p>
+            <p className="font-mono text-xs tracking-wider text-ui-clay-deep">06 — START NOW</p>
             <h2 className="mx-auto mt-4 max-w-xl font-display text-3xl font-semibold tracking-tight text-ui-text text-balance md:text-4xl">
               Your worst file is one paste away.
             </h2>

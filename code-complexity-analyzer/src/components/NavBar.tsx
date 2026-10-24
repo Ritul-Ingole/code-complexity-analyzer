@@ -26,7 +26,7 @@ export default function NavBar({ isAuthenticated, login, active }: NavBarProps) 
           shadows). Surface/border come from tokens. */}
       <nav className="mx-auto flex w-full max-w-7xl items-center justify-between rounded-full border border-ui-border bg-[color-mix(in_srgb,var(--ui-canvas)_50%,transparent)] py-2.5 pl-6 pr-3 backdrop-blur-md">
         <Link href="/" className="inline-flex items-center font-mono text-sm tracking-tight text-ui-text">
-          code<span className="text-ui-accent">·</span>complexity
+          code<span className="text-ui-clay-deep">·</span>complexity
         </Link>
         <div className="flex items-center gap-2 sm:gap-3">
           <Link
@@ -45,7 +45,7 @@ export default function NavBar({ isAuthenticated, login, active }: NavBarProps) 
               >
                 History
               </Link>
-              <span className="hidden font-mono text-xs text-ui-clay md:inline">{login}</span>
+              <span className="hidden font-mono text-xs text-ui-clay-deep md:inline">{login}</span>
               <form action="/api/auth/logout" method="post">
                 <button
                   type="submit"

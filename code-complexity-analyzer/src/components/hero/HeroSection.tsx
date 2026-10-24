@@ -155,7 +155,7 @@ export default function HeroSection({ isAuthenticated, login }: HeroSectionProps
       {/* Hero copy (scrolls away naturally) + spacer holding the panel's home slot */}
       <section className="relative z-10 grid min-h-[calc(100vh-72px)] max-w-none grid-cols-1 items-center gap-10 px-6 py-16 md:grid-cols-[1.05fr_0.95fr] md:gap-12 md:px-12">
         <div className="intro-copy max-w-xl md:justify-self-center">
-          <p className="mb-6 font-mono text-xs tracking-wide text-ui-clay">
+          <p className="mb-6 font-mono text-xs tracking-wide text-ui-clay-deep">
             01 — STATIC ANALYSIS, NO SETUP
           </p>
 
@@ -164,7 +164,7 @@ export default function HeroSection({ isAuthenticated, login }: HeroSectionProps
             <br />
             worst file.
             <br />
-            <span className="text-ui-accent">Find yours.</span>
+            <span className="text-ui-clay-deep">Find yours.</span>
           </h1>
 
           <p className="mb-8 max-w-md text-lg leading-relaxed text-ui-secondary">
@@ -197,7 +197,7 @@ export default function HeroSection({ isAuthenticated, login }: HeroSectionProps
           ) : (
             <div className="space-y-5">
               <p className="text-sm text-ui-secondary">
-                Welcome back, <span className="font-medium text-ui-accent">{login}</span>
+                Welcome back, <span className="font-medium text-ui-clay-deep">{login}</span>
               </p>
               <div className="flex flex-col gap-3 sm:flex-row">
                 <Magnetic>

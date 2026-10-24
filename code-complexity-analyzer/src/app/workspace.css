@@ -136,12 +136,14 @@
 }
 
 .primary-action {
-  background: var(--terracotta);
+  /* Fill-only darkening so the near-white label clears 4.5:1 (3.66 -> 5.26).
+     --terracotta stays the accent for shapes/borders; the ink is untouched. */
+  background: var(--ui-clay-deep);
   color: var(--surface);
 }
 
 .primary-action:hover {
-  background: var(--terracotta-deep);
+  background: var(--ui-rust-soft);
 }
 
 /* Trailing icon never sits naked — nested circular orb (button-in-button) */

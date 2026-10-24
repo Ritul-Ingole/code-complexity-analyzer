@@ -191,8 +191,8 @@ export function HowItWorks() {
                 step="02"
                 title="Condense into core metrics"
               >
-                AST parsing condenses thousands of lines into cyclomatic complexity, Halstead
-                volume, and maintainability indices in seconds.
+                AST parsing condenses thousands of lines into cyclomatic complexity, lines of
+                code, and function counts — the three numbers the report leads with.
               </StepCard>
             </ScrollReveal>
 

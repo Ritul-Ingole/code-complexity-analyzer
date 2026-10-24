@@ -1,36 +1,58 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Code Complexity Analyzer
 
-## Getting Started
+A web app that analyses the complexity of public JavaScript and TypeScript repositories on GitHub and reports where the codebase is hardest to work in.
 
-First, run the development server:
+Paste a repository URL and the app fetches its source files, measures cyclomatic complexity per file, and renders the result as a per-file table, a dependency graph and a ranked list of the most complex files. Signed-in users keep a history, can compare a fresh run against the previous analysis of the same repository, and can publish a read-only share link.
+
+## Running locally
+
+Node.js 18.17 or newer (the Next.js 14 minimum) and npm.
 
 ```bash
+npm install
+cp .env.example .env.local   # fill in the values described below
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Then open <http://localhost:3000>.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+| Script | Purpose |
+| --- | --- |
+| `npm run dev` | Development server with fast refresh |
+| `npm run build` | Production build |
+| `npm run start` | Serve the production build |
+| `npm run lint` | ESLint via `next lint` |
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Environment variables
 
-## Learn More
+Names only — copy `.env.example` and supply your own values. Never commit real credentials.
 
-To learn more about Next.js, take a look at the following resources:
+| Variable | Used for |
+| --- | --- |
+| `GITHUB_CLIENT_ID_LOCAL`, `GITHUB_CLIENT_SECRET_LOCAL` | GitHub OAuth app for local development |
+| `GITHUB_CLIENT_ID_PROD`, `GITHUB_CLIENT_SECRET_PROD` | GitHub OAuth app for the deployed (non-localhost) origin |
+| `SESSION_SECRET` | Signing the session cookie (HMAC, at least 16 random characters) |
+| `NEXT_PUBLIC_APP_URL` | Public base URL used to build OAuth redirects |
+| `AWS_REGION`, `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY` | AWS credentials for the analysis backend |
+| `LAMBDA_FUNCTION_NAME` | Analysis Lambda invoked by the API routes |
+| `DYNAMODB_TABLE_NAME` | Table that stores analyses, comparisons and usage counters |
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## How it works
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+- **Analysis** — API routes in `src/app/api` validate the repository URL, invoke the analysis Lambda and store the result in DynamoDB. Repository fetching and complexity measurement happen in the Lambda, not in the browser.
+- **Auth** — GitHub OAuth through the `src/app/api/auth` routes, with a signed session cookie. Signed-in analyses are retained for 30 days and then expire.
+- **Usage limits** — anonymous visitors get one analysis per browser session; per-user daily limits are enforced server-side and the remaining count is read from `/api/usage`.
+- **Sharing** — `/share/[userId]/[analysisId]` renders a public, read-only report. No account is required to view it.
 
-## Deploy on Vercel
+## Stack
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+- [Next.js 14](https://nextjs.org) App Router with React 18 and TypeScript
+- [Tailwind CSS](https://tailwindcss.com) 3.4 for styling, with the design tokens declared in `src/app/globals.css`
+- [Recharts](https://recharts.org) for the complexity charts
+- [three.js](https://threejs.org) for the landing-page orb scene
+- [Lenis](https://github.com/darkroomengineering/lenis) for smooth scrolling
+- AWS Lambda + DynamoDB via the AWS SDK for the analysis backend
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Backend
+
+The analysis service lives in the sibling repository `code-complexity-analyzer-lambda`. This app only calls it (through the Lambda SDK) and reads its results from DynamoDB; deploy and configure that service first if you are running the whole system locally.

@@ -132,15 +132,16 @@ export function HowItWorks() {
         </ScrollReveal>
 
         {/* Split container: Left Column, Open Center Corridor (for 3D scene), Right Column */}
-        <div className="relative mt-16 grid grid-cols-1 items-center gap-8 lg:grid-cols-[1fr_minmax(280px,380px)_1fr]">
+        <div className="relative mt-16 grid grid-cols-1 items-center gap-x-8 gap-y-6 lg:grid-cols-[1fr_minmax(280px,380px)_1fr]">
           <div className="spine-line hidden lg:block" />
 
-          {/* Left Column */}
-          <div className="flex flex-col gap-6">
+          {/* One flat grid: the DOM order (01, 02, 03, FAST) is also the reading and
+              stacking order at every width, and the lg:* placement classes reproduce
+              the original two-column arc on desktop. */}
             <ScrollReveal
               delay={0}
               direction="left"
-              className="h-[17rem]"
+              className="h-[17rem] lg:col-start-1 lg:row-start-1"
               rootMargin="0px 0px 15% 0px"
             >
               <StepCard
@@ -154,36 +155,9 @@ export function HowItWorks() {
             </ScrollReveal>
 
             <ScrollReveal
-              delay={300}
-              direction="left"
-              className="h-[17rem]"
-              rootMargin="0px 0px 15% 0px"
-            >
-              <StepCard
-                icon={<TrendingUp className="h-4 w-4" strokeWidth={1.5} />}
-                step="03"
-                title="Surface the hotspots"
-              >
-                Watch the complexity field burst open into prioritized file ranks, warning
-                indicators, and concrete refactoring opportunities.
-              </StepCard>
-            </ScrollReveal>
-          </div>
-
-          {/* Center Corridor: deliberately transparent & open so the 3D sphere & particle burst shine through */}
-          <div
-            aria-hidden="true"
-            className="pointer-events-none hidden h-[460px] w-full lg:flex items-center justify-center"
-          >
-            <div className="corridor-ring h-48 w-48 rounded-full border border-[#c1694f]/15" />
-          </div>
-
-          {/* Right Column */}
-          <div className="flex flex-col gap-6">
-            <ScrollReveal
               delay={150}
               direction="right"
-              className="h-[17rem]"
+              className="h-[17rem] lg:col-start-3 lg:row-start-1"
               rootMargin="0px 0px 15% 0px"
             >
               <StepCard
@@ -197,9 +171,25 @@ export function HowItWorks() {
             </ScrollReveal>
 
             <ScrollReveal
+              delay={300}
+              direction="left"
+              className="h-[17rem] max-lg:mt-2 lg:col-start-1 lg:row-start-2"
+              rootMargin="0px 0px 15% 0px"
+            >
+              <StepCard
+                icon={<TrendingUp className="h-4 w-4" strokeWidth={1.5} />}
+                step="03"
+                title="Surface the hotspots"
+              >
+                Watch the complexity field burst open into prioritized file ranks, warning
+                indicators, and concrete refactoring opportunities.
+              </StepCard>
+            </ScrollReveal>
+
+            <ScrollReveal
               delay={450}
               direction="right"
-              className="h-[17rem]"
+              className="h-[17rem] lg:col-start-3 lg:row-start-2"
               rootMargin="0px 0px 15% 0px"
             >
               <div className={`${SHELL_STATIC} h-full`}>
@@ -218,6 +208,15 @@ export function HowItWorks() {
                 </div>
               </div>
             </ScrollReveal>
+
+          {/* Center corridor: deliberately transparent and open so the 3D sphere and
+              particle burst shine through. Positioned by grid placement, and last in the
+              DOM because it is decorative (aria-hidden). */}
+          <div
+            aria-hidden="true"
+            className="pointer-events-none hidden h-[460px] w-full lg:col-start-2 lg:row-span-2 lg:row-start-1 lg:flex items-center justify-center"
+          >
+            <div className="corridor-ring h-48 w-48 rounded-full border border-[#c1694f]/15" />
           </div>
         </div>
       </div>

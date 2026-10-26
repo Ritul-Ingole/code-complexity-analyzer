@@ -12,8 +12,10 @@ interface NavBarProps {
 // Site-wide navigation — the same floating glass pill on the landing and the
 // app pages, so there is exactly one nav implementation to keep in sync.
 export default function NavBar({ isAuthenticated, login, active }: NavBarProps) {
+  // Colour changes are immediate state changes, not animation (04); 05 allows
+  // press motion only through .ui-press, so no transition belongs on the links.
   const linkCls = (isActive: boolean) =>
-    `inline-flex items-center rounded-full px-3 py-1.5 text-sm transition-colors ${
+    `inline-flex items-center rounded-full px-3 py-1.5 text-sm ${
       isActive
         ? "bg-ui-surface-raised text-ui-text"
         : "text-ui-secondary hover:bg-ui-sand hover:text-ui-text"
@@ -49,14 +51,14 @@ export default function NavBar({ isAuthenticated, login, active }: NavBarProps) 
               <form action="/api/auth/logout" method="post">
                 <button
                   type="submit"
-                  className="inline-flex items-center rounded-full border border-ui-border-strong bg-ui-surface px-4 py-1.5 text-xs font-medium text-ui-text transition-[border-color,transform] duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] hover:border-ui-taupe-faint active:scale-95"
+                  className="ui-press inline-flex items-center rounded-full border border-ui-border-strong bg-ui-surface px-4 py-1.5 text-xs font-medium text-ui-text hover:border-ui-taupe-faint"
                 >
                   Logout
                 </button>
               </form>
             </>
           ) : (
-            <AuthLink next={active === "analyze" ? "/analyze" : active === "history" ? "/history" : "/"} className="inline-flex items-center gap-1.5 rounded-full border border-ui-border-strong bg-ui-surface px-4 py-1.5 text-xs font-medium text-ui-text transition-[border-color,transform] duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] hover:border-ui-taupe-faint active:scale-95">
+            <AuthLink next={active === "analyze" ? "/analyze" : active === "history" ? "/history" : "/"} className="ui-press inline-flex items-center gap-1.5 rounded-full border border-ui-border-strong bg-ui-surface px-4 py-1.5 text-xs font-medium text-ui-text hover:border-ui-taupe-faint">
               <Lock className="h-3 w-3" />
               Sign in
             </AuthLink>

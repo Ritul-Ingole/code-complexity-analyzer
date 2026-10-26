@@ -54,7 +54,7 @@ export default function AnalyzingScreen({ ready }: AnalyzingScreenProps) {
       {!ready ? (
         <>
           <div className="flex justify-center mb-6">
-            <div className="w-10 h-10 border-4 border-ui-sand-strong border-t-ui-clay rounded-full animate-spin" />
+            <div className="ui-spinner w-10 h-10 border-4 border-ui-sand-strong border-t-ui-clay rounded-full" />
           </div>
           {/* Single polite live region: announced once per state, never per tick.
               Elapsed time and fact rotation stay outside it. */}

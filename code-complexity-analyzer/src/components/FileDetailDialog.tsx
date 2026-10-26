@@ -21,7 +21,11 @@ export default function FileDetailDialog({ file, onClose }: { file: FileDetail; 
   return (
     <dialog
       ref={ref}
-      className="file-detail-dialog rounded-2xl border border-ui-control bg-ui-raised text-left"
+      // max-h + overflow keep a tall card scrollable inside the centred box on a
+      // short viewport; data-lenis-prevent stops Lenis swallowing that wheel
+      // (05: every modal body is armed).
+      className="file-detail-dialog max-h-[calc(100dvh-var(--ui-space-6))] overflow-auto rounded-2xl border border-ui-control bg-ui-raised text-left"
+      data-lenis-prevent
       style={{ padding: "var(--ui-space-5)", maxWidth: "var(--ui-width-form)", width: "calc(100% - var(--ui-space-6))" }}
       aria-labelledby="file-detail-title"
       onCancel={event => { event.preventDefault(); onClose() }}

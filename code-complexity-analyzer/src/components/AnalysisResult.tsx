@@ -239,7 +239,7 @@ export default function AnalysisResults({
               </thead>
               <tbody>
                 {topComplexFiles.map((file) => (
-                  <tr key={file.path} className="border-b border-ui-border transition-colors duration-200 last:border-b-0 hover:bg-ui-canvas">
+                  <tr key={file.path} className="border-b border-ui-border last:border-b-0 hover:bg-ui-canvas">
                     <td className="px-6 py-4 text-ui-text break-all">{file.path}</td>
                     <td className="px-6 py-4 text-right text-ui-secondary tabular-nums">{file.loc}</td>
                     <td className="px-6 py-4 text-right text-ui-secondary tabular-nums">{file.functions}</td>
@@ -268,7 +268,7 @@ export default function AnalysisResults({
                 <button
                   key={file.path}
                   onClick={() => setSelectedFile(file)}
-                  className="w-full px-4 py-4 border-b border-ui-border last:border-b-0 hover:bg-ui-canvas active:bg-ui-sand text-left transition-colors duration-200"
+                  className="w-full px-4 py-4 border-b border-ui-border last:border-b-0 hover:bg-ui-canvas active:bg-ui-sand text-left"
                 >
                   <span className="flex items-center justify-between gap-3">
                     {/* flex-1 basis-0: takes the full width left of the badge;

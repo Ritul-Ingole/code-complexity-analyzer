@@ -213,7 +213,7 @@ export default function ComparisonSection({
       <button
         onClick={() => setIsOpen(!isOpen)}
         aria-expanded={isOpen}
-        className="w-full flex items-center justify-between px-6 py-4 text-left transition-colors duration-300 hover:bg-ui-canvas"
+        className="w-full flex items-center justify-between px-6 py-4 text-left hover:bg-ui-canvas"
       >
         <div className="flex-1">
           <h3 className="text-lg font-semibold text-ui-text">Detailed Comparison</h3>

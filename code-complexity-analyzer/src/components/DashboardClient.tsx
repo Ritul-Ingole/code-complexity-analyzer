@@ -117,7 +117,7 @@ function ActionMenu({
       {/* Native disclosure: focusable/operable trigger without custom menu ARIA;
           content is hidden natively while closed. No animated height (05 rule). */}
       <summary
-        className="p-2 hover:bg-ui-sand rounded-lg transition-colors cursor-pointer list-none [&::-webkit-details-marker]:hidden"
+        className="p-2 hover:bg-ui-sand rounded-lg cursor-pointer list-none [&::-webkit-details-marker]:hidden"
         aria-label="More actions"
       >
         <MoreVertical size={20} className="text-ui-secondary" aria-hidden="true" />
@@ -129,7 +129,7 @@ function ActionMenu({
             downloadJSON(analysis)
             event.currentTarget.closest("details")?.removeAttribute("open")
           }}
-          className="w-full text-left px-4 py-3 hover:bg-ui-canvas flex items-center gap-2 text-ui-text-deep hover:text-ui-clay-deep transition-colors border-b border-ui-border"
+          className="w-full text-left px-4 py-3 hover:bg-ui-canvas flex items-center gap-2 text-ui-text-deep hover:text-ui-clay-deep border-b border-ui-border"
         >
           <Download size={16} />
           Download JSON
@@ -140,7 +140,7 @@ function ActionMenu({
             onShare(analysis)
             event.currentTarget.closest("details")?.removeAttribute("open")
           }}
-          className="w-full text-left px-4 py-3 hover:bg-ui-canvas flex items-center gap-2 text-ui-text-deep hover:text-ui-clay-deep transition-colors border-b border-ui-border"
+          className="w-full text-left px-4 py-3 hover:bg-ui-canvas flex items-center gap-2 text-ui-text-deep hover:text-ui-clay-deep border-b border-ui-border"
         >
           <Share2 size={16} />
           Share
@@ -152,7 +152,7 @@ function ActionMenu({
           onClick={(event) => {
             event.currentTarget.closest("details")?.removeAttribute("open")
           }}
-          className="w-full text-left px-4 py-3 hover:bg-ui-canvas flex items-center gap-2 text-ui-text-deep hover:text-ui-clay-deep transition-colors"
+          className="w-full text-left px-4 py-3 hover:bg-ui-canvas flex items-center gap-2 text-ui-text-deep hover:text-ui-clay-deep"
         >
           <svg
             className="w-4 h-4"
@@ -188,7 +188,7 @@ function FileDetailsExpandable({ files }: { files: TopComplexFile[] }) {
         {displayFiles.map((file, idx) => (
           <div
             key={idx}
-            className="p-3 bg-ui-canvas rounded border border-ui-border hover:border-ui-border-strong transition-colors"
+            className="p-3 bg-ui-canvas rounded border border-ui-border hover:border-ui-border-strong"
           >
             <div className="flex items-start justify-between gap-2">
               <div className="flex-1 min-w-0">
@@ -451,7 +451,7 @@ export default function DashboardClient({ userId, login }: DashboardClientProps)
               onClick={() => setFilterPanelOpen(!filterPanelOpen)}
               aria-expanded={filterPanelOpen}
               aria-controls="history-filter-panel"
-              className={`flex items-center gap-2 px-4 py-2 rounded-full border transition-[background-color,border-color,color,transform] duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] active:scale-[0.98] ${
+              className={`ui-press flex items-center gap-2 px-4 py-2 rounded-full border ${
                 hasActiveFilters
                   ? "bg-ui-sand-warm border-ui-sand-strong text-ui-rust-soft"
                   : "bg-ui-surface border-ui-border-strong text-ui-text-deep hover:bg-ui-canvas"
@@ -478,7 +478,7 @@ export default function DashboardClient({ userId, login }: DashboardClientProps)
                         key={range}
                         onClick={() => { setInitialLoad(false); setDateRange(range) }}
                         aria-pressed={dateRange === range}
-                        className={`rounded-full px-4 py-2 text-sm font-medium transition-[background-color,color,transform] duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] active:scale-[0.98] ${
+                        className={`ui-press rounded-full px-4 py-2 text-sm font-medium ${
                           dateRange === range
                             ? "bg-ui-accent text-ui-surface"
                             : "bg-ui-sand text-ui-text-deep hover:bg-ui-border"
@@ -505,7 +505,7 @@ export default function DashboardClient({ userId, login }: DashboardClientProps)
                         key={level}
                         onClick={() => { setInitialLoad(false); setComplexityFilter(level) }}
                         aria-pressed={complexityFilter === level}
-                        className={`rounded-full px-4 py-2 text-sm font-medium transition-[background-color,color,transform] duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] active:scale-[0.98] ${
+                        className={`ui-press rounded-full px-4 py-2 text-sm font-medium ${
                           complexityFilter === level
                             ? "bg-ui-accent text-ui-surface"
                             : "bg-ui-sand text-ui-text-deep hover:bg-ui-border"
@@ -542,7 +542,7 @@ export default function DashboardClient({ userId, login }: DashboardClientProps)
                 {hasActiveFilters && (
                   <button
                     onClick={clearAllFilters}
-                    className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-ui-danger hover:bg-[var(--ui-danger-surface)] rounded-control transition-colors"
+                    className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-ui-danger hover:bg-[var(--ui-danger-surface)] rounded-control"
                   >
                     <X size={16} />
                     Clear All Filters

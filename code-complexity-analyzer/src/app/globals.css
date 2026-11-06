@@ -99,6 +99,13 @@
   --ink-soft: #4a4238;
   --line-strong: var(--ui-border-strong);
 
+  /* ascii-reveal skeleton hooks — mapped onto the tokens above so the ASCII
+     placeholders read as paper/sand, never the library's default blue-grey. */
+  --ascii-skeleton: var(--ui-sand-strong);
+  --ascii-glyph: var(--ui-taupe-faint);
+  --ascii-accent: var(--ui-accent);
+  --ascii-font: var(--font-mono), ui-monospace, monospace;
+
   --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
   --ease-fluid: cubic-bezier(0.32, 0.72, 0, 1);
 

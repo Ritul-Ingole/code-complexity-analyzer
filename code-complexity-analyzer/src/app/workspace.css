@@ -988,8 +988,6 @@
 
 .ui-press { touch-action: manipulation; }
 .ui-link { position: relative; text-decoration: underline; text-underline-offset: 0.2em; }
-.ui-skeleton { position: relative; overflow: hidden; background: var(--ui-raised); }
-.ui-skeleton::after { content: ""; position: absolute; inset: 0; background: var(--ui-border); opacity: 0.4; }
 @keyframes ui-enter {
   from { opacity: 0; transform: translateY(var(--ui-motion-enter-y)); }
   to { opacity: 1; transform: none; }
@@ -997,10 +995,6 @@
 @keyframes ui-chart-fade {
   from { opacity: 0; }
   to { opacity: 1; }
-}
-@keyframes ui-sheen {
-  from { transform: translateX(-100%); }
-  to { transform: translateX(100%); }
 }
 @keyframes ui-spin {
   to { transform: rotate(1turn); }
@@ -1027,18 +1021,15 @@
     animation: ui-enter var(--ui-motion-enter) var(--ui-ease-enter) both;
     animation-delay: calc(var(--ui-row-index) * var(--ui-motion-stagger));
   }
-  .ui-skeleton::after { animation: ui-sheen var(--ui-motion-count) var(--ui-ease-linear) infinite; }
   .ui-spinner { animation: ui-spin var(--ui-motion-count) var(--ui-ease-linear) infinite; }
 }
 @media (prefers-reduced-motion: reduce) {
   .ui-collapse,
-  .ui-press, .ui-state-enter, .ui-route-enter, .ui-modal-exit, .ui-chart-enter, .ui-list-enter > li, .ui-spinner,
-  .ui-skeleton::after {
+  .ui-press, .ui-state-enter, .ui-route-enter, .ui-modal-exit, .ui-chart-enter, .ui-list-enter > li, .ui-spinner {
     animation: none !important;
     transition: none !important;
     transform: none !important;
   }
-  .ui-skeleton::after { display: none; }
 }
 
 /* Accordion collapse (history filter panel): the 0fr→1fr grid-row transition

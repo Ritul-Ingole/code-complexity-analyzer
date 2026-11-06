@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react"
 import { useParams } from "next/navigation"
 import { ArrowRight } from "lucide-react"
+import { AsciiSkeleton } from "ascii-reveal"
 import AnalysisResults from "@/components/AnalysisResult"
 import type { GraphData } from "@/components/FileGraph"
 
@@ -90,9 +91,9 @@ export default function SharePage() {
             Loading shared analysis.
           </p>
           <div aria-hidden="true" className="mt-6 space-y-4">
-            <div className="ui-skeleton h-16 w-full rounded-panel" />
-            <div className="ui-skeleton h-40 w-full rounded-panel" />
-            <div className="ui-skeleton h-64 w-full rounded-panel" />
+            <AsciiSkeleton as="div" rows={3} width="100%" seed={1} />
+            <AsciiSkeleton as="div" rows={8} width="100%" seed={2} />
+            <AsciiSkeleton as="div" rows={13} width="100%" seed={3} />
           </div>
         </div>
       </div>

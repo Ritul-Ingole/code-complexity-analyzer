@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react"
 import { ChevronDown, ChevronUp, Search, Filter, X, Download, MoreVertical, Share2, ArrowRight, ArrowUpRight } from "lucide-react"
+import { AsciiSkeleton } from "ascii-reveal"
 import { readMotion } from "@/lib/motion"
 import type { CSSProperties } from "react"
 import AppShell from "./AppShell"
@@ -392,23 +393,24 @@ export default function DashboardClient({ userId, login }: DashboardClientProps)
                   key={i}
                   className="bg-ui-surface rounded-panel border border-ui-border p-6"
                 >
-                  <div className="h-6 ui-skeleton rounded w-1/3 mb-4"></div>
-                  <div className="h-4 ui-skeleton rounded w-1/4 mb-6"></div>
+                  <div className="mb-6">
+                    <AsciiSkeleton as="div" lines={2} widths={["33%", "25%"]} seed={i} />
+                  </div>
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
                     {[1, 2, 3, 4].map((j) => (
-                      <div key={j}>
-                        <div className="h-4 ui-skeleton rounded w-2/3 mb-2"></div>
-                        <div className="h-6 ui-skeleton rounded w-1/2"></div>
-                      </div>
+                      <AsciiSkeleton key={j} as="div" rows={2} seed={j} animate={false} />
                     ))}
                   </div>
                   {/* Explore-button and file-detail blocks: skeleton mirrors the
-                      final row geometry. */}
-                  <div className="h-9 ui-skeleton rounded w-48 mb-6"></div>
+                      final row geometry. Only the card header shimmers — the rest
+                      is a still pattern (zero CPU) per ascii-reveal's list guidance. */}
+                  <div className="mb-6">
+                    <AsciiSkeleton as="div" rows={2} width="12rem" seed={i + 4} animate={false} />
+                  </div>
                   <div className="space-y-3">
-                    <div className="h-12 ui-skeleton rounded"></div>
-                    <div className="h-12 ui-skeleton rounded"></div>
-                    <div className="h-12 ui-skeleton rounded"></div>
+                    {[1, 2, 3].map((j) => (
+                      <AsciiSkeleton key={j} as="div" rows={3} seed={i + 4 + j} animate={false} />
+                    ))}
                   </div>
                 </div>
               ))}

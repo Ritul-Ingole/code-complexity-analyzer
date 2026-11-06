@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react"
 import { useParams } from "next/navigation"
 import { ArrowRight } from "lucide-react"
-import { AsciiSkeleton } from "ascii-reveal"
+import { AsciiReveal, AsciiSkeleton } from "ascii-reveal"
 import AnalysisResults from "@/components/AnalysisResult"
 import type { GraphData } from "@/components/FileGraph"
 
@@ -145,14 +145,17 @@ export default function SharePage() {
           </p>
         </div>
 
-        {/* Read-only analysis result */}
-        <AnalysisResults
-          data={analysis}
-          onBack={() => {
-            // No-op for shared page
-          }}
-          isShared={true}
-        />
+        {/* Read-only analysis result — decodes in through the character grid now
+            that the skeleton above has finished waiting. */}
+        <AsciiReveal>
+          <AnalysisResults
+            data={analysis}
+            onBack={() => {
+              // No-op for shared page
+            }}
+            isShared={true}
+          />
+        </AsciiReveal>
       </div>
     </div>
   )

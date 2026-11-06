@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react"
 import { ChevronDown, ChevronUp, Search, Filter, X, Download, MoreVertical, Share2, ArrowRight, ArrowUpRight } from "lucide-react"
-import { AsciiSkeleton } from "ascii-reveal"
+import { AsciiReveal, AsciiSkeleton } from "ascii-reveal"
 import { readMotion } from "@/lib/motion"
 import type { CSSProperties } from "react"
 import AppShell from "./AppShell"
@@ -376,7 +376,7 @@ export default function DashboardClient({ userId, login }: DashboardClientProps)
     complexityFilter !== "all" ||
     sortBy !== "newest"
 
-  if (report) return <AppShell active="history" login={login}><button type="button" className="text-action" onClick={()=>setReport(null)}>← Back to history</button><AnalysisResults data={report} userId={userId} analysisId={report.analysisId} onBack={()=>{window.location.href="/analyze"}}/></AppShell>
+  if (report) return <AppShell active="history" login={login}><button type="button" className="text-action" onClick={()=>setReport(null)}>← Back to history</button><AsciiReveal><AnalysisResults data={report} userId={userId} analysisId={report.analysisId} onBack={()=>{window.location.href="/analyze"}}/></AsciiReveal></AppShell>
   return (
     <AppShell active="history" login={login}><div className="history-workspace">
       <div className="history-content">
@@ -583,7 +583,7 @@ export default function DashboardClient({ userId, login }: DashboardClientProps)
                 </button>
               </div>
             ) : (
-              <ul ref={listRef} className="grid gap-6 ui-list-enter">
+              <AsciiReveal><ul ref={listRef} className="grid gap-6 ui-list-enter">
                 {filteredAndSortedAnalyses.map((analysis, index) => (
                   <li
                     key={analysis.analysisId}
@@ -697,7 +697,7 @@ export default function DashboardClient({ userId, login }: DashboardClientProps)
                     </div>
                   </li>
                 ))}
-              </ul>
+              </ul></AsciiReveal>
             )}
           </div>
         )}

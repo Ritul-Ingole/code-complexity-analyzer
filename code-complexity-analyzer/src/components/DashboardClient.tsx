@@ -237,11 +237,24 @@ function FileDetailsExpandable({ files }: { files: TopComplexFile[] }) {
   )
 }
 
+// The ASCII skeleton is a first-arrival affordance. Later visits rely on the
+// decode-in shimmer while the fetch runs, so placeholder cards never reappear.
+const HISTORY_SKELETON_KEY = "cc-history-skeleton-shown"
+
 export default function DashboardClient({ userId, login }: DashboardClientProps) {
   const [report, setReport] = useState<Analysis | null>(null)
   const [analyses, setAnalyses] = useState<Analysis[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState("")
+  const [showSkeleton, setShowSkeleton] = useState(true)
+
+  // Same gate as the /analyze boot: skeleton once per tab session, decode-in after.
+  useEffect(() => {
+    let seen = false
+    try { seen = sessionStorage.getItem(HISTORY_SKELETON_KEY) === "1" } catch { /* storage unavailable — show it */ }
+    if (seen) { setShowSkeleton(false); return }
+    try { sessionStorage.setItem(HISTORY_SKELETON_KEY, "1") } catch { /* storage unavailable — fine */ }
+  }, [])
 
   // Opening a report from history is a view swap, not a navigation — without
   // this the page keeps the /history scroll offset and lands mid-report.
@@ -379,6 +392,7 @@ export default function DashboardClient({ userId, login }: DashboardClientProps)
   if (report) return <AppShell active="history" login={login}><button type="button" className="text-action" onClick={()=>setReport(null)}>← Back to history</button><AsciiReveal><AnalysisResults data={report} userId={userId} analysisId={report.analysisId} onBack={()=>{window.location.href="/analyze"}}/></AsciiReveal></AppShell>
   return (
     <AppShell active="history" login={login}><div className="history-workspace">
+      <AsciiReveal loading={loading} revealOnMount={false}>
       <div className="history-content">
         <header className="workspace-heading heading-with-action"><div><p className="eyebrow">YOUR REPOSITORY NOTEBOOK</p><h1>Less guesswork.<br/><span>More perspective.</span></h1><p>Revisit your analyses and decide what deserves attention next.</p></div><a href="/analyze" className="primary-action ui-press">Analyze a repository<span className="action-orb" aria-hidden="true"><ArrowUpRight size={13} /></span></a></header>
         {!loading&&!error&&<div className="history-overview"><div><span>Saved analyses</span><strong>{analyses.length}</strong></div><div><span>Repositories explored</span><strong>{new Set(analyses.map(a=>a.repoUrl)).size}</strong></div><div><span>History retention</span><strong>30 <small>days</small></strong></div></div>}
@@ -387,6 +401,7 @@ export default function DashboardClient({ userId, login }: DashboardClientProps)
           <>
             {/* Single loading announcement; the skeleton itself is decorative. */}
             <p role="status" className="sr-only">Loading your history.</p>
+            {showSkeleton && (
             <div className="space-y-4" aria-hidden="true">
               {[1, 2, 3].map((i) => (
                 <div
@@ -415,6 +430,7 @@ export default function DashboardClient({ userId, login }: DashboardClientProps)
                 </div>
               ))}
             </div>
+            )}
           </>
         )}
 
@@ -583,7 +599,7 @@ export default function DashboardClient({ userId, login }: DashboardClientProps)
                 </button>
               </div>
             ) : (
-              <AsciiReveal><ul ref={listRef} className="grid gap-6 ui-list-enter">
+              <ul ref={listRef} className="grid gap-6 ui-list-enter">
                 {filteredAndSortedAnalyses.map((analysis, index) => (
                   <li
                     key={analysis.analysisId}
@@ -697,11 +713,12 @@ export default function DashboardClient({ userId, login }: DashboardClientProps)
                     </div>
                   </li>
                 ))}
-              </ul></AsciiReveal>
+              </ul>
             )}
           </div>
         )}
       </div>
+      </AsciiReveal>
 
       {/* Share Modal */}
       {selectedAnalysisForShare && (

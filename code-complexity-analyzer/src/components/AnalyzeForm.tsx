@@ -111,6 +111,22 @@ export default function AnalyzeForm({ isAuthenticated }: AnalyzeFormProps) {
         body: JSON.stringify(analysisData),
       })
 
+      // Quota is the one failure the user can act on: the preview stays in
+      // sessionStorage, so name the reset time instead of a generic error.
+      if (res.status === 429) {
+        const resetsRaw: unknown = (await res.json().catch(() => null))?.resetsAt
+        const resets =
+          typeof resetsRaw === "string" && !isNaN(new Date(resetsRaw).getTime())
+            ? new Date(resetsRaw).toLocaleTimeString()
+            : null
+        setError(
+          resets
+            ? `Daily analysis limit reached. This preview is still saved in this tab — save it again after ${resets}.`
+            : "Daily analysis limit reached. This preview is still saved in this tab."
+        )
+        return
+      }
+
       if (!res.ok) throw new Error("Failed to save analysis")
 
       const result = await res.json()

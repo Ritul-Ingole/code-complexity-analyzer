@@ -101,8 +101,8 @@
 
   /* ascii-reveal skeleton hooks — mapped onto the tokens above so the ASCII
      placeholders read as paper/sand, never the library's default blue-grey. */
-  --ascii-skeleton: var(--ui-sand-strong);
-  --ascii-glyph: var(--ui-taupe-faint);
+  --ascii-skeleton: var(--ui-taupe-soft);
+  --ascii-glyph: var(--ui-taupe-soft);
   --ascii-accent: var(--ui-accent);
   --ascii-font: var(--font-mono), ui-monospace, monospace;
 

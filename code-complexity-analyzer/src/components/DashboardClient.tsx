@@ -398,18 +398,18 @@ export default function DashboardClient({ userId, login }: DashboardClientProps)
                   </div>
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
                     {[1, 2, 3, 4].map((j) => (
-                      <AsciiSkeleton key={j} as="div" rows={2} seed={j} animate={false} />
+                      <AsciiSkeleton key={j} as="div" rows={2} seed={j} />
                     ))}
                   </div>
                   {/* Explore-button and file-detail blocks: skeleton mirrors the
                       final row geometry. Only the card header shimmers — the rest
                       is a still pattern (zero CPU) per ascii-reveal's list guidance. */}
                   <div className="mb-6">
-                    <AsciiSkeleton as="div" rows={2} width="12rem" seed={i + 4} animate={false} />
+                    <AsciiSkeleton as="div" rows={2} width="12rem" seed={i + 4} />
                   </div>
                   <div className="space-y-3">
                     {[1, 2, 3].map((j) => (
-                      <AsciiSkeleton key={j} as="div" rows={3} seed={i + 4 + j} animate={false} />
+                      <AsciiSkeleton key={j} as="div" rows={3} seed={i + 4 + j} />
                     ))}
                   </div>
                 </div>

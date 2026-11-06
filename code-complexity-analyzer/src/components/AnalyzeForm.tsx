@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from "react"
 import { useSearchParams } from "next/navigation"
 import type { GraphData } from "./FileGraph"
 import { ArrowUpRight, Check, Circle } from "lucide-react"
+import { AsciiReveal, AsciiSkeleton } from "ascii-reveal"
 import AnalysisResults from "./AnalysisResult"
 import AnalyzingScreen from "./AnalyzingScreen"
 import Link from "next/link"
@@ -36,6 +37,15 @@ interface AnalysisResponse {
 
 const READY_GRACE_PERIOD_MS = 2600
 
+// Minimum time the analysing screen stays up after a submit. A fast failure
+// (bad credentials, undeployed function) would otherwise flash the skeleton for
+// a few hundred ms and read as "nothing happened".
+const MIN_ANALYZING_MS = 1400
+
+// Boot skeleton on first arrival: once per tab session, then the form decodes in.
+const BOOT_MS = 1000
+const BOOT_SESSION_KEY = "cc-analyze-booted"
+
 interface AnalyzeFormProps {
   isAuthenticated: boolean
 }
@@ -56,6 +66,23 @@ export default function AnalyzeForm({ isAuthenticated }: AnalyzeFormProps) {
   const [remaining, setRemaining] = useState<number | null>(null)
   const [resetsAt, setResetsAt] = useState<string | null>(null)
   const readyTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const [booting, setBooting] = useState(true)
+
+  // Play the boot skeleton once per tab session, never for reduced-motion users.
+  // It starts true so the skeleton is in the server-rendered HTML and paints on
+  // the first frame; a repeat visit flips it off right after that paint.
+  useEffect(() => {
+    const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches
+    let seen = false
+    try { seen = sessionStorage.getItem(BOOT_SESSION_KEY) === "1" } catch { /* storage unavailable — treat as unseen */ }
+    if (reduced || seen) {
+      setBooting(false)
+      return
+    }
+    try { sessionStorage.setItem(BOOT_SESSION_KEY, "1") } catch { /* storage unavailable — play it anyway */ }
+    const timer = setTimeout(() => setBooting(false), BOOT_MS)
+    return () => clearTimeout(timer)
+  }, [])
 
   // Clear the grace-period timer when the component unmounts so the
   // delayed state updates never fire on a dead component.
@@ -152,6 +179,16 @@ export default function AnalyzeForm({ isAuthenticated }: AnalyzeFormProps) {
     setLoading(true)
     setReady(false)
 
+    const startedAt = Date.now()
+    // Keep the analysing screen up long enough to read, even when the request
+    // comes back in a few hundred ms.
+    const stopLoadingAfterMinimum = () => {
+      readyTimerRef.current = setTimeout(
+        () => setLoading(false),
+        Math.max(0, MIN_ANALYZING_MS - (Date.now() - startedAt))
+      )
+    }
+
     try {
       const endpoint = isAuthenticated ? "/api/analyze" : "/api/analyze-preview"
 
@@ -177,7 +214,7 @@ export default function AnalyzeForm({ isAuthenticated }: AnalyzeFormProps) {
         } else {
           setError("Analysis could not be completed. Please try again.")
         }
-        setLoading(false)
+        stopLoadingAfterMinimum()
         return
       }
 
@@ -203,7 +240,7 @@ export default function AnalyzeForm({ isAuthenticated }: AnalyzeFormProps) {
       // Network failure or a non-JSON response (e.g. a proxy error page) — one
       // generic, retry-by-resubmit message; no internals leaked.
       setError("Analysis could not be completed. Please try again.")
-      setLoading(false)
+      stopLoadingAfterMinimum()
     }
   }
 
@@ -213,18 +250,20 @@ export default function AnalyzeForm({ isAuthenticated }: AnalyzeFormProps) {
 
   if (results) {
     return (
-      <AnalysisResults
-        data={results}
-        onBack={() => {
-          setResults(null)
-          setReady(false)
-          setUserId(null)
-          setAnalysisId(null)
-        }}
-        userId={userId || undefined}
-        analysisId={analysisId || undefined}
-        isPreview={!isAuthenticated}
-      />
+      <AsciiReveal>
+        <AnalysisResults
+          data={results}
+          onBack={() => {
+            setResults(null)
+            setReady(false)
+            setUserId(null)
+            setAnalysisId(null)
+          }}
+          userId={userId || undefined}
+          analysisId={analysisId || undefined}
+          isPreview={!isAuthenticated}
+        />
+      </AsciiReveal>
     )
   }
 
@@ -232,7 +271,25 @@ export default function AnalyzeForm({ isAuthenticated }: AnalyzeFormProps) {
     return <AnalyzingScreen ready={ready} />
   }
 
-  return <div className="analyze-intake">
+  if (booting) {
+    return (
+      <div className="analyze-intake">
+        <section className="paper-card form-panel">
+          <div className="form-panel-core">
+            <AsciiSkeleton as="div" lines={1} widths={["38%"]} seed={11} />
+            <div className="mt-6"><AsciiSkeleton as="div" rows={3} seed={12} /></div>
+            <div className="mt-6"><AsciiSkeleton as="div" rows={3} seed={13} /></div>
+            <div className="mt-6"><AsciiSkeleton as="div" rows={2} width="14rem" seed={14} /></div>
+          </div>
+        </section>
+        <aside className="intake-guide">
+          <AsciiSkeleton as="div" rows={12} seed={15} />
+        </aside>
+      </div>
+    )
+  }
+
+  return <AsciiReveal><div className="analyze-intake">
           <section className="paper-card form-panel">
             <div className="form-panel-core">
             <p className="eyebrow">01 — START WITH A REPOSITORY</p>
@@ -300,5 +357,5 @@ export default function AnalyzeForm({ isAuthenticated }: AnalyzeFormProps) {
                     <span><Circle size={10} fill="currentColor" className="inline-block align-middle" aria-hidden="true" /> High &gt;40</span>
                   </div>
                 </aside>
-          </div>
+          </div></AsciiReveal>
 }

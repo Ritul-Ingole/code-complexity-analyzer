@@ -2,21 +2,8 @@
 
 import { useEffect, useState } from "react"
 import { CheckCircle2 } from "lucide-react"
+import { AsciiSkeleton } from "ascii-reveal"
 import { REPORT_SHELL, REPORT_CORE } from "./report-shell"
-
-// Short, self-contained facts. Each should be readable in a few seconds.
-const FACTS = [
-  "Cyclomatic complexity was introduced by Thomas McCabe in 1976 to measure how many independent paths exist through a function.",
-  "A cyclomatic complexity score under 10 is generally considered easy to test and maintain.",
-  "The Linux kernel's git repository has over 1 million commits.",
-  "Linus Torvalds created Git in 2005 in about 10 days, initially to manage the Linux kernel's source code.",
-  "The term 'code smell' was popularized by Kent Beck to describe surface indicators of deeper problems in code.",
-  "Deeply nested if/else statements increase cyclomatic complexity faster than almost any other pattern.",
-  "Refactoring a single large function into smaller ones can reduce complexity without changing behavior at all.",
-  "Every logical operator (&& or ||) in a conditional adds a new path the code can take — and a point to complexity.",
-  "Shallow clones fetch only recent history, which is why they're much faster than a full git clone.",
-  "Abstract Syntax Trees represent code as a tree structure, letting tools analyze it without ever running it.",
-]
 
 // ponytail: stage advancement is timer-based, not real Lambda progress — add SSE/status polling only if analyses regularly exceed ~60s
 const STAGES = [
@@ -31,21 +18,13 @@ interface AnalyzingScreenProps {
 }
 
 export default function AnalyzingScreen({ ready }: AnalyzingScreenProps) {
-  const [factIndex, setFactIndex] = useState(0)
   const [elapsed, setElapsed] = useState(0)
 
   useEffect(() => {
-    if (ready) return // stop rotating/ticking once results are ready
+    if (ready) return // stop ticking once results are ready
 
-    const factsInterval = setInterval(() => {
-      setFactIndex((prev) => (prev + 1) % FACTS.length)
-    }, 7500)
     const tickInterval = setInterval(() => setElapsed((s) => s + 1), 1000)
-
-    return () => {
-      clearInterval(factsInterval)
-      clearInterval(tickInterval)
-    }
+    return () => clearInterval(tickInterval)
   }, [ready])
 
   return (
@@ -57,7 +36,7 @@ export default function AnalyzingScreen({ ready }: AnalyzingScreenProps) {
             <div className="ui-spinner w-10 h-10 border-4 border-ui-sand-strong border-t-ui-clay rounded-full" />
           </div>
           {/* Single polite live region: announced once per state, never per tick.
-              Elapsed time and fact rotation stay outside it. */}
+              Elapsed time stays outside it. */}
           <p role="status" aria-live="polite" aria-atomic="true" className="text-sm font-semibold text-ui-secondary uppercase tracking-wide mb-2">
             Analyzing repository. Please wait.
           </p>
@@ -75,12 +54,7 @@ export default function AnalyzingScreen({ ready }: AnalyzingScreenProps) {
               </li>
             ))}
           </ul>
-          <p className="text-xs text-ui-muted mb-6">Progress is estimated while the server processes the repository.</p>
-          <div className="min-h-[72px] flex items-center justify-center px-4">
-            <p className="text-ui-text-deep leading-relaxed">
-              {FACTS[factIndex]}
-            </p>
-          </div>
+          <p className="text-xs text-ui-muted">Progress is estimated while the server processes the repository.</p>
         </>
       ) : (
         <div className="ui-state-enter">
@@ -106,6 +80,25 @@ export default function AnalyzingScreen({ ready }: AnalyzingScreenProps) {
           </p>
         </div>
       )}
+
+      {/* Report skeleton: previews the shape of the report that is coming and
+          holds the card height steady when the stage list flips to checkmarks.
+          Rendered in both states so nothing jumps before the decode-in. */}
+      <div aria-hidden="true" className="mt-8 text-left">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+          {[1, 2, 3, 4].map((j) => (
+            <AsciiSkeleton key={j} as="div" rows={2} seed={j} />
+          ))}
+        </div>
+        <div className="mb-4">
+          <AsciiSkeleton as="div" rows={8} seed={5} />
+        </div>
+        <div className="space-y-3">
+          {[1, 2, 3].map((j) => (
+            <AsciiSkeleton key={j} as="div" rows={3} seed={5 + j} />
+          ))}
+        </div>
+      </div>
       </div>
     </div>
   )
